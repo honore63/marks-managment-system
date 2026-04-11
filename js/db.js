@@ -407,12 +407,26 @@ const DB = {
     return await _supabase.from('settings').upsert({ key: 'grading_scale', value: scale }, { onConflict: 'key' }).select();
   },
   async getSchoolInfo() {
-    const { data, error } = await _supabase.from('settings').select('*').eq('key', 'school_info').single();
-    if (error) return null;
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return null;
+    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).single();
+    const sc = profile?.school_code || 'DEFAULT';
+
+    const { data, error } = await _supabase.from('settings').select('*').eq('key', `school_info_${sc}`).single();
+    if (error) {
+        // Fallback to legacy key for reverse compatibility if new one doesn't exist
+        const { data: fallback } = await _supabase.from('settings').select('*').eq('key', 'school_info').single();
+        return fallback ? fallback.value : null;
+    }
     return data.value;
   },
   async saveSchoolInfo(info) {
-    return await _supabase.from('settings').upsert({ key: 'school_info', value: info }, { onConflict: 'key' }).select();
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return null;
+    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).single();
+    const sc = profile?.school_code || 'DEFAULT';
+
+    return await _supabase.from('settings').upsert({ key: `school_info_${sc}`, value: info }, { onConflict: 'key' }).select();
   }
 };
 
