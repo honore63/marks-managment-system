@@ -461,15 +461,16 @@ async function renderDashboard() {
     if (!MY_PROFILE?.id) return;
 
     try {
-        const [assignments, allAssignments, allStudents, allMarks, assessList] = await Promise.all([
-            DB.getTeacherAssignments(MY_PROFILE.id),
+        const assignments = await DB.getTeacherAssignments(MY_PROFILE.id);
+        const myClassIds = [...new Set(assignments.map(a => a.class_id).filter(Boolean))];
+        
+        const [allAssignments, allStudents, allMarks, assessList] = await Promise.all([
             DB.getTeacherAssignments(),
             DB.getStudents(),
-            DB.getMarks(),
+            DB.getMarks({ classIds: myClassIds }), // Filtered fetch
             DB.getAssessments()
         ]);
         
-        const myClassIds = [...new Set(assignments.map(a => a.class_id).filter(Boolean))];
         const activeAssessments = assessList.length ? assessList : [
             {id: 'cat', name: 'CAT', max_score: 50},
             {id: 'et', name: 'End Of Term', max_score: 100}
@@ -598,6 +599,9 @@ async function renderDashboard() {
         if (el('dash-completion-pct')) el('dash-completion-pct').textContent = progressPct + '%';
         if (el('dash-completion-label')) el('dash-completion-label').textContent = `${progressPct}% Submitted`;
         if (el('dash-completion-bar')) el('dash-completion-bar').style.width = progressPct + '%';
+
+        // Initialize Specialized Pedagogical Analytics
+        renderTeacherDashboardCharts();
         if (el('dash-stat-submitted')) el('dash-stat-submitted').textContent = `${submittedCount}/${totalContexts}`;
         if (el('dash-stat-pending')) el('dash-stat-pending').textContent = pendingCount === 0 ? '--' : pendingCount;
         if (el('dash-stat-remaining')) el('dash-stat-remaining').textContent = remainingCount === 0 ? '--' : remainingCount;
@@ -1199,52 +1203,108 @@ async function printReportCards() {
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>${classLabel}</title>
             <style>
-                    @page { margin: 0; size: ${isProclamation ? 'A4 landscape' : 'A4 portrait'}; }
-                    @media print { 
-                        body { margin:0; padding:0; background:white !important; display: block !important; width: 210mm; } 
-                        .no-print { display: none !important; }
-                        .report-page { 
-                            border: none !important; 
-                            margin: 0 !important; 
-                            padding: 12mm 15mm !important; 
-                            box-shadow: none !important; 
-                            width: 210mm !important; 
-                            height: 297mm !important; 
-                            page-break-after: always !important; 
-                            page-break-inside: avoid !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                            justify-content: space-between !important;
-                        }
-                        .report-page:last-child { page-break-after: avoid !important; }
-                        #proclamation-document { 
-                            border: none !important; 
-                            margin: 0 !important; 
-                            padding: 10mm 15mm !important; 
-                            width: 297mm !important; 
-                            height: 210mm !important; 
-                            page-break-after: always !important;
-                            overflow: hidden !important;
-                            display: flex !important;
-                            flex-direction: column !important;
-                            justify-content: space-between !important;
+                @page { margin: 0; size: ${isProclamation ? 'A4 landscape' : 'A4 portrait'}; }
+                @media print { 
+                    body { margin:0; padding:0; background:white !important; display: block !important; width: ${isProclamation ? '297mm' : '210mm'} !important; } 
+                    .no-print { display: none !important; }
+                    .report-container { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                    .report-page { 
+                        border: none !important; margin: 0 !important; 
+                        padding: 12mm !important; box-shadow: none !important; 
+                        width: 210mm !important; height: 297mm !important; 
+                        page-break-after: always !important; display: flex !important;
+                        flex-direction: column !important; justify-content: space-between !important;
+                    }
+                    #proclamation-document { 
+                        border: none !important; margin: 0 !important; padding: 10mm !important; 
+                        width: 297mm !important; height: 210mm !important; 
+                        page-break-after: always !important; display: flex !important;
+                    }
+                }
+                body { background: #f1f5f9; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; min-height: 100vh; }
+                .report-container { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 20px; box-sizing: border-box; width: 100%; transition: all 0.3s; }
+                .report-page { background: white; width: 210mm; height: 297mm; padding: 15mm; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+                
+                .header-bar { 
+                    position: sticky; top: 0; width: 100%; z-index: 1000;
+                    background: #1e293b; color: white; padding: 1rem 2rem;
+                    display: flex; justify-content: space-between; align-items: center;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); box-sizing: border-box;
+                }
+                .btn-group { display: flex; gap: 10px; }
+                .p-btn { cursor: pointer; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+                .btn-print { background: #3b82f6; color: white; }
+                .btn-pdf { background: #10b981; color: white; }
+                
+                /* SMART FIT SCALING SYSTEM */
+                @media screen and (max-width: 1000px) {
+                    .report-container { padding: 20px 10px; gap: 10px; }
+                    .report-page { 
+                        transform-origin: top center;
+                        margin-bottom: 0 !important;
+                    }
+                }
+
+                /* Table Responsiveness inside the report */
+                .report-content table { width: 100%; border-collapse: collapse; }
+                .report-content .table-wrap { width: 100%; overflow-x: auto; }
+            </style>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+            <script>
+                function applySmartFit() {
+                    const pages = document.querySelectorAll('.report-page') || [document.getElementById('proclamation-document')];
+                    if (!pages.length || window.innerWidth > 1000) return;
+                    
+                    const vw = window.innerWidth - 20; 
+                    const baseWidth = pages[0].offsetWidth;
+                    const sFit = vw / baseWidth;
+                    
+                    if (sFit < 1) {
+                        pages.forEach(p => {
+                            if (p) p.style.transform = 'scale(' + sFit + ')';
+                        });
+                        // Adjust container height to remove void space
+                        const container = document.querySelector('.report-container');
+                        if (container) {
+                           const newH = pages[0].offsetHeight * sFit;
+                           container.style.gap = '10px';
                         }
                     }
-                body { background: #334155; margin: 0; padding: 40px; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; gap: 40px; }
-                .report-page { background: white; width: 210mm; height: 297mm; padding: 15mm; border-radius: 4px; box-shadow: 0 40px 80px rgba(0,0,0,0.4); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
-                #proclamation-document { background: white; width: 297mm; height: 210mm; padding: 10mm 15mm; border-radius: 4px; box-shadow: 0 40px 80px rgba(0,0,0,0.4); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
-                .header-bar { position: fixed; top: 0; left: 0; right: 0; background: #0B0E14; color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; border-bottom: 2px solid #1e293b; }
-                .print-btn { background: #2563eb; color: white; border: none; padding: 10px 24px; font-weight: 800; cursor: pointer; border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
-            </style>
+                }
+                function downloadPDF() {
+                     const element = document.querySelector('.report-container');
+                     const opt = {
+                         margin: 0,
+                         filename: '${classLabel}_Official_Records.pdf',
+                         image: { type: 'jpeg', quality: 0.98 },
+                         html2canvas: { scale: 2, useCORS: true },
+                         jsPDF: { unit: 'mm', format: '${isProclamation ? 'a4' : 'a4'}', orientation: '${isProclamation ? 'landscape' : 'portrait'}' }
+                     };
+                     html2pdf().set(opt).from(element).save();
+                }
+                window.onload = applySmartFit;
+                window.onresize = applySmartFit;
+            </script>
         </head>
         <body>
             <div class="header-bar no-print">
-                <h2 style="margin: 0; font-size: 1.1rem; letter-spacing: 0.5px;">INSTITUTIONAL BATCH EXPORT</h2>
-                <button class="print-btn" onclick="window.print()">🖨️ PRINT ALL DIRECTLY TO PDF</button>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 32px; height: 32px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900;">M</div>
+                    <h2 style="margin: 0; font-size: 1rem; letter-spacing: 0.5px; font-weight: 900;">PREVIEW: ${classLabel.toUpperCase()}</h2>
+                </div>
+                <div class="btn-group">
+                    <button class="p-btn btn-print" onclick="window.print()">🖨️ Print Report</button>
+                    <button class="p-btn btn-pdf" onclick="downloadPDF()">📄 Download PDF</button>
+                    <button class="p-btn" style="background: #f43f5e; color: white;" onclick="window.close()">✕ Close</button>
+                </div>
             </div>
-            ${area.innerHTML}
+            <div class="report-container">
+                ${area.innerHTML}
+            </div>
         </body>
         </html>
     `;
@@ -2856,4 +2916,120 @@ window.renderPassRateReportPdf = function(data) {
         </html>
     `);
     pw.document.close();
-};
+};// ============================================================
+// PEDAGOGICAL ANALYTICS (DASHBOARD)
+// ============================================================
+let teacherMainPerfChart = null;
+let teacherMainDistChart = null;
+
+async function renderTeacherDashboardCharts() {
+    const perfCtx = document.getElementById('teacher-main-perf-chart');
+    const distCtx = document.getElementById('teacher-main-dist-chart');
+    if (!perfCtx || !distCtx) return;
+
+    try {
+        const assignments = await DB.getTeacherAssignments(MY_PROFILE.id);
+        const myClassIds = [...new Set(assignments.map(a => a.class_id).filter(Boolean))];
+        const marks = await DB.getMarks({ classIds: myClassIds }); // Focused fetch for speed
+        const term = SCHOOL_INFO.active_term || '2';
+
+        // 1. Line/Bar Chart: Performance per Class/Subject Jurisdiction
+        const chartLabels = assignments.map(a => {
+            const clsName = a.classes?.name || 'Unknown Class';
+            const subName = a.subjects?.abbr || a.subjects?.name || 'General';
+            return `${clsName} - ${subName}`;
+        });
+        const chartValues = assignments.map(a => {
+            const jurisdictionMarks = marks.filter(m => 
+                m.class_id === a.class_id && 
+                m.subject_id === a.subject_id && 
+                String(m.term) === String(term)
+            );
+            if (!jurisdictionMarks.length) return 0;
+            const avg = (jurisdictionMarks.reduce((acc, m) => acc + (Number(m.score) / Number(m.max_score || 10) * 100), 0) / jurisdictionMarks.length);
+            return parseFloat(avg.toFixed(1));
+        });
+
+        if (teacherMainPerfChart) teacherMainPerfChart.destroy();
+        teacherMainPerfChart = new Chart(perfCtx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Jurisdiction Success Rate %',
+                    data: chartValues,
+                    backgroundColor: '#4f46e5',
+                    borderRadius: 10,
+                    barThickness: 35
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                  y: { beginAtZero: true, max: 100, ticks: { font: { weight: 'bold' } } },
+                  x: { ticks: { font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // 2. Pie Chart: Pass vs Fail Distribution in Teacher's nodes
+        let passed = 0, failed = 0;
+        const myMarks = marks.filter(m => 
+            assignments.some(a => a.class_id === m.class_id && a.subject_id === m.subject_id) && 
+            String(m.term) === String(term)
+        );
+        myMarks.forEach(m => {
+            const pct = (Number(m.score) / Number(m.max_score || 10)) * 100;
+            if (pct >= 50) passed++; else failed++;
+        });
+
+        if (teacherMainDistChart) teacherMainDistChart.destroy();
+        teacherMainDistChart = new Chart(distCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Pass / Fail Distribution'],
+                datasets: [
+                    {
+                        label: 'Passed',
+                        data: [passed],
+                        backgroundColor: '#10b981',
+                        borderRadius: 10,
+                        barThickness: 50
+                    },
+                    {
+                        label: 'Failed',
+                        data: [failed],
+                        backgroundColor: '#ef4444',
+                        borderRadius: 10,
+                        barThickness: 50
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { weight: 'bold' }, padding: 16 } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = passed + failed;
+                                const pct = total ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                                return ctx.dataset.label + ': ' + ctx.raw + ' students (' + pct + '%)';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
+                    x: { ticks: { font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+    } catch (e) {
+        console.error('[ANALYTICS] Teacher chart failure:', e);
+    }
+}

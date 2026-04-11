@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* NOTE: All Google Fonts are loaded via css/fonts.css — see that file for the full font system. */
 
 /* 
    CAMIS INSTITUTIONAL DESIGN SYSTEM
@@ -670,6 +670,12 @@ h1, h2, h3, h4, .logo-text, .nav-item, .btn, .nav-label, .term-lbl { font-family
 .resp-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .resp-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .stats-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(4, 1fr); }
+.dashboard-main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: stretch; }
+.analytics-dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+
+@media (max-width: 1024px) {
+  .dashboard-main-grid, .analytics-dashboard-grid { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
+}
 
 /* ============================================================
    HIGH-FIDELITY RESPONSIVE FRAMEWORK (UNIVERSAL)
@@ -788,9 +794,10 @@ h1, h2, h3, h4, .logo-text, .nav-item, .btn, .nav-label, .term-lbl { font-family
   background: white; 
   border: 1px solid rgba(255, 255, 255, 0.2);
   width: 100%; max-width: 640px; border-radius: 32px;
+  max-height: 90vh; overflow-y: auto;
   box-shadow: 0 50px 100px -20px rgba(15, 23, 42, 0.25);
   animation: modalPop 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  overflow-x: hidden;
   position: relative;
 }
 @keyframes modalPop { from { opacity:0; transform:scale(0.95) translateY(30px); } to { opacity:1; transform:scale(1) translateY(0); } }
@@ -826,4 +833,53 @@ h1, h2, h3, h4, .logo-text, .nav-item, .btn, .nav-label, .term-lbl { font-family
 
 @media (max-width: 768px) {
     .main-footer { flex-direction: column; gap: 1rem; text-align: center; }
+}
+
+/* 📱 MOBILE OPTIMIZATION TUNING */
+@media (max-width: 640px) {
+  .stat-card { padding: 1.25rem !important; gap: 1rem !important; }
+  .stat-icon { width: 44px !important; height: 44px !important; font-size: 1.2rem !important; }
+  .stat-info .stat-val { font-size: 1.4rem !important; }
+  .matrix-card { padding: 1.5rem !important; min-height: 160px !important; }
+  .matrix-percent { font-size: 2.2rem !important; }
+  .matrix-title { font-size: 1rem !important; }
+  .main-content { padding: 1rem !important; }
+  .dashboard-main-grid, .analytics-dashboard-grid { gap: 1rem !important; }
+}
+
+/* ============================================================
+   MOBILE ORCHESTRATION & RESPONSIVE REFINEMENT
+   ============================================================ */
+@media screen and (max-width: 1024px) {
+    .resp-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+    .analytics-dashboard-grid { grid-template-columns: 1fr !important; }
+    .sidebar { width: 0; transform: translateX(-100%); transition: all 0.3s ease; }
+    .sidebar.mobile-open { width: 280px; transform: translateX(0); z-index: 9999; }
+    .main-content { margin-left: 0 !important; width: 100% !important; padding: 1rem !important; }
+    .header { left: 0 !important; width: 100% !important; padding: 0.5rem 1rem !important; }
+}
+
+@media screen and (max-width: 768px) {
+    .resp-grid, .resp-grid-3, .resp-grid-4 { grid-template-columns: 1fr !important; }
+    .stat-card { padding: 1.25rem; }
+    .stat-val { font-size: 1.5rem !important; }
+    
+    .table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+    .data-table { min-width: 700px; } /* Force scroll for data density */
+    
+    .matrix-percent { font-size: 1.75rem !important; }
+    .matrix-card { min-height: 160px; padding: 1.25rem; }
+
+    .header-user { display: none; } /* Hide user details on phones to save space */
+    .header-search { flex: 1; }
+    
+    /* Charts stacking */
+    .charts-grid { grid-template-columns: 1fr !important; }
+    canvas { max-width: 100% !important; height: auto !important; }
+}
+
+@media screen and (max-width: 480px) {
+    body { font-size: 14px; }
+    .btn { padding: 0.6rem 1rem; font-size: 0.75rem; }
+    .page-title { font-size: 1.25rem !important; }
 }

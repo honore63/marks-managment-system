@@ -11,8 +11,23 @@ const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ============================================================
-// DATABASE OPERATIONS (Single source of truth)
+// DATABASE OPERATIONS (Single source of truth with Performance Caching)
 // ============================================================
+const DB_CACHE = {
+    get: (key) => {
+        try {
+            const data = localStorage.getItem(`camis_cache_${key}`);
+            return data ? JSON.parse(data) : null;
+        } catch (e) { return null; }
+    },
+    set: (key, val) => {
+        try { localStorage.setItem(`camis_cache_${key}`, JSON.stringify(val)); } catch (e) {}
+    },
+    clear: () => {
+        Object.keys(localStorage).forEach(k => { if (k.startsWith('camis_cache_')) localStorage.removeItem(k); });
+    }
+};
+
 const DB = {
   // --- AUTHENTICATION & SESSION ---
   /**
@@ -113,8 +128,12 @@ const DB = {
 
   // --- TEACHERS ---
   async getTeachers() {
+    const cached = DB_CACHE.get('teachers');
+    if (cached) return cached;
+    
     const { data, error } = await _supabase.from('profiles').select('*').eq('role', 'teacher');
     if (error) { console.error('[DB] getTeachers:', error); return []; }
+    DB_CACHE.set('teachers', data || []);
     return data || [];
   },
   async addTeacher(teacherObj) {
@@ -193,10 +212,17 @@ const DB = {
 
   // --- STUDENTS ---
   async getStudents(classId = null) {
+    if (!classId) {
+        const cached = DB_CACHE.get('students_all');
+        if (cached) return cached;
+    }
+    
     let query = _supabase.from('students').select('*, classes(name)');
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getStudents:', error); return []; }
+    
+    if (!classId) DB_CACHE.set('students_all', data || []);
     return data || [];
   },
   async addStudent(studentObj) {
@@ -208,8 +234,12 @@ const DB = {
 
   // --- CLASSES ---
   async getClasses() {
+    const cached = DB_CACHE.get('classes');
+    if (cached) return cached;
+
     const { data, error } = await _supabase.from('classes').select('*').order('name');
     if (error) { console.error('[DB] getClasses:', error); return []; }
+    DB_CACHE.set('classes', data || []);
     return data || [];
   },
   async addClass(name) {
@@ -218,10 +248,17 @@ const DB = {
 
   // --- SUBJECTS ---
   async getSubjects(classId = null) {
+    if (!classId) {
+        const cached = DB_CACHE.get('subjects_all');
+        if (cached) return cached;
+    }
+
     let query = _supabase.from('subjects').select('*, classes(name)');
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getSubjects:', error); return []; }
+    
+    if (!classId) DB_CACHE.set('subjects_all', data || []);
     return data || [];
   },
   async addSubject(subjectObj) {
@@ -236,6 +273,7 @@ const DB = {
     if (filters.term)         query = query.eq('term', filters.term);
     if (filters.year)         query = query.eq('academic_year', filters.year);
     if (filters.classId)      query = query.eq('class_id', filters.classId);
+    if (filters.classIds)     query = query.in('class_id', filters.classIds);
     const { data, error } = await query;
     if (error) { console.error('[DB] getMarks:', error); return []; }
     return data || [];
@@ -326,8 +364,12 @@ const DB = {
 
   // --- ASSESSMENTS ---
   async getAssessments() {
+    const cached = DB_CACHE.get('assessments');
+    if (cached) return cached;
+
     const { data, error } = await _supabase.from('assessments').select('*').order('created_at');
     if (error) { console.error('[DB] getAssessments:', error); return []; }
+    DB_CACHE.set('assessments', data || []);
     return data || [];
   },
   async addAssessment(assessObj) {
@@ -382,6 +424,13 @@ const SYNC = {
   },
 
   _emit(event, payload) {
+    // CACHE INVALIDATION: Purge local cache for the affected table
+    if (event === 'teachers') DB_CACHE.set('teachers', null);
+    if (event === 'students') DB_CACHE.set('students_all', null);
+    if (event === 'classes')   DB_CACHE.set('classes', null);
+    if (event === 'subjects')  DB_CACHE.set('subjects_all', null);
+    if (event === 'assessments') DB_CACHE.set('assessments', null);
+
     (this._callbacks[event] || []).forEach(fn => {
       try { fn(payload); } catch(e) { console.error('[SYNC] Callback error on', event, ':', e); }
     });

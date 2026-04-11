@@ -1306,11 +1306,12 @@ async function renderFacultyMonitor() {
 
 async function updateInstitutionalStats() {
     try {
+        const activeYear = SCHOOL_INFO.academic_year || '2024/2025';
         const [students, teachers, classes, allMarks, allAssignments] = await Promise.all([
             DB.getStudents(),
             DB.getTeachers(),
             DB.getClasses(),
-            DB.getMarks(),
+            DB.getMarks({ year: activeYear }), // Filtered fetch for speed
             DB.getTeacherAssignments()
         ]);
         const pending = allMarks.filter(m => m.is_submitted && !m.is_approved).length;
@@ -1346,6 +1347,9 @@ async function updateInstitutionalStats() {
         } catch (calcErr) {
             console.warn('[STATS] Pass rate calculation bypassed:', calcErr);
         }
+
+        // Trigger Tactical Analytics Rendering
+        renderAdminDashboardCharts();
 
         const dashboardAlert = document.getElementById('dashboard-alert');
         if (dashboardAlert) {
@@ -2178,27 +2182,92 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
         <!DOCTYPE html>
         <html>
         <head>
-            <title>BATCH REPORTS</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>EDU_BATCH_RECORDS</title>
             <style>
-                @media print {
-                    body { background: white !important; margin: 0; padding: 0 !important; }
+                @page { margin: 0; size: A4 portrait; }
+                @media print { 
+                    body { margin:0; padding:0; background:white !important; display: block !important; width: 210mm !important; } 
                     .no-print { display: none !important; }
-                    .report-page { border: none !important; margin: 0 !important; padding: 15mm !important; box-shadow: none !important; width: 100% !important; min-height: 100% !important; page-break-after: always; transform: none !important; }
-                    @page { size: A4 portrait; margin: 10mm; }
+                    .report-container { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                    .report-page { 
+                        border: none !important; margin: 0 !important; 
+                        padding: 12mm !important; box-shadow: none !important; 
+                        width: 210mm !important; height: 297mm !important; 
+                        page-break-after: always !important; display: flex !important;
+                        flex-direction: column !important; justify-content: space-between !important;
+                    }
                 }
-                body { background: #334155; margin: 0; padding: 40px; padding-top: 100px; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; gap: 40px; }
-                .report-page { background: white; width: 210mm; min-height: 297mm; padding: 15mm; border-radius: 8px; box-shadow: 0 50px 100px rgba(0,0,0,0.5); box-sizing: border-box; }
-                .header-bar { position: fixed; top: 0; left: 0; right: 0; background: #0f172a; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; border-bottom: 2px solid #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-                .print-btn { background: #3b82f6; color: white; border: none; padding: 10px 20px; font-weight: 800; cursor: pointer; border-radius: 6px; font-family: inherit; font-size: 0.9rem; transition: 0.2s;}
-                .print-btn:hover { background: #2563eb; }
+                body { background: #f1f5f9; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; min-height: 100vh; }
+                .report-container { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 20px; box-sizing: border-box; width: 100%; }
+                .report-page { background: white; width: 210mm; height: 297mm; padding: 20mm; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+                
+                .header-bar { 
+                    position: sticky; top: 0; width: 100%; z-index: 1000;
+                    background: #1e293b; color: white; padding: 1rem 2rem;
+                    display: flex; justify-content: space-between; align-items: center;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); box-sizing: border-box;
+                }
+                .btn-group { display: flex; gap: 10px; }
+                .p-btn { cursor: pointer; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+                .btn-print { background: #3b82f6; color: white; }
+                .btn-pdf { background: #10b981; color: white; }
+                
+                /* SMART FIT SCALING SYSTEM */
+                @media screen and (max-width: 1000px) {
+                    .report-container { padding: 20px 10px; gap: 10px; }
+                    .report-page { transform-origin: top center; margin-bottom: 0 !important; }
+                }
             </style>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+            <script>
+                function applySmartFit() {
+                    const pages = document.querySelectorAll('.report-page');
+                    if (!pages.length || window.innerWidth > 1000) return;
+                    
+                    const vw = window.innerWidth - 20; 
+                    const baseWidth = pages[0].offsetWidth;
+                    const sFit = vw / baseWidth;
+                    
+                    if (sFit < 1) {
+                        pages.forEach(p => {
+                            if (p) p.style.transform = 'scale(' + sFit + ')';
+                        });
+                        const container = document.querySelector('.report-container');
+                        if (container) container.style.gap = '10px';
+                    }
+                }
+                function downloadPDF() {
+                     const element = document.querySelector('.report-container');
+                     const opt = {
+                         margin: 0,
+                         filename: 'Batch_Records_${new Date().getTime()}.pdf',
+                         image: { type: 'jpeg', quality: 0.98 },
+                         html2canvas: { scale: 2, useCORS: true },
+                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                     };
+                     html2pdf().set(opt).from(element).save();
+                }
+                window.onload = applySmartFit;
+                window.onresize = applySmartFit;
+            </script>
         </head>
         <body>
             <div class="header-bar no-print">
-                <h2 style="margin: 0; font-size: 1.1rem; letter-spacing: 0.5px;">EXECUTIVE REPORTS BATCH</h2>
-                <button class="print-btn" onclick="window.print()">🖨️ PRINT ALL DIRECTLY TO PDF</button>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 32px; height: 32px; background: #6366f1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900;">A</div>
+                    <h2 style="margin: 0; font-size: 1rem; letter-spacing: 0.5px; font-weight: 900;">REPORT PREVIEW</h2>
+                </div>
+                <div class="btn-group">
+                    <button class="p-btn btn-print" onclick="window.print()">🖨️ PRINT REPORT</button>
+                    <button class="p-btn btn-pdf" onclick="downloadPDF()">📄 DOWNLOAD PDF</button>
+                    <button class="p-btn" style="background: #ef4444; color: white;" onclick="window.close()">✕ CLOSE</button>
+                </div>
             </div>
-            ${html}
+            <div class="report-container">
+                ${html}
+            </div>
         </body>
         </html>
     `;
@@ -2565,28 +2634,74 @@ window.exportClassProclamation = async function(classId, targetSubs = [], target
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${cls.name} PROCLAMATION</title>
                 <style>
+                    @page { margin: 0; size: A4 landscape; }
                     @media print {
-                        body { background: white !important; margin: 0; padding: 0 !important; }
+                        body { background: white !important; margin: 0; padding: 0 !important; display: block !important; width: 297mm !important; }
                         .no-print { display: none !important; }
-                        #proclamation-document { border: none !important; margin: 0 !important; padding: 8mm !important; box-shadow: none !important; width: 100% !important; min-height: 100% !important; page-break-after: always; transform: none !important; }
-                        @page { size: landscape; margin: 10mm; }
+                        .report-container { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                        #proclamation-document { border: none !important; margin: 0 !important; padding: 8mm !important; box-shadow: none !important; width: 297mm !important; height: 210mm !important; transform: none !important; }
                     }
-                    body { background: #334155; margin: 0; padding: 40px; display: flex; justify-content: center; font-family: 'Inter', sans-serif; }
-                    .header-bar { position: fixed; top: 0; left: 0; right: 0; background: #0B0E14; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; z-index: 9999; border-bottom: 2px solid #1e293b; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
-                    .print-btn { background: #10b981; color: white; border: none; padding: 10px 20px; font-weight: 800; cursor: pointer; border-radius: 6px; font-family: inherit; transition: 0.2s; font-size: 0.9rem;}
-                    .print-btn:hover { background: #059669; }
+                    body { background: #f1f5f9; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; min-height: 100vh; }
+                    .report-container { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 20px; box-sizing: border-box; width: 100%; }
+                    #proclamation-document { background: white; width: 297mm; height: 210mm; padding: 12mm; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+
+                    .header-bar { position: sticky; top: 0; width: 100%; z-index: 1000; background: #0f172a; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15); box-sizing: border-box; }
+                    .btn-group { display: flex; gap: 10px; }
+                    .p-btn { cursor: pointer; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; transition: all 0.2s; }
+                    .btn-print { background: #3b82f6; color: white; }
+                    .btn-pdf { background: #10b981; color: white; }
+
+                    /* SMART FIT SCALING SYSTEM */
+                    @media screen and (max-width: 1000px) {
+                        .report-container { padding: 20px 10px; }
+                        #proclamation-document { transform-origin: top center; }
+                    }
                 </style>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+                <script>
+                function applySmartFit() {
+                    const doc = document.getElementById('proclamation-document');
+                    if (!doc || window.innerWidth > 1000) return;
+                    const vw = window.innerWidth - 20;
+                    const sFit = vw / doc.offsetWidth;
+                    if (sFit < 1) {
+                        doc.style.transform = 'scale(' + sFit + ')';
+                        const container = document.querySelector('.report-container');
+                        if (container) container.style.height = (doc.offsetHeight * sFit + 40) + 'px';
+                    }
+                }
+                function downloadPDF() {
+                    const element = document.getElementById('proclamation-document');
+                    const opt = {
+                        margin: 0,
+                        filename: '${cls.name}_Proclamation.pdf',
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+                    };
+                    html2pdf().set(opt).from(element).save();
+                }
+                window.onload = applySmartFit;
+                window.onresize = applySmartFit;
+                </script>
             </head>
             <body>
                 <div class="header-bar no-print">
-                    <h2 style="margin: 0; font-size: 1.1rem; letter-spacing: 0.5px;">OFFICIAL DOCUMENT PREVIEW</h2>
-                    <div>
-                        <button class="print-btn" onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 32px; height: 32px; background: #6366f1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900;">P</div>
+                        <h2 style="margin: 0; font-size: 1rem; font-weight: 900; letter-spacing: 0.5px;">PROCLAMATION: ${cls.name.toUpperCase()}</h2>
+                    </div>
+                    <div class="btn-group">
+                        <button class="p-btn btn-print" onclick="window.print()">🖨️ PRINT</button>
+                        <button class="p-btn btn-pdf" onclick="downloadPDF()">📄 EXPORT PDF</button>
+                        <button class="p-btn" style="background: #ef4444; color: white;" onclick="window.close()">✕ CLOSE</button>
                     </div>
                 </div>
-                <div style="margin-top: 60px; box-shadow: 0 50px 100px rgba(0,0,0,0.5);">
+                <div class="report-container">
                     ${html}
                 </div>
             </body>
@@ -3535,4 +3650,90 @@ window.executeReportCardGeneration = async function() {
     }
 };
 
-// EOF Cleanup - Redundant functions removed for institutional integrity.
+// ============================================================
+// DASHBOARD ANALYTICS (GLOBAL)
+// ============================================================
+let adminMainPerfChart = null;
+let adminMainDistChart = null;
+
+async function renderAdminDashboardCharts() {
+    const perfCtx = document.getElementById('admin-main-perf-chart');
+    const distCtx = document.getElementById('admin-main-dist-chart');
+    if (!perfCtx || !distCtx) return;
+
+    try {
+        const [marks, classes, students] = await Promise.all([DB.getMarks(), DB.getClasses(), DB.getStudents()]);
+        const term = SCHOOL_INFO.active_term || '2';
+        
+        // 1. Line Chart: Performance per Class
+        const chartLabels = classes.map(c => c.name);
+        const chartValues = classes.map(c => {
+            const clsMarks = marks.filter(m => m.class_id === c.id && String(m.term) === String(term) && m.is_approved);
+            if (!clsMarks.length) return 0;
+            return (clsMarks.reduce((acc, m) => acc + (Number(m.score) / Number(m.max_score || 10) * 100), 0) / clsMarks.length).toFixed(1);
+        });
+
+        if (adminMainPerfChart) adminMainPerfChart.destroy();
+        adminMainPerfChart = new Chart(perfCtx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Class Average',
+                    data: chartValues,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { 
+                  y: { beginAtZero: true, max: 100, ticks: { font: { weight: 'bold' } } },
+                  x: { ticks: { font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // 2. Pie Chart: Grade Distribution Institutional Wide
+        const dist = { 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'S': 0, 'F': 0 };
+        students.forEach(s => {
+            const sMarks = marks.filter(m => m.student_id === s.id && String(m.term) === String(term) && m.is_approved);
+            if (sMarks.length) {
+                const totalS = sMarks.reduce((acc, m) => acc + Number(m.score), 0);
+                const totalM = sMarks.reduce((acc, m) => acc + Number(m.max_score || 10), 0);
+                const avg = (totalS / totalM) * 100;
+                dist[calcGrade(avg)]++;
+            }
+        });
+
+        if (adminMainDistChart) adminMainDistChart.destroy();
+        adminMainDistChart = new Chart(distCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(dist),
+                datasets: [{
+                    data: Object.values(dist),
+                    backgroundColor: ['#10b981', '#3b82f6', '#6366f1', '#f59e0b', '#f97316', '#ef4444', '#7f1d1d'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { weight: 'bold', size: 10 } } } },
+                cutout: '65%'
+            }
+        });
+
+    } catch (e) {
+        console.error('[ANALYTICS] Dashboard chart failure:', e);
+    }
+}
+
+// EOF Cleanup

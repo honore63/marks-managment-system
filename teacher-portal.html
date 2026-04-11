@@ -4,9 +4,13 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MMS (Marks Management System) — Teacher Portal</title>
+  <!-- Font Preconnect for performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- MMS Unified Font System -->
+  <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/ai-assistant.css">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     /* Specific overrides for Teacher interaction */
@@ -39,6 +43,7 @@
     .check-item:hover { background: white; border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1); }
     .check-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25); }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -173,7 +178,7 @@
           </div>
         </div>
 
-        <div class="resp-grid resp-grid-2" style="margin-top: 2.5rem; align-items: start;">
+        <div class="dashboard-main-grid" style="margin-top: 2.5rem; align-items: start;">
            
            <!-- QUICK ACTIONS & ALERTS -->
            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -225,6 +230,24 @@
                </div>
            </div>
 
+        </div>
+
+        <div class="analytics-dashboard-grid" style="margin-top: 3rem; margin-bottom: 3.5rem;">
+            <div class="table-card" style="padding: 2rem;">
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                  <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b;">My Subjects Performance Curve</h3>
+                  <div class="badge badge-blue">SUBJECT ANALYTICS</div>
+               </div>
+               <div style="height: 350px;">
+                  <canvas id="teacher-main-perf-chart"></canvas>
+               </div>
+            </div>
+            <div class="table-card" style="padding: 2rem;">
+               <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b; margin-bottom: 1.5rem;">Pass/Fail Ratio</h3>
+               <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                  <canvas id="teacher-main-dist-chart"></canvas>
+               </div>
+            </div>
         </div>
       </div>
 
@@ -728,6 +751,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="js/db.js"></script>
 <script src="js/teacher.js"></script>
+
+<script src="js/font-switcher.js"></script>
+<script src="js/ai-assistant.js"></script>
 
 </body>
 </html>
