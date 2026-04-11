@@ -148,6 +148,16 @@ const DB = {
       temp_password_active: true, // Force password change on first login
       created_at: new Date().toISOString()
     };
+    
+    // Auto-Recovery feature: Check if a ghost profile already exists for this email
+    const { data: existing } = await _supabase.from('profiles').select('id').eq('email', teacherObj.email).single();
+    
+    if (existing) {
+        console.warn(`[REGISTRY] Recovering orphaned profile for ${teacherObj.email}`);
+        return await _supabase.from('profiles').update(payload).eq('id', existing.id).select();
+    }
+    
+    // Normal Insertion
     return await _supabase.from('profiles').insert([payload]).select();
   },
   async updateTeacher(id, updates) {
