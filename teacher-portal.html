@@ -466,7 +466,10 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg> Bulk Upload
                </button>
                <input type="file" id="excel-upload-input" style="display:none;" accept=".xlsx, .xls" onchange="handleExcelUpload(event)">
-               <button class="btn btn-primary" onclick="submitMarksToAdmin()" style="font-weight: 600; font-size: 0.85rem;">Save & Submit All</button>
+                <button style="background: white; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onclick="openExportMarksModal()">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Export Data
+                </button>
+                <button class="btn btn-primary" onclick="submitMarksToAdmin()" style="font-weight: 600; font-size: 0.85rem;">Save & Submit All</button>
             </div>
          </div>
 
@@ -744,7 +747,51 @@
 </div>
 
 <!-- TOASTS -->
-<div class="toast-container" id="toast-container"></div>
+      <!-- EXPORT MARKS MODAL (Institutional Edition) -->
+      <div class="modal-overlay" id="export-marks-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 600px; text-align: left;">
+            <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+                <div>
+                   <h2 style="font-weight: 900; margin-bottom: 0.25rem;">Archive Marks Register</h2>
+                   <p style="color: #64748b; font-size: 0.8rem;">Filter and export academic data for your assigned classes.</p>
+                </div>
+                <div style="width: 48px; height: 48px; background: #eff6ff; color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                   <i data-lucide="download"></i>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+               <div>
+                  <label style="font-size: 0.65rem; font-weight: 900; color: #1e293b; text-transform: uppercase;">Curriculum Subjects</label>
+                  <div id="export-subject-list" style="max-height: 150px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                     <!-- Populated via JS -->
+                  </div>
+               </div>
+               <div>
+                  <label style="font-size: 0.65rem; font-weight: 900; color: #1e293b; text-transform: uppercase;">Assessment Types</label>
+                  <div id="export-assess-list" style="max-height: 150px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                     <!-- Populated via JS -->
+                  </div>
+               </div>
+            </div>
+
+            <div id="export-class-teacher-option" style="display: none; background: #fefce8; border: 1.5px dashed #facc15; border-radius: 12px; padding: 1rem; margin-bottom: 2rem;">
+               <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #854d0e; font-weight: 800; font-size: 0.85rem;">
+                  <input type="checkbox" id="export-full-class" style="width:18px; height:18px;">
+                  Export Full Institutional Registry (All Subjects)
+               </label>
+               <p style="font-size: 0.7rem; color: #a16207; margin-left: 28px; margin-top: 4px;">Generates a comprehensive document including performance data from all faculty members assigned to your class.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                <button class="btn" style="border: 1.5px solid #e11d48; color: #e11d48; background: #fff1f2; justify-content: center; font-weight: 800;" onclick="exportMarks('pdf')">Acrobat PDF</button>
+                <button class="btn" style="border: 1.5px solid #16a34a; color: #16a34a; background: #f0fdf4; justify-content: center; font-weight: 800;" onclick="exportMarks('excel')">Excel Sheet</button>
+                <button class="btn" style="border: 1.5px solid #2563eb; color: #2563eb; background: #eff6ff; justify-content: center; font-weight: 800;" onclick="exportMarks('word')">Word Doc</button>
+            </div>
+            
+            <button class="btn" style="margin-top: 1.5rem; width: 100%; justify-content: center; border: none; color: #94a3b8;" onclick="closeModal('export-marks-modal')">Discard & Close</button>
+        </div>
+      </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

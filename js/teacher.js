@@ -1209,25 +1209,40 @@ async function printReportCards() {
             <style>
                 @page { margin: 0; size: ${isProclamation ? 'A4 landscape' : 'A4 portrait'}; }
                 @media print { 
-                    body { margin:0; padding:0; background:white !important; display: block !important; width: ${isProclamation ? '297mm' : '210mm'} !important; } 
+                    html, body { 
+                        width: ${isProclamation ? '297mm' : '210mm'} !important; 
+                        margin: 0 !important; padding: 0 !important; 
+                        background: #fff !important;
+                    } 
                     .no-print { display: none !important; }
-                    .report-container { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+                    .report-container { width: 100% !important; margin: 0 !important; padding: 0 !important; display: block !important; }
                     .report-page { 
                         border: none !important; margin: 0 !important; 
-                        padding: 12mm !important; box-shadow: none !important; 
-                        width: 210mm !important; height: 297mm !important; 
-                        page-break-after: always !important; display: flex !important;
-                        flex-direction: column !important; justify-content: space-between !important;
-                    }
-                    #proclamation-document { 
-                        border: none !important; margin: 0 !important; padding: 10mm !important; 
-                        width: 297mm !important; height: 210mm !important; 
-                        page-break-after: always !important; display: flex !important;
+                        padding: 10mm 15mm !important; box-shadow: none !important; 
+                        width: ${isProclamation ? '297mm' : '210mm'} !important; 
+                        height: ${isProclamation ? '210mm' : '297mm'} !important; 
+                        page-break-after: always !important; 
+                        break-after: page !important;
+                        display: flex !important;
+                        flex-direction: column !important; 
+                        justify-content: space-between !important;
+                        box-sizing: border-box !important;
                     }
                 }
                 body { background: #f1f5f9; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; font-family: 'Inter', sans-serif; min-height: 100vh; }
                 .report-container { display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 40px 20px; box-sizing: border-box; width: 100%; transition: all 0.3s; }
-                .report-page { background: white; width: 210mm; height: 297mm; padding: 15mm; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+                .report-page { 
+                    background: white; 
+                    width: 210mm; height: 297mm; 
+                    padding: 15mm; 
+                    border-radius: 4px; 
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+                    box-sizing: border-box; 
+                    overflow: hidden; 
+                    display: flex; flex-direction: column; 
+                    justify-content: space-between; 
+                    position: relative; 
+                }
                 
                 .header-bar { 
                     position: sticky; top: 0; width: 100%; z-index: 1000;
@@ -1281,10 +1296,26 @@ async function printReportCards() {
                          margin: 0,
                          filename: '${classLabel}_Official_Records.pdf',
                          image: { type: 'jpeg', quality: 0.98 },
-                         html2canvas: { scale: 2, useCORS: true },
-                         jsPDF: { unit: 'mm', format: '${isProclamation ? 'a4' : 'a4'}', orientation: '${isProclamation ? 'landscape' : 'portrait'}' }
+                         html2canvas: { 
+                             scale: 2, 
+                             useCORS: true,
+                             logging: false,
+                             letterRendering: true
+                         },
+                         jsPDF: { unit: 'mm', format: 'a4', orientation: '${isProclamation ? 'landscape' : 'portrait'}' },
+                         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                      };
-                     html2pdf().set(opt).from(element).save();
+                     
+                     // Use a toast to show progress since large batches take time
+                     const btn = document.querySelector('.btn-pdf');
+                     const originalText = btn.innerHTML;
+                     btn.innerHTML = '⌛ Generating...';
+                     btn.disabled = true;
+
+                     html2pdf().set(opt).from(element).save().then(() => {
+                         btn.innerHTML = originalText;
+                         btn.disabled = false;
+                     });
                 }
                 window.onload = applySmartFit;
                 window.onresize = applySmartFit;
@@ -1340,8 +1371,15 @@ async function generateReportCard(forceDownload = false) {
 
     const allStudentsInClass = await DB.getStudents(cid);
     const targetStudents = sid === 'all' ? allStudentsInClass : [ allStudentsInClass.find(st => st.id === sid) ];
-    const allMarks = await DB.getMarks({ term });
-    const allSubjects = await DB.getSubjects();
+    
+    // FETCH FRESH DATA SCOPED TO CLASS
+    const [allMarks, allSubjects, schoolData] = await Promise.all([
+        DB.getMarks({ class_id: cid, term }),
+        DB.getSubjects(),
+        DB.getSchoolInfo()
+    ]);
+    if (schoolData) Object.assign(SCHOOL_INFO, schoolData);
+
     const subjects = allSubjects.filter(s => selSubIds.includes(s.id));
 
     // BUILD DYNAMIC PILLARS FROM USER SELECTION
@@ -1534,35 +1572,35 @@ async function generateReportCard(forceDownload = false) {
                     </tr>
                 </table>
 
-                <div style="display:grid; grid-template-columns: 2.2fr 1fr; gap:8px; margin-top:10px; align-items: stretch; margin-bottom:5px;">
-                    <table style="width:100%; border-collapse:collapse; border:2px solid #000; font-size:0.56rem; text-align:center;">
+                <div style="display:grid; grid-template-columns: 1.8fr 1.2fr; gap:10px; margin-top:12px; align-items: stretch; margin-bottom:5px;">
+                    <table style="width:100%; border-collapse:collapse; border:2px solid #000; font-size:0.52rem; text-align:center; table-layout: fixed;">
                         <tr>
-                            <td rowspan="3" style="border:2px solid #000; width:15%; font-weight:900; background:#f0f0f0;">Grading scale</td>
-                            <td style="border:1px solid #000; font-weight:800; background:#f9f9f9;">Final Grade</td>
-                            <td style="border:1px solid #000;">100-80</td><td style="border:1px solid #000;">79-75</td><td style="border:1px solid #000;">74-70</td><td style="border:1px solid #000;">69-65</td><td style="border:1px solid #000;">64-60</td><td style="border:1px solid #000;">59-50</td><td style="border:1px solid #000;">49-00</td>
+                            <td rowspan="3" style="border:2px solid #000; width:60px; font-weight:900; background:#f0f0f0; padding: 2px;">Grading scale</td>
+                            <td style="border:1px solid #000; font-weight:800; background:#f9f9f9; width:70px;">Final Grade</td>
+                            <td style="border:1px solid #000; white-space:nowrap;">100-80</td><td style="border:1px solid #000; white-space:nowrap;">79-75</td><td style="border:1px solid #000; white-space:nowrap;">74-70</td><td style="border:1px solid #000; white-space:nowrap;">69-65</td><td style="border:1px solid #000; white-space:nowrap;">64-60</td><td style="border:1px solid #000; white-space:nowrap;">59-50</td><td style="border:1px solid #000; white-space:nowrap;">49-00</td>
                         </tr>
                         <tr>
                             <td style="border:1px solid #000; font-weight:800; background:#f9f9f9;">Letter Grade</td>
-                            <td style="border:1px solid #000;">A</td><td style="border:1px solid #000;">B</td><td style="border:1px solid #000;">C</td><td style="border:1px solid #000;">D</td><td style="border:1px solid #000;">E</td><td style="border:1px solid #000;">S</td><td style="border:1px solid #000;">F</td>
+                            <td style="border:1px solid #000; font-weight:900;">A</td><td style="border:1px solid #000; font-weight:900;">B</td><td style="border:1px solid #000; font-weight:900;">C</td><td style="border:1px solid #000; font-weight:900;">D</td><td style="border:1px solid #000; font-weight:900;">E</td><td style="border:1px solid #000; font-weight:900;">S</td><td style="border:1px solid #000; font-weight:900;">F</td>
                         </tr>
                         <tr>
                             <td style="border:1px solid #000; font-weight:800; background:#f9f9f9;">Grade Value</td>
-                            <td style="border:1px solid #000;">6</td><td style="border:1px solid #000;">5</td><td style="border:1px solid #000;">4</td><td style="border:1px solid #000;">3</td><td style="border:1px solid #000;">2</td><td style="border:1px solid #000;">1</td><td style="border:1px solid #000;">0</td>
+                            <td style="border:1px solid #000; font-weight:900;">6</td><td style="border:1px solid #000; font-weight:900;">5</td><td style="border:1px solid #000; font-weight:900;">4</td><td style="border:1px solid #000; font-weight:900;">3</td><td style="border:1px solid #000; font-weight:900;">2</td><td style="border:1px solid #000; font-weight:900;">1</td><td style="border:1px solid #000; font-weight:900;">0</td>
                         </tr>
                     </table>
-                    <div style="border:2px solid #000; padding:10px; font-size:0.58rem; display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative; min-width:180px;">
+                    <div style="border:2px solid #000; padding:12px; font-size:0.58rem; display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative;">
                         <div style="font-size:0.4rem; font-weight:900; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Done at ${(SCHOOL_INFO.district || '...').toUpperCase()}, on ${finalDate}</div>
-                        <div style="font-weight:900; font-size:0.6rem; margin-bottom:10px;">HEADTEACHER / PRINCIPAL</div>
-                        <div style="height:65px; display:flex; align-items:center; justify-content:center; position:relative; margin: 4px 0;">
-                            ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:60px; max-width:180px; object-fit:contain; mix-blend-mode:multiply; position:absolute; z-index:2;">` : ''}
-                            ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:90px; height:90px; opacity:0.85; mix-blend-mode:multiply; position:absolute; z-index:1; transform: translate(15px, -10px) rotate(-5deg);">` : ''}
+                        <div style="font-weight:900; font-size:0.6rem; margin-bottom:12px;">HEADTEACHER / PRINCIPAL</div>
+                        <div style="height:75px; display:flex; align-items:center; justify-content:center; position:relative; margin: 4px 0;">
+                            ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:70px; max-width:180px; object-fit:contain; mix-blend-mode:multiply; position:absolute; z-index:2;">` : ''}
+                            ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:100px; height:100px; opacity:0.85; mix-blend-mode:multiply; position:absolute; z-index:1; transform: translate(15px, -10px) rotate(-5deg);">` : ''}
                         </div>
-                        <div style="font-weight:900; font-size:0.75rem; position:relative; z-index:3; border-top: 1.5px solid #000; padding-top:4px; margin-top:5px;">${(SCHOOL_INFO.headteacher || '...').toUpperCase()}</div>
+                        <div style="font-weight:950; font-size:0.8rem; border-top: 1.5px solid #000; padding-top:6px; margin-top:8px;">${(SCHOOL_INFO.headteacher || '...').toUpperCase()}</div>
                     </div>
                 </div>
 
-                <div style="padding:8px; border-top:1.5px dashed #000; display:flex; justify-content:flex-end; font-size:0.55rem; color:#64748b; font-weight:800;">
-                    <span>STUDENT REGISTRY ID: ${student.sid || 'N/A'}</span>
+                <div style="padding:10px 0; display:flex; justify-content:flex-end; font-size:0.55rem; color:#64748b; font-weight:800;">
+                    <span>OFFICIAL STUDENT REGISTRY ID: ${student.sid || 'N/A'}</span>
                 </div>
             </div>
         `;
@@ -3031,5 +3069,227 @@ async function renderTeacherDashboardCharts() {
 
     } catch (e) {
         console.error('[ANALYTICS] Teacher chart failure:', e);
+    }
+}
+
+// ============================================================
+// DATA EXPORT (PDF, WORD, EXCEL)
+// ============================================================
+
+async function openExportMarksModal() {
+    const cid = CURRENT_SESSION.classId;
+    if (!cid) return toast("No active class context found.", "warning");
+
+    const [allSubs, assess, assignments] = await Promise.all([
+        DB.getSubjects(),
+        DB.getAssessments(),
+        DB.getTeacherAssignments(MY_PROFILE?.id)
+    ]);
+
+    // Check if the current user is the "Class Teacher" for this class
+    const isClassTeacher = assignments.some(a => a.type === "class" && a.class_id === cid);
+    el("export-class-teacher-option").style.display = isClassTeacher ? "block" : "none";
+
+    // Filtering Criteria: 
+    // If Class Teacher: See all subjects in class
+    // If Subject Teacher: Only see subjects assigned to them in this class
+    let exportSubs = [];
+    if (isClassTeacher) {
+        exportSubs = allSubs.filter(s => s.class_id === cid || !s.class_id);
+    } else {
+        const myAssignedSubIds = assignments
+            .filter(a => a.class_id === cid && a.subject_id)
+            .map(a => a.subject_id);
+        exportSubs = allSubs.filter(s => myAssignedSubIds.includes(s.id));
+    }
+
+    if (!exportSubs.length) return toast("You have no academic jurisdictions to export in this class.", "warning");
+
+    el("export-subject-list").innerHTML = exportSubs.map(s => `
+        <label style="display:block; font-size:0.75rem; margin-bottom:4px; font-weight:700;">
+            <input type="checkbox" checked value="${s.id}" class="exp-sub-cb"> ${(s.abbr || s.name).toUpperCase()}
+        </label>`).join("");
+
+    // Populate Assessments
+    const activeAssess = assess.length ? assess : [
+        { id: "cat", abbr: "CAT", name: "Continuous Assessment" },
+        { id: "exam", abbr: "EXAM", name: "End of Term Exam" }
+    ];
+    el("export-assess-list").innerHTML = activeAssess.map(a => `
+        <label style="display:block; font-size:0.75rem; margin-bottom:4px; font-weight:700;">
+            <input type="checkbox" checked value="${a.id}" class="exp-assess-cb"> ${(a.abbr || a.name).toUpperCase()}
+        </label>`).join("");
+
+    openModal("export-marks-modal");
+}
+
+function getInstitutionalExportHeader(title, classLabel, roleLabel, userName) {
+    const term = SCHOOL_INFO.active_term || "...";
+    const academicYear = SCHOOL_INFO.academic_year || "2025/2026";
+    return `
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; font-family: inherit;">
+            <tr>
+                <td style="width:80px; vertical-align:middle;">
+                    <img src="js/Report image/download__92_-removebg-preview.png" style="width:70px; height:auto;">
+                </td>
+                <td style="text-align:center; vertical-align:middle;">
+                    <div style="font-size:0.7rem; font-weight:900; color:#1e40af; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
+                    <div style="font-size:0.65rem; font-weight:700; margin-bottom:5px;">MINISTRY OF EDUCATION</div>
+                    <div style="font-size:1.4rem; font-weight:900; text-transform:uppercase; color:#1e293b;">${(SCHOOL_INFO.school || "EDUMARKS ACADEMY").toUpperCase()}</div>
+                    <div style="font-size:0.9rem; font-weight:800; color:#3b82f6; text-transform:uppercase; letter-spacing:1px; margin-top:5px;">
+                        ${title} — ${classLabel}
+                    </div>
+                    <div style="font-size:0.75rem; font-weight:700; color:#64748b; margin-top:3px;">TERM ${term} | ACADEMIC YEAR ${academicYear}</div>
+                </td>
+                <td style="width:80px; text-align:right; vertical-align:middle;">
+                    ${SCHOOL_INFO.logo ? `<img src="${SCHOOL_INFO.logo}" style="width:75px; height:75px; object-fit:contain;">` : `<div style="width:70px; height:70px; border:1px dashed #94a3b8; display:flex; align-items:center; justify-content:center; font-size:0.5rem; color:#94a3b8;">LOGO</div>`}
+                </td>
+            </tr>
+        </table>
+        <div style="display:flex; justify-content:space-between; border-top:1.5px solid #000; border-bottom:1px solid #e2e8f0; padding:8px 0; margin-bottom:15px; font-size:0.68rem; font-weight:900; color:#1e293b;">
+            <div style="display:flex; gap:20px;">
+                <div>EXPORTER: <span style="color:#2563eb;">${userName.toUpperCase()}</span></div>
+                <div>ROLE: <span style="color:#2563eb;">${roleLabel.toUpperCase()}</span></div>
+            </div>
+            <div style="text-align:right;">
+                <div>LOC: ${(SCHOOL_INFO.district || "KAYONZA").toUpperCase()}</div>
+                <div style="font-size:0.55rem; color:#64748b;">MMS-REG: ${Math.random().toString(36).substring(7).toUpperCase()} | ${new Date().toLocaleString()}</div>
+            </div>
+        </div>
+    `;
+}
+
+async function exportMarks(type) {
+    const cid = CURRENT_SESSION.classId;
+    if (!cid) return toast("Critical: Class Context Lost. Please re-select class.", "error");
+
+    closeModal("export-marks-modal");
+    toast(`🔄 Re-hydrating Institutional Data...`, "info");
+
+    try {
+        // FORCE FETCH EVERYTHING FRESH
+        const [students, marks, allSubjects, assignments, schoolData] = await Promise.all([
+            DB.getStudents(cid),
+            DB.getMarks({ class_id: cid, term: SCHOOL_INFO.active_term || 1 }),
+            DB.getSubjects(),
+            DB.getTeacherAssignments(MY_PROFILE?.id),
+            DB.getSchoolInfo()
+        ]);
+
+        // Synchronize local SCHOOL_INFO with fresh data
+        if (schoolData) Object.assign(SCHOOL_INFO, schoolData);
+        
+        const term = SCHOOL_INFO.active_term || 1;
+        const subIds = Array.from(document.querySelectorAll(".exp-sub-cb:checked")).map(i => i.value);
+        const assessIds = Array.from(document.querySelectorAll(".exp-assess-cb:checked")).map(i => i.value);
+        const exportSubs = allSubjects.filter(s => subIds.includes(s.id));
+
+        if (!students.length || !exportSubs.length) return toast("Empty Registry: No data found for selection.", "warning");
+
+        const totalColumns = 1 + (exportSubs.length * (assessIds.length + 1));
+        let baseFontSize = totalColumns > 35 ? "0.35rem" : (totalColumns > 25 ? "0.45rem" : (totalColumns > 15 ? "0.6rem" : "0.75rem"));
+
+        const vTable = document.createElement("table");
+        Object.assign(vTable.style, {
+            borderCollapse: "collapse",
+            width: "100%",
+            fontSize: baseFontSize,
+            backgroundColor: "#ffffff",
+            color: "#000"
+        });
+        
+        let headerHtml = `<tr><th style="border:1.5px solid #000; padding:5px; background:#f8fafc; font-weight:900; min-width:140px;">STUDENT NAME REFERENCE</th>`;
+        exportSubs.forEach(s => {
+            const subTitle = (s.abbr || s.name).toUpperCase();
+            assessIds.forEach(aid => {
+                headerHtml += `<th style="border:1.5px solid #000; padding:4px; text-align:center; font-weight:900;">${subTitle}<br>(${aid.toUpperCase()})</th>`;
+            });
+            headerHtml += `<th style="border:1.5px solid #000; padding:4px; background:#f1f5f9; font-weight:950; text-align:center;">${subTitle}<br>TOTAL</th>`;
+        });
+        headerHtml += "</tr>";
+
+        let bodyHtml = "";
+        students.sort((a,b) => (a.last_name||'').localeCompare(b.last_name||'')).forEach(st => {
+            bodyHtml += `<tr style="page-break-inside: avoid;"><td style="border:1px solid #000; padding:3px 8px; font-weight:800; white-space:nowrap;">${(st.last_name + " " + st.first_name).toUpperCase()}</td>`;
+            exportSubs.forEach(sub => {
+                let subSum = 0;
+                assessIds.forEach(aid => {
+                    const m = marks.find(m => m.student_id === st.id && m.subject_id === sub.id && m.assessment_id?.toLowerCase() === aid.toLowerCase());
+                    const score = m ? (m.score < 0 ? "M" : m.score) : "-";
+                    if (m && m.score >= 0) subSum += Number(m.score);
+                    bodyHtml += `<td style="border:1px solid #000; padding:3px; text-align:center; font-weight:700;">${score}</td>`;
+                });
+                bodyHtml += `<td style="border:1px solid #000; padding:3px; text-align:center; background:#fafafa; font-weight:900; color:#1e40af;">${subSum}</td>`;
+            });
+            bodyHtml += "</tr>";
+        });
+
+        const tableHtml = `
+            <table style="border-collapse: collapse; width: 100%; font-size: ${baseFontSize}; background-color: #ffffff; color: #000;">
+                <thead>${headerHtml}</thead>
+                <tbody>${bodyHtml}</tbody>
+            </table>
+        `;
+        
+        const className = CURRENT_SESSION.classLabel || "Class_Registry";
+        const fileName = `Institutional_Marks_${className.replace(/\s+/g, "_")}_Term_${term}`;
+        const isClassTeacher = assignments.some(a => a.type === "class" && a.class_id === cid);
+        const roleLabel = isClassTeacher ? "Class Teacher" : "Subject Teacher";
+        const instHeader = getInstitutionalExportHeader("OFFICIAL MARK REGISTER", className, roleLabel, MY_PROFILE?.full_name || "MMS-USER");
+
+        const fullHtml = `
+            <div style="background: #fff; padding: 20px; font-family: sans-serif; color: #000;">
+                ${instHeader}
+                ${tableHtml}
+            </div>
+        `;
+
+        const tempContainer = document.createElement("div");
+        tempContainer.innerHTML = fullHtml;
+
+        if (type === "pdf") {
+            const opt = {
+                margin: 10,
+                filename: fileName + ".pdf",
+                image: { type: "jpeg", quality: 0.98 },
+                html2canvas: { scale: 3, useCORS: false, letterRendering: true, backgroundColor: "#ffffff" },
+                jsPDF: { unit: "mm", format: "a4", orientation: "landscape" }
+            };
+            const pdfBlob = await html2pdf().set(opt).from(tempContainer).outputPdf("blob");
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName + ".pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 200);
+        }
+        else if (type === "excel") {
+            // Re-create isolated table for SheetJS
+            const exportDataContainer = document.createElement("div");
+            exportDataContainer.innerHTML = tableHtml;
+            const wb = XLSX.utils.table_to_book(exportDataContainer.querySelector('table'), { sheet: "Marks_Register" });
+            XLSX.writeFile(wb, fileName + ".xlsx");
+        } 
+        else if (type === "word") {
+            const preHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Institutional Export</title><style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 4px; font-size: 10pt; font-family: Arial; }</style></head><body>`;
+            const html = preHtml + fullHtml + "</body></html>";
+            const blob = new Blob(["\ufeff", html], { type: "application/msword" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName + ".doc";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 200);
+        }
+        
+        document.body.removeChild(tempContainer);
+        toast("✅ Institutional data archived.", "success");
+    } catch (err) {
+        console.error("Export Error:", err);
+        toast("Data hydration failed. Check cloud sync.", "error");
     }
 }

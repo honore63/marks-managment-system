@@ -216,6 +216,22 @@
       text-transform: uppercase; letter-spacing: 1px;
       text-align: center;
     }
+
+    /* MOBILE & TABLET OPTIMIZATIONS */
+    @media (max-width: 1024px) {
+      .branding-section { display: none; }
+      .form-section { padding: 20px; background: #fff; }
+      .login-card { padding: 2.5rem; max-width: 100%; box-shadow: none; border: none; }
+    }
+
+    @media (max-width: 480px) {
+      .form-header h2 { font-size: 1.5rem; }
+      .form-header p { font-size: 0.85rem; }
+      .login-card { padding: 1.5rem; }
+      .submit-btn { padding: 1rem; font-size: 0.9rem; }
+      .form-input { padding-left: 2.75rem; font-size: 0.95rem; }
+      .support-footer { font-size: 0.75rem; }
+    }
   </style>
 </head>
 <body>
