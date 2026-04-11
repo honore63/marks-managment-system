@@ -999,9 +999,9 @@ async function generateProclamationList() {
     toast('Consolidating Multi-Faculty Marks...', 'info');
 
     const [allMarks, students, allSubjects] = await Promise.all([
-        DB.getMarks({ classId: cid, term }),
+        DB.getMarks({ classId: cid, term, year: el('report-year')?.value }),
         DB.getStudents(cid),
-        DB.getSubjects()
+        DB.getSubjects(cid)
     ]);
 
     const subjects = allSubjects.filter(s => selSubIds.includes(s.id));
@@ -2141,7 +2141,9 @@ window.generateGradeDistributionReport = async function() {
     
     try {
         const [allMarks, students, classes] = await Promise.all([
-            DB.getMarks(), DB.getStudents(), DB.getClasses()
+            DB.getMarks({ classId, term, year }), 
+            DB.getStudents(classId), 
+            DB.getClasses()
         ]);
 
         const selSubIds = getSelectedReportSubjectIds();
@@ -2394,7 +2396,10 @@ window.generateSubjectSuccessReport = async function() {
     try {
         await syncConfigs();
         const [allMarks, students, classes, subjects] = await Promise.all([
-            DB.getMarks(), DB.getStudents(), DB.getClasses(), DB.getSubjects()
+            DB.getMarks({ term, year }), 
+            DB.getStudents(), 
+            DB.getClasses(), 
+            DB.getSubjects()
         ]);
 
         const assignments = await DB.getTeacherAssignments(MY_PROFILE?.id);
@@ -2651,7 +2656,9 @@ window.generatePassRateReport = async function() {
     
     try {
         const [allMarks, students, classes] = await Promise.all([
-            DB.getMarks(), DB.getStudents(), DB.getClasses()
+            DB.getMarks({ classId, term, year }), 
+            DB.getStudents(classId), 
+            DB.getClasses()
         ]);
 
         const selSubIds = getSelectedReportSubjectIds();
