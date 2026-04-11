@@ -1447,6 +1447,29 @@ async function addClass() {
     await renderSetup();
 }
 
+async function batchInitializePrimaryClasses() {
+    if (!confirm('This will automatically generate P1-P6 (A & B) classes for your school. Continue?')) return;
+    
+    toast('🚀 Initializing institutional structure...', 'info');
+    const names = [];
+    for (let i = 1; i <= 6; i++) {
+        names.push(`P${i} A`);
+        names.push(`P${i} B`);
+    }
+
+    try {
+        const { error } = await DB.addClassesBatch(names);
+        if (error) throw error;
+        toast('🎉 Standard Primary structure initialized successfully!', 'success');
+        await renderSetup();
+        await updateInstitutionalStats();
+    } catch (err) {
+        console.error('[SETUP] Batch initialization failed:', err);
+        toast('Failed to initialize classes. Check database constraints.', 'error');
+    }
+}
+
+
 // ============================================================
 // SUBJECTS
 // ============================================================

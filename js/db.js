@@ -308,6 +308,13 @@ const DB = {
     if (!res.error) DB_CACHE.set(`classes_${sc}`, null);
     return res;
   },
+  async addClassesBatch(names) {
+    const sc = await this._getSchoolCode();
+    const batch = names.map(n => ({ name: n, school_code: sc }));
+    const res = await _supabase.from('classes').insert(batch).select();
+    if (!res.error) DB_CACHE.set(`classes_${sc}`, null);
+    return res;
+  },
   async deleteClass(id) {
     const res = await _supabase.from('classes').delete().eq('id', id);
     if (!res.error) {
