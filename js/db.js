@@ -35,7 +35,6 @@ const DB = {
    */
   async signIn(identifier, password) {
     let email = identifier;
-    const isDefaultPass = (password === 'Teacher@2024');
 
     // Resolve identifier to email if it's SDMS or Phone
     if (!identifier.includes('@')) {
@@ -61,16 +60,22 @@ const DB = {
     let profile = null;
 
     // PHASE 2: Auto-Provisioning (New account creation)
-    if (authError && (authError.message.includes('Invalid') || authError.status === 400) && isDefaultPass) {
+    if (authError && (authError.message.includes('Invalid') || authError.status === 400)) {
       const { data: p } = await _supabase.from('profiles').select('*').eq('email', email).single();
       
       if (p && p.temp_password_active) {
-        const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({ email, password });
-        if (!signUpError) return { user: signUpData.user, profile: p };
-        
-        // Handle 422: User already in Auth but first-time provisioning didn't match (already registered)
-        if (signUpError && signUpError.status === 422) {
-          throw new Error('This account is already initialized. Please use your permanent password. If you forgot your password, contact your School Administrator.');
+        // Detect Role-Based Default Password Requirement
+        const defaultForUser = (p.role === 'admin') ? 'Admin@2024' : 'Teacher@2024';
+        const isCorrectDefault = (password === defaultForUser);
+
+        if (isCorrectDefault) {
+          const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({ email, password });
+          if (!signUpError) return { user: signUpData.user, profile: p };
+          
+          if (signUpError && signUpError.status === 422) {
+            throw new Error('This account is already initialized. Please use your permanent password.');
+          }
+           throw signUpError;
         }
       }
     }

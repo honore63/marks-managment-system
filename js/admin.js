@@ -1770,7 +1770,8 @@ async function processAddTeacher() {
             }
         }
 
-        toast('✅ Faculty recorded and credentials generated.', 'success');
+        const defaultP = (teacherRole === 'admin') ? 'Admin@2024' : 'Teacher@2024';
+        toast(`✅ Enrollment Complete! Temporary Password: ${defaultP}`, 'success');
 
         // 3. Dispatch Onboarding Notification
         try {
