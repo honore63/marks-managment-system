@@ -150,7 +150,7 @@ const DB = {
     };
     
     // Auto-Recovery feature: Check if a ghost profile already exists for this email
-    const { data: existing } = await _supabase.from('profiles').select('id').eq('email', teacherObj.email).single();
+    const { data: existing } = await _supabase.from('profiles').select('id').eq('email', teacherObj.email).maybeSingle();
     
     if (existing) {
         console.warn(`[REGISTRY] Recovering orphaned profile for ${teacherObj.email}`);
@@ -409,13 +409,13 @@ const DB = {
   async getSchoolInfo() {
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return null;
-    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).single();
+    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
     const sc = profile?.school_code || 'DEFAULT';
 
-    const { data, error } = await _supabase.from('settings').select('*').eq('key', `school_info_${sc}`).single();
-    if (error) {
+    const { data, error } = await _supabase.from('settings').select('*').eq('key', `school_info_${sc}`).maybeSingle();
+    if (error || !data) {
         // Fallback to legacy key for reverse compatibility if new one doesn't exist
-        const { data: fallback } = await _supabase.from('settings').select('*').eq('key', 'school_info').single();
+        const { data: fallback } = await _supabase.from('settings').select('*').eq('key', 'school_info').maybeSingle();
         return fallback ? fallback.value : null;
     }
     return data.value;
@@ -423,7 +423,7 @@ const DB = {
   async saveSchoolInfo(info) {
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return null;
-    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).single();
+    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
     const sc = profile?.school_code || 'DEFAULT';
 
     return await _supabase.from('settings').upsert({ key: `school_info_${sc}`, value: info }, { onConflict: 'key' }).select();
