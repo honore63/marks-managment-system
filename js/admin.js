@@ -1735,8 +1735,8 @@ async function processAddTeacher() {
             return toast('⚠️ First Name and Valid Email are mandatory.', 'error');
         }
         
-        if (!isNonEmpty(schoolCode)) {
-            return toast('⚠️ Please allocate a School Code to link this user to an institution.', 'warning');
+        if (!/^\d{6}$/.test(schoolCode)) {
+            return toast('⚠️ Invalid School SDMS Code: It must be exactly a 6-digit number (e.g., 541023).', 'warning');
         }
         
         toast('🚀 Initializing institutional enrollment...', 'info');
