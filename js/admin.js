@@ -1829,7 +1829,11 @@ async function processAddTeacher() {
         
     } catch (err) {
         console.error('[REGISTRY] Severe failure:', err);
-        toast('❌ Registry Error: ' + (err.message || 'Check network connection.'), 'error');
+        let errorMsg = err.message || 'Check network connection.';
+        if (err.code === '23505' || err.status === 409) {
+            errorMsg = 'This Email, Phone Number, or SDMS Code is already assigned to another user in the system.';
+        }
+        toast('❌ Registry Error: ' + errorMsg, 'error');
     }
 }
 
