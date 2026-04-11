@@ -1,0 +1,87 @@
+/* SIDEBAR LOGO & FOOTER */
+.sidebar-logo { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+.sidebar-logo .logo-mark { display: flex; align-items: center; gap: 0.75rem; }
+.logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.logo-text { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; letter-spacing: -0.5px; }
+.logo-badge { font-size: 0.65rem; background: rgba(124,58,237,0.2); color: var(--accent2); border: 1px solid rgba(124,58,237,0.3); border-radius: 4px; padding: 1px 5px; margin-top: 2px; }
+
+.sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+.nav-section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); padding: 0.5rem 1.5rem; margin-top: 0.5rem; }
+.nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1.5rem; color: var(--text-muted); cursor: pointer; border-radius: 0; transition: all 0.2s; border-left: 3px solid transparent; font-size: 0.9rem; font-weight: 500; }
+.nav-item:hover { color: var(--text); background: var(--surface2); border-left-color: var(--border); }
+.nav-item.active { color: var(--accent); background: rgba(79,142,247,0.08); border-left-color: var(--accent); }
+.nav-item .nav-icon { font-size: 1.1rem; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 0.7rem; border-radius: 100px; padding: 1px 6px; }
+
+.sidebar-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+.user-info { display: flex; align-items: center; gap: 0.75rem; }
+.user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+.user-name { font-size: 0.85rem; font-weight: 600; }
+.user-role { font-size: 0.75rem; color: var(--accent2); }
+.logout-btn { margin-left: auto; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0.25rem; }
+.logout-btn:hover { color: var(--danger); }
+
+/* TOP BAR */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.topbar-left { display: flex; align-items: center; gap: 1rem; }
+.hamburger-btn { display: none; background: none; border: none; color: var(--text); font-size: 1.3rem; cursor: pointer; }
+.page-title { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+.breadcrumb { color: var(--text-muted); font-size: 0.85rem; margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+.topbar-btn { padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: all 0.2s; background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+.topbar-btn:hover { border-color: var(--accent); color: var(--accent); }
+.topbar-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* CONTENT AREA */
+.content-area { padding: 2rem; flex: 1; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* STATS ROW */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; position: relative; overflow: hidden; }
+.stat-icon { font-size: 1.5rem; margin-bottom: 0.75rem; }
+.stat-value { font-family: var(--font-display); font-size: 2rem; font-weight: 800; margin-bottom: 0.25rem; }
+.stat-label { color: var(--text-muted); font-size: 0.85rem; }
+.stat-card.blue .stat-value { color: var(--accent); }
+.stat-card.purple .stat-value { color: var(--accent2); }
+.stat-card.green .stat-value { color: var(--accent3); }
+.stat-card.amber .stat-value { color: var(--accent4); }
+
+/* TABLES */
+.table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); gap: 1rem; flex-wrap: wrap; }
+.search-box { display: flex; align-items: center; gap: 0.5rem; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; }
+.search-box input { background: none; border: none; outline: none; color: var(--text); font-family: var(--font-body); font-size: 0.9rem; width: 200px; }
+.filter-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); outline: none; cursor: pointer; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; padding: 0.75rem 1rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+.data-table td { padding: 0.9rem 1rem; font-size: 0.9rem; border-bottom: 1px solid var(--border); color: var(--text); }
+.data-table tbody tr:hover { background: var(--surface2); }
+
+/* ASSESSMENTS CONFIG */
+.marks-setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
+.assessment-types-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.assessment-type-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.assessment-name { font-weight: 600; font-size: 0.9rem; }
+.max-marks-input { width: 70px; text-align: center; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 0.4rem 0.5rem; border-radius: 6px; font-weight: 700; outline: none; }
+.max-marks-input:focus { border-color: var(--accent); }
+
+/* MODALS */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.25s ease; }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.modal-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; }
+.modal-close { background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* FORMS */
+.form-row { display: grid; gap: 1rem; margin-bottom: 1rem; }
+.form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-group label { font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
+.form-group input, .form-group select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 0.65rem 0.9rem; border-radius: var(--radius-sm); outline: none; }
+.btn { padding: 0.65rem 1.2rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.4rem; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }

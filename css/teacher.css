@@ -1,0 +1,88 @@
+/* TEACHER SPECIFIC STYLES (CAMIS AESTHETIC) */
+:root {
+    --camis-blue: #3b82f6;
+    --camis-green: #10b981;
+    --camis-yellow: #f59e0b;
+    --camis-red: #ef4444;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.welcome-card {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.material-card {
+    transition: all 0.2s;
+}
+.material-card:hover {
+    border-color: var(--camis-blue);
+    box-shadow: var(--shadow-md);
+}
+
+/* MARKS ENTRY TABLE SPECIFICS */
+.data-table th {
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+}
+
+.data-table td .badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* SIDEBAR REFINEMENTS */
+.sidebar {
+    background: #f8fafc;
+    border-right: 1px solid var(--border);
+    color: var(--text);
+}
+.sidebar .logo-text { color: #1e293b; }
+.sidebar .nav-item { color: #64748b; }
+.sidebar .nav-item:hover { background: #f1f5f9; color: var(--camis-blue); }
+.sidebar .nav-item.active { 
+    background: #eff6ff; 
+    color: var(--camis-blue); 
+    border-left: 3px solid var(--camis-blue);
+    border-radius: 0 8px 8px 0;
+}
+.sidebar .nav-label { color: #94a3b8; }
+
+/* OVERRIDE FOR DARK SIDEBAR IF NEEDED (The screenshot shows a light sidebar with dark text, but style.css defines it as #0f172a) */
+/* Let's stick to the screenshot's LIGHT SIDEBAR feel */
+.sidebar {
+    background: #ffffff !important;
+}
+
+.main-wrapper {
+    background: #f1f5f9 !important;
+}
+
+/* FORM HEADER */
+.form-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* INPUT OVERRIDES */
+.mark-input {
+    width: 60px;
+    padding: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--camis-blue);
+}
+
+@media print {
+    .view-toggle, .btn, .sidebar, .topbar { display: none !important; }
+}
+

@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMS (Marks Management System) — Teacher Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Specific overrides for Teacher interaction */
+    .mark-input {
+      width: 60px; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; text-align: center; font-weight: 800; color: var(--text-dark);
+      transition: all 0.2s; background: #f8fafc;
+    }
+    .mark-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); background: #fff; }
+    .mark-input.saved { border-color: var(--success); background: #f0fdf4; color: var(--success); }
+    
+    .mobile-menu-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-dark); margin-right: 1rem; }
+    @media (max-width: 1024px) { .mobile-menu-btn { display: block; } }
+
+    /* Report Selector Specifics - Professional MMS Revision */
+    .checklist-group { 
+      display: flex; flex-wrap: wrap; gap: 1rem; 
+      background: white; padding: 2rem; 
+      border-radius: 24px; border: 1px solid rgba(226, 232, 240, 0.8); 
+      margin-bottom: 2.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    .check-item { 
+      display: flex; align-items: center; gap: 0.75rem; 
+      background: #f8fafc; padding: 10px 20px; 
+      border-radius: 14px; border: 1.5px solid transparent; 
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      font-size: 0.85rem; font-weight: 800; color: #475569;
+    }
+    .check-item:hover { background: white; border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1); }
+    .check-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25); }
+  </style>
+</head>
+<body>
+
+<div class="layout-sidebar">
+  <!-- INSTITUTIONAL SIDEBAR (Vertical) -->
+  <aside class="sidebar" id="institutional-sidebar">
+    <div class="sidebar-brand">
+       <div class="navbar-brand">
+          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 48px; width: auto; object-fit: contain;" alt="MMS Logo">
+          <div class="logo-text-group">
+            <div class="logo-main" style="color: #1e293b; font-size: 1.6rem;">MMS</div>
+            <div class="logo-sub" style="color: #64748b;">Teacher Portal</div>
+          </div>
+       </div>
+       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+          <span style="font-size: 1.2rem;">≡</span>
+       </button>
+    </div>
+    
+    <div class="sidebar-nav">
+       <div class="sidebar-group-label">Instructional Hub</div>
+       <div class="sidebar-item active" data-view="dashboard" onclick="switchView('dashboard', this)">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="sidebar-item-text">Overview</span>
+       </div>
+       
+       <div class="sidebar-group-label">Academics</div>
+       <div class="sidebar-item" data-view="marks-entry" onclick="switchView('marks-entry', this)">
+          <i data-lucide="edit-3"></i>
+          <span class="sidebar-item-text">Marks Recording</span>
+       </div>
+       <div class="sidebar-item" id="side-class-monitor" style="display:none;" data-view="class-monitor" onclick="switchView('class-monitor', this)">
+          <i data-lucide="shield-check"></i>
+          <span class="sidebar-item-text">Class Monitor</span>
+       </div>
+       <div class="sidebar-item" id="side-students" style="display:none;" data-view="students" onclick="switchView('students', this)">
+          <i data-lucide="user-plus"></i>
+          <span class="sidebar-item-text">Student Registry</span>
+       </div>
+       
+       <div class="sidebar-group-label">Analytics</div>
+       <div class="sidebar-item" data-view="reports" onclick="switchView('reports', this)">
+          <i data-lucide="trending-up"></i>
+          <span class="sidebar-item-text">Performance Reports</span>
+       </div>
+       <div class="sidebar-item" onclick="openTeacherProclamationModal()">
+          <i data-lucide="award"></i>
+          <span class="sidebar-item-text">Proclamation</span>
+       </div>
+    </div>
+    
+    <div class="sidebar-footer">
+       <div class="user-compact" onclick="switchView('profile')">
+          <div class="user-avatar" id="sidebar-avatar-init">T</div>
+          <div class="user-info">
+             <span class="name" id="sidebar-user-name">TEACHER</span>
+             <span class="role" id="sidebar-user-role">Pedagogical Faculty</span>
+          </div>
+       </div>
+       <button class="btn" style="width: 100%; justify-content: center; margin-top: 1rem; background: #FEF2F2; color: #DC2626; border: none;" onclick="handleLogout()">
+          <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> <span class="btn-text">Log Out</span>
+       </button>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div class="main-wrapper">
+    <!-- TOPBAR -->
+    <!-- SUB-HEADER (Institutional Context) -->
+    <div class="sub-header">
+      <div class="page-title-group">
+        <div class="breadcrumb" id="page-breadcrumb"><span>School</span><span>Teacher</span><span>Overview</span></div>
+        <h1 id="page-title">Teacher Dashboard</h1>
+      </div>
+      <div style="display:flex; gap: 1.5rem; align-items: center;">
+         <div id="sync-badge" class="badge badge-blue">🔄 NODE SYNCED</div>
+         <div id="sync-status" class="badge badge-blue">● ACTIVE</div>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- VIEW: DASHBOARD -->
+      <!-- VIEW: DASHBOARD (Original Dashboard Restored) -->
+      <div class="view active" id="view-dashboard">
+        <div class="school-identity-bar" style="margin-bottom: 2rem;">
+            <div class="school-identity">
+               <div class="school-name-text">
+                  <h2 id="dash-teacher-name" style="font-size: 2.5rem; letter-spacing: -2px; margin-bottom: 0;">MMS Dashboard</h2>
+                  <p id="dash-school-name" style="font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; margin-top: -5px;">Marks Management System</p>
+                  <div style="display:flex; gap: 0.75rem; margin-top: 1.25rem;">
+                     <div class="badge badge-blue">👤 <span id="dash-profile-name">Teacher</span></div>
+                     <div class="badge badge-blue">🆔 <span id="dash-profile-code">SDMS: Loading...</span></div>
+                  </div>
+              </div>
+           </div>
+           <div style="text-align: right;">
+              <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Current Session</div>
+              <div style="font-weight: 900; color: #1e293b;" id="dash-acad-session">Term 2 / 2025-2026</div>
+           </div>
+        </div>
+
+        <div class="stats-grid resp-grid-4">
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-lbl">My Students</div>
+              <div class="stat-val" id="dash-student-count">0</div>
+            </div>
+            <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;"><i data-lucide="backpack"></i></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-lbl">Jurisdictions</div>
+              <div class="stat-val" id="dash-subject-count">0</div>
+            </div>
+            <div class="stat-icon" style="background: #f0fdf4; color: #10b981;"><i data-lucide="book"></i></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-lbl">Records Saved</div>
+              <div class="stat-val" id="dash-marks-count">0</div>
+            </div>
+            <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;"><i data-lucide="edit-3"></i></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-info">
+              <div class="stat-lbl">Status</div>
+              <div class="stat-val" id="dash-marks-status" style="font-size: 1rem; color: #3b82f6;">ACTIVE</div>
+            </div>
+            <div class="stat-icon" style="background: #fdf4ff; color: #d946ef;"><i data-lucide="lock"></i></div>
+          </div>
+        </div>
+
+        <div class="resp-grid resp-grid-2" style="margin-top: 2.5rem; align-items: start;">
+           
+           <!-- QUICK ACTIONS & ALERTS -->
+           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div class="table-card" style="padding: 1.5rem; margin: 0;">
+                  <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; margin-bottom: 1rem;">Quick Actions</h3>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                      <button class="btn btn-primary" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="switchView('marks-entry', document.getElementById('nav-academics'))"><i data-lucide="edit-3" style="width:16px; margin-right:8px;"></i> Target Marks Entry</button>
+                      <button id="dash-action-monitor" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: #eff6ff; color: #1e40af; border-color: #bfdbfe; display:none;" onclick="switchView('class-monitor', document.getElementById('nav-academics'))"><i data-lucide="activity" style="width:16px; margin-right:8px;"></i> Monitor Class Progress</button>
+                      <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg);" onclick="switchView('reports', document.getElementById('nav-reports-main'))"><i data-lucide="file-text" style="width:16px; margin-right:8px;"></i> Generate Report Cards</button>
+                      <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg);" onclick="openTeacherProclamationModal()"><i data-lucide="award" style="width:16px; margin-right:8px;"></i> Class Proclamation</button>
+                  </div>
+               </div>
+
+               <div class="alert-box" id="teacher-dashboard-alert" style="margin: 0; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-color: var(--primary-glow); border-left-color: var(--primary);">
+                  <div style="display: flex; justify-content: space-between; width: 100%;">
+                     <div class="stat-lbl" style="font-weight: 800; color: var(--primary);">System Notification</div>
+                     <div class="alert-icon" style="width: 24px; height: 24px; font-size: 0.8rem; background: var(--primary-glow); color: var(--primary);">🔔</div>
+                  </div>
+                  <div class="stat-sub" style="margin: 0; font-weight: 600; color: #64748b;" id="teacher-dash-notification">Make sure all records are submitted before the term deadline.</div>
+               </div>
+           </div>
+
+           <!-- PERFORMANCE & CLASS OVERVIEW -->
+           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div class="table-card" style="padding: 1.5rem; margin: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                      <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b;">My Jurisdictions Overview</h3>
+                      <div style="text-align: right;">
+                          <button class="btn" style="font-size: 0.65rem; padding: 0.4rem 0.6rem;" onclick="renderDashboard()">↻ Refresh</button>
+                          <div id="dash-last-synced" style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; margin-top: 4px; text-transform: uppercase;">Last Synced: --</div>
+                      </div>
+                  </div>
+                  <div class="data-table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                     <table class="data-table" style="min-width: 100%;">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 5;">
+                           <tr><th style="padding: 0.75rem 1rem;">Class</th><th style="padding: 0.75rem 1rem;">Subject</th><th style="padding: 0.75rem 1rem; text-align: center;">Marks</th></tr>
+                        </thead>
+                        <tbody id="dash-jurisdictions-tbody">
+                           <tr><td colspan="3" style="text-align:center; padding: 1.5rem; font-size: 0.8rem; color: #94a3b8;">Loading...</td></tr>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+
+               <div class="stat-card" style="background: linear-gradient(135deg, var(--sidebar-bg), #1e293b); color: white; border: none; align-items: flex-start; flex-direction: column;">
+                  <h3 style="font-size: 0.85rem; font-weight: 900; color: #818cf8; margin-bottom: 0.5rem;">Performance Indicator</h3>
+                  <div style="font-size: 2rem; font-weight: 900; line-height: 1;" id="dash-avg-score">--%</div>
+                  <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; margin-top: 0.5rem;">Average score across your assigned classes</div>
+               </div>
+           </div>
+
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS ENTRY (Overview layout moved from dashboard) -->
+      <div class="view" id="view-marks-entry">
+         <!-- Header -->
+         <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+               <span style="color: #3b82f6;">📋</span> Marks Recording
+            </h1>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">Fill in all marks on this form to ensure complete and accurate data.</p>
+         </div>
+
+         <!-- Top Metrics Grid -->
+         <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- Left Side: Progression Stats -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div style="background: #bfdbfe; border: 1px solid #93c5fd; border-radius: 12px; padding: 1.5rem; position: relative;">
+                  <div style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">Completion rate</div>
+                  <div style="font-size: 0.8rem; color: #475569; margin-bottom: 2rem;">Overall progress of marks recording</div>
+                  <div style="position: absolute; top: 1.5rem; right: 1.5rem; font-size: 1.5rem; font-weight: 400; color: #1e293b;" id="dash-completion-pct">100%</div>
+                  <div style="position: relative;">
+                     <div style="position: absolute; top: -25px; left: 0; background: #15803d; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 99px; font-weight: 600;" id="dash-completion-label">100% Submitted</div>
+                     <div style="width: 100%; height: 24px; background: white; border-radius: 99px; padding: 4px;">
+                        <div id="dash-completion-bar" style="height: 100%; width: 100%; background: #16a34a; border-radius: 99px; transition: width 0.5s ease-in-out;"></div>
+                     </div>
+                  </div>
+               </div>
+
+               <!-- Status Blocks Grid -->
+               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div style="background: #dcfce7; border: 1px solid #bbf7d0; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #166534; font-size: 0.9rem; font-weight: 600;">Submitted</div>
+                     <div style="color: #15803d; font-size: 0.75rem; margin-bottom: 1rem;">All classes assigned to you</div>
+                     <div style="color: #166534; font-size: 1.5rem; font-weight: 400;" id="dash-stat-submitted">--</div>
+                  </div>
+                  <div style="background: #fef08a; border: 1px solid #fde047; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #854d0e; font-size: 0.9rem; font-weight: 600;">Pending</div>
+                     <div style="color: #a16207; font-size: 0.75rem; margin-bottom: 1rem;">Drafts created</div>
+                     <div style="color: #854d0e; font-size: 1.5rem; font-weight: 400;" id="dash-stat-pending">--</div>
+                  </div>
+                  <div style="background: #fee2e2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #991b1b; font-size: 0.9rem; font-weight: 600;">Remaining</div>
+                     <div style="color: #b91c1c; font-size: 0.75rem; margin-bottom: 1rem;">Marks to be recorded</div>
+                     <div style="color: #991b1b; font-size: 1.5rem; font-weight: 400;" id="dash-stat-remaining">--</div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Right Side: Totals -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+               <div style="background: white; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; position: relative;">
+                  <div style="color: #1e293b; font-size: 0.9rem; font-weight: 600;">Classes</div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 1.5rem;">All classes assigned to you</div>
+                  <div style="color: #3b82f6; font-size: 1.75rem; font-weight: 400;" id="dash-stat-classes">--</div>
+                  <div style="position: absolute; right: 1.5rem; bottom: 1.5rem; width: 36px; height: 36px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🖥️</div>
+               </div>
+               <div style="background: white; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; position: relative;">
+                  <div style="color: #1e293b; font-size: 0.9rem; font-weight: 600;">Courses</div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 1.5rem;">All assessments assigned</div>
+                  <div style="color: #3b82f6; font-size: 1.75rem; font-weight: 400;" id="dash-stat-courses">--</div>
+                  <div style="position: absolute; right: 1.5rem; bottom: 1.5rem; width: 36px; height: 36px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">📋</div>
+               </div>
+            </div>
+         </div>
+
+         <!-- Course Assigned Table -->
+         <div class="table-card" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+               <div>
+                  <h3 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin: 0;">Course assigned</h3>
+                  <p style="font-size: 0.8rem; color: #64748b; margin: 0; margin-top: 0.25rem;">All courses assigned to you from SDMS</p>
+               </div>
+            </div>
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">#</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Course name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Class group</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="dash-courses-tbody"></tbody>
+                </table>
+             </div>
+         </div>
+      </div>
+
+      <!-- VIEW: STUDENT REGISTRY (Class Teacher Only) -->
+      <div class="view" id="view-students">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+            <div>
+               <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b;">👥 Student Management</h1>
+               <p style="font-size: 0.85rem; color: #64748b;">Manage enrollment and registry for your assigned class.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openAddStudentModal()">+ Enroll New Student</button>
+         </div>
+
+          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">S/N</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Full Name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Gender</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">SDMS Code</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Assigned Class</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="students-registry-tbody"></tbody>
+                </table>
+             </div>
+          </div>
+      </div>
+
+      <!-- ADD STUDENT MODAL -->
+      <div class="modal-overlay" id="add-student-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+          <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Enroll New Candidate</h2>
+          <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">This student will be automatically assigned to your managed class.</p>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">First Name</label>
+               <input type="text" id="s-fname" class="input-field" placeholder="Enter first name">
+             </div>
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Last Name</label>
+               <input type="text" id="s-lname" class="input-field" placeholder="Enter last name">
+             </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Sex / Gender</label>
+               <select id="s-gender" class="input-field" style="font-weight: 800;">
+                  <option value="M">Male (M)</option>
+                  <option value="F">Female (F)</option>
+               </select>
+             </div>
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">SDMS / Student ID</label>
+               <input type="text" id="s-id" class="input-field" placeholder="Format: 5410XXXX">
+             </div>
+          </div>
+
+          <div class="field">
+            <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Assigned Class (Auto)</label>
+            <input type="text" id="s-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+            <input type="hidden" id="s-class-id">
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="processAddStudent()">Confirm Enrollment</button>
+            <button class="btn" style="flex: 1; justify-content: center;" onclick="closeModal('add-student-modal')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="edit-student-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+          <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Edit Student Profile</h2>
+          <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Update information for this student in the registry.</p>
+          
+          <input type="hidden" id="edit-s-id-internal">
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">First Name</label>
+               <input type="text" id="edit-s-fname" class="input-field">
+             </div>
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Last Name</label>
+               <input type="text" id="edit-s-lname" class="input-field">
+             </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Sex / Gender</label>
+               <select id="edit-s-gender" class="input-field" style="font-weight: 800;">
+                  <option value="M">Male (M)</option>
+                  <option value="F">Female (F)</option>
+               </select>
+             </div>
+             <div class="field">
+               <label style="font-size: 0.7rem; font-weight: 900; color: #1e293b; text-transform: uppercase; display: block; margin-bottom: 0.5rem;">SDMS / Student ID</label>
+               <input type="text" id="edit-s-id" class="input-field">
+             </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="processUpdateStudent()">Save Changes</button>
+            <button class="btn" style="flex: 1; justify-content: center;" onclick="closeModal('edit-student-modal')">Discard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS PIVOT GRID-->
+      <div class="view" id="view-marks-pivot">
+         <!-- Navbar-like Top Header for Entry -->
+         <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+            <button style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; font-size: 0.85rem;" onclick="switchView('marks-entry', document.getElementById('nav-marks-entry'))">
+               Close form
+            </button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+               <div style="background: #fef08a; color: #854d0e; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;" id="entry-warning-badge">Recording Context Active</div>
+               <button style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 16px; font-weight: 600; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;" onclick="downloadExcelTemplate()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Template
+               </button>
+               <button style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 16px; font-weight: 600; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;" onclick="triggerExcelUpload()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg> Bulk Upload
+               </button>
+               <input type="file" id="excel-upload-input" style="display:none;" accept=".xlsx, .xls" onchange="handleExcelUpload(event)">
+               <button class="btn btn-primary" onclick="submitMarksToAdmin()" style="font-weight: 600; font-size: 0.85rem;">Save & Submit All</button>
+            </div>
+         </div>
+
+         <!-- Table Layout -->
+         <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+               <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                  <tr id="marks-entry-thead-row"></tr>
+               </thead>
+               <tbody id="marks-entry-tbody"></tbody>
+            </table>
+         </div>
+      </div>
+
+      <!-- VIEW: CLASS MONITOR (Class Teacher Only) -->
+      <div class="view" id="view-class-monitor">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+            <div>
+               <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="color: #4f46e5;">🛡️</span> Subject Performance Tracking
+               </h1>
+               <p style="font-size: 0.85rem; color: #64748b;">Monitor recording progress and approval status for all subjects in your class.</p>
+            </div>
+            <button class="btn" style="background: white; border: 1px solid var(--border);" onclick="renderClassMonitor()">↻ Refresh Sync</button>
+         </div>
+
+         <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="table-wrapper">
+               <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                  <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                     <tr>
+                        <th style="padding: 12px 1.5rem; font-weight: 800; color: #1e293b;">No</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Course</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Type</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Assignment</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Submitted Status</th>
+                        <th style="padding: 12px 1.5rem; font-weight: 800; color: #1e293b; text-align: right;">Approved</th>
+                     </tr>
+                  </thead>
+                  <tbody id="class-monitor-tbody">
+                     <tr><td colspan="6" style="padding: 5rem; text-align:center; color: #94a3b8;">Synchronizing institutional data...</td></tr>
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+
+      <!-- VIEW: REPORTS -->
+      <div class="view" id="view-reports">
+         <div class="table-card" style="padding: 2rem;">
+            <h2 style="font-size: 1.1rem; font-weight: 900; margin-bottom: 2rem;">Institutional Report Production</h2>
+            <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom: 2rem;">
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Target Class</label>
+                   <select id="report-class-select" class="input-field" style="margin:0;"><option value="">— select class —</option></select>
+                </div>
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Term Session</label>
+                   <select id="report-term-select" class="input-field" style="margin:0;"><option value="1">Term 1</option><option value="2" selected>Term 2</option><option value="3">Term 3</option></select>
+                </div>
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Student Registry</label>
+                   <select id="report-student-select" class="input-field" style="margin:0;"><option value="all">Class Summary Registry</option></select>
+                </div>
+            </div>
+
+            <!-- Subject/Assessment Checklists -->
+            <div class="resp-grid" style="gap: 1.5rem; margin-bottom: 2rem;">
+               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
+                  <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="book" style="width:14px; height:14px; margin-right:4px;"></i> Curricular Subjects</label>
+                  <div id="report-subject-checklist" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+               </div>
+               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
+                  <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="clipboard-check" style="width:14px; height:14px; margin-right:4px;"></i> Evaluation Markers</label>
+                  <div id="report-assess-checklist" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+               </div>
+            </div>
+
+            <div style="margin-bottom: 2rem; max-width: 300px;">
+                <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Official Proclamation Date</label>
+                <input type="date" id="report-date-picker" class="input-field" style="margin:0; font-weight:800;">
+            </div>
+
+            <div style="display:flex; gap: 1rem; flex-wrap: wrap;">
+               <button class="btn btn-primary" style="padding: 1rem 2rem; background: #3b82f6; display:inline-flex; align-items:center; gap:8px;" onclick="generateReportCard(false)"><i data-lucide="search" style="width:16px; height:16px;"></i> Preview Report Cards</button>
+               <button class="btn" style="background: #f59e0b; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openPassRateReportModal()"><i data-lucide="trending-up" style="width:16px; height:16px;"></i> Pass Rate Report</button>
+               <button class="btn" style="background: #10b981; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openSubjectSuccessReportModal()"><i data-lucide="book" style="width:16px; height:16px;"></i> Subject Success Report</button>
+               <button class="btn" style="background: #6366f1; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openGradeDistributionReportModal()"><i data-lucide="bar-chart-2" style="width:16px; height:16px;"></i> Grade Distribution</button>
+               <button class="btn" style="background: var(--sidebar-bg); color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="generateProclamationList()"><i data-lucide="search" style="width:16px; height:16px;"></i> Preview Proclamation</button>
+               <button class="btn" style="padding: 1rem 2rem; border: 2px solid #3b82f6; color: #3b82f6; display:inline-flex; align-items:center; gap:8px;" onclick="printReportCards()"><i data-lucide="download" style="width:16px; height:16px;"></i> Download Official PDF</button>
+            </div>
+         </div>
+         <div id="report-card-print-area" style="margin-top: 3rem; background: #f1f5f9; padding: 2rem; border-radius: 20px; border: 2px dashed #cbd5e1;">
+            <div style="text-align:center; color:#94a3b8; padding: 4rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #cbd5e1;"><i data-lucide="file-text" style="width:48px; height:48px;"></i></div>
+                <div style="font-weight: 800; font-size: 1.1rem;">Report Preview Area</div>
+                <p style="font-size: 0.85rem;">Select your parameters above and click "Preview" to see the document here.</p>
+            </div>
+         </div>
+      </div>
+
+      <!-- VIEW: PROFILE -->
+      <div class="view" id="view-profile">
+        <div class="table-card" style="padding: 3rem; max-width: 700px;">
+            <div style="display:flex; align-items:center; gap:2rem; margin-bottom:3rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem;">
+              <div id="profile-avatar-big" style="width:100px; height:100px; border-radius:24px; background:linear-gradient(135deg,var(--primary),#6366f1); display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; font-weight:900;">T</div>
+              <div>
+                <h2 id="profile-name" style="font-size:1.75rem; font-weight:900; color:var(--sidebar-bg);">Faculty Member</h2>
+                <p id="profile-email" style="color:#64748b; font-size:1rem; font-weight: 500;">email@school.rw</p>
+                <div class="badge badge-green" style="margin-top:0.75rem; font-weight: 900;">SECURE ACCESS ACTIVE</div>
+              </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+               <div class="field">
+                  <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">PRIMARY CLASS</label>
+                  <div id="profile-class" style="font-weight:900; color: #1e293b; font-size: 1.1rem;">—</div>
+               </div>
+               <div class="field">
+                  <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">INSTITUTIONAL ID</label>
+                  <div id="profile-sdms" style="font-weight:900; color: #1e293b; font-size: 1.1rem;">UNSET</div>
+               </div>
+               <div class="field">
+                  <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Personal Phone Number</label>
+                  <input type="text" id="profile-phone-input" class="input-field" placeholder="+250 78x xxx xxx" style="font-weight:800; color:#1e293b; margin:0;">
+               </div>
+            </div>
+
+            <!-- JURISDICTIONS SECTION -->
+            <div style="background:#f1f5f9; border-radius:20px; padding:2rem; margin-bottom:3rem;">
+               <div style="font-size:0.75rem; font-weight:900; color:#1e293b; text-transform:uppercase; margin-bottom:1.5rem; display:flex; align-items:center; gap:0.5rem;">
+                  <i data-lucide="book" style="width:16px; height:16px;"></i> INSTITUTIONAL JURISDICTIONS
+               </div>
+               <div id="profile-jurisdictions-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+                  <div style="color:#94a3b8; font-size:0.8rem; font-style:italic;">Synchronizing with academic node...</div>
+               </div>
+            </div>
+
+            <div style="background:#f8fafc; border:2px dashed #cbd5e1; border-radius:20px; padding:2rem; margin-bottom:2rem; text-align:center;">
+               <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform:uppercase;">Digital Signature</label>
+               <div id="signature-preview-container" style="margin-bottom:1.5rem; min-height:100px; display:flex; align-items:center; justify-content:center; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                  <span id="signature-placeholder" style="color:#94a3b8; font-size:0.8rem; font-style:italic;">No digital signature uploaded</span>
+                  <img id="signature-preview-img" style="max-height:80px; display:none;">
+               </div>
+               <input type="file" id="signature-upload" accept="image/*" style="display:none;" onchange="handleSignatureUpload(this)">
+               <button class="btn" onclick="document.getElementById('signature-upload').click()" style="background:#fff; border:1.5px solid #e2e8f0; color:#1e293b; font-weight:800; font-size:0.7rem; padding:8px 20px;">
+                  SELECT SIGNATURE IMAGE
+               </button>
+               <p style="font-size:0.6rem; color:#94a3b8; margin-top:1rem;">Recommended: PNG format with transparent background</p>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveTeacherPhone()" style="width: 100%; justify-content: center; padding: 1rem; margin-bottom: 2rem;">Save Profile Updates</button>
+            
+            <button class="btn" style="width: 100%; justify-content: center; padding: 1rem; margin-bottom: 1rem;">Change Private Password</button>
+            <button class="btn" style="width: 100%; justify-content: center; padding: 1rem;" onclick="handleLogout()">Disconnect Institutional Link</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 🔻 INSTITUTIONAL FOOTER -->
+    <!-- 🔻 INSTITUTIONAL FOOTER -->
+    <footer class="main-footer">
+      <div class="footer-line">Copyright © 2026 <span class="footer-logo-text">MMS 2.0</span></div>
+      <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Unified Academic Governance Console</div>
+    </footer>
+  </div>
+</div>
+
+<!-- GRADE DISTRIBUTION REPORT MODAL -->
+<div class="modal-overlay" id="grade-distribution-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Grade Distribution Report</h2>
+    <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Detailed performance breakdown into grade brackets.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Academic Year</label>
+        <select id="gd-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Term</label>
+        <select id="gd-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Class (Managed)</label>
+        <input type="text" id="gd-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="gd-class">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generateGradeDistributionReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('grade-distribution-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBJECT SUCCESS REPORT MODAL -->
+<div class="modal-overlay" id="subject-success-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Subject Success Report</h2>
+    <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Performance summary for your subjects across classes.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Academic Year</label>
+        <select id="ssr-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Term</label>
+        <select id="ssr-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Target Subject</label>
+        <select id="ssr-subject" class="input-field" style="font-weight: 800;"></select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generateSubjectSuccessReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('subject-success-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASS RATE REPORT MODAL -->
+<div class="modal-overlay" id="pass-rate-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Pass Rate Report (Proclamation)</h2>
+    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Generate the official Student Pass Rate Report for your class.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Academic Year</label>
+        <select id="pr-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Term</label>
+        <select id="pr-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="field">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Class (Managed)</label>
+        <input type="text" id="pr-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="pr-class">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generatePassRateReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('pass-rate-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="js/db.js"></script>
+<script src="js/teacher.js"></script>
+
+</body>
+</html>
