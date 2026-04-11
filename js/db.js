@@ -169,7 +169,12 @@ const DB = {
     
     if (existing) {
         console.warn(`[REGISTRY] Recovering orphaned profile for ${teacherObj.email}`);
-        return await _supabase.from('profiles').update(payload).eq('id', existing.id).select();
+        const res = await _supabase.from('profiles').update(payload).eq('id', existing.id).select();
+        if (!res.error) {
+            const sc = await this._getSchoolCode();
+            DB_CACHE.set(`teachers_${sc}`, null);
+        }
+        return res;
     }
     
     // Normal Insertion
@@ -181,7 +186,12 @@ const DB = {
     return { data, error };
   },
   async updateTeacher(id, updates) {
-    return await _supabase.from('profiles').update(updates).eq('id', id).select();
+    const res = await _supabase.from('profiles').update(updates).eq('id', id).select();
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`teachers_${sc}`, null);
+    }
+    return res;
   },
   
   // --- TEACHER ASSIGNMENTS ---
@@ -239,7 +249,12 @@ const DB = {
     return await _supabase.from('teacher_assignments').insert([{ teacher_id: teacherId, class_id: classId, subject_id: subjectId, type: 'subject' }]);
   },
   async deleteTeacher(id) {
-    return await _supabase.from('profiles').delete().eq('id', id);
+    const res = await _supabase.from('profiles').delete().eq('id', id);
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`teachers_${sc}`, null);
+    }
+    return res;
   },
   async resetTeacherSecurity(id) {
     return await _supabase.from('profiles').update({ temp_password_active: true }).eq('id', id).select();
@@ -268,7 +283,12 @@ const DB = {
     return res;
   },
   async deleteStudent(id) {
-    return await _supabase.from('students').delete().eq('id', id);
+    const res = await _supabase.from('students').delete().eq('id', id);
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`students_all_${sc}`, null);
+    }
+    return res;
   },
 
   // --- CLASSES ---
@@ -289,7 +309,12 @@ const DB = {
     return res;
   },
   async deleteClass(id) {
-    return await _supabase.from('classes').delete().eq('id', id);
+    const res = await _supabase.from('classes').delete().eq('id', id);
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`classes_${sc}`, null);
+    }
+    return res;
   },
 
   // --- SUBJECTS ---
@@ -434,10 +459,20 @@ const DB = {
     return res;
   },
   async updateAssessment(id, updates) {
-    return await _supabase.from('assessments').update(updates).eq('id', id).select();
+    const res = await _supabase.from('assessments').update(updates).eq('id', id).select();
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`assessments_${sc}`, null);
+    }
+    return res;
   },
   async deleteAssessment(id) {
-    return await _supabase.from('assessments').delete().eq('id', id);
+    const res = await _supabase.from('assessments').delete().eq('id', id);
+    if (!res.error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`assessments_${sc}`, null);
+    }
+    return res;
   },
 
   // --- SYSTEM CONFIG ---
