@@ -789,6 +789,21 @@
                 <button class="btn" style="border: 1.5px solid #2563eb; color: #2563eb; background: #eff6ff; justify-content: center; font-weight: 800;" onclick="exportMarks('word')">Word Doc</button>
             </div>
             
+            <button class="btn btn-primary" style="margin-top: 1.5rem; margin-bottom:1rem; width: 100%; justify-content: center;" onclick="openImportStudentsModal()">Import Students</button>
+            <!-- IMPORT STUDENTS MODAL -->
+            <div class="modal-overlay" id="import-students-modal" style="display:none;">
+                <div class="modal-card" style="padding:2.5rem; max-width:500px; text-align:left;">
+                    <h2 style="font-size:1.2rem; font-weight:900; margin-bottom:1rem;">Bulk Student Import</h2>
+                    <p style="margin-bottom:0.5rem;">Paste CSV data (Name,SMD,Gender) or upload a .csv file.</p>
+                    <textarea id="import-students-textarea" placeholder="John Doe,12345,M" style="width:100%; height:120px; margin-bottom:0.5rem; padding:0.5rem;"></textarea>
+                    <input type="file" id="import-students-file" accept=".csv" style="margin-bottom:0.5rem;" />
+                    <div style="display:flex; gap:1rem; margin-top:0.5rem;">
+                        <button class="btn btn-primary" onclick="processStudentImport()">Import</button>
+                        <button class="btn" onclick="closeModal('import-students-modal')">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            
             <button class="btn" style="margin-top: 1.5rem; width: 100%; justify-content: center; border: none; color: #94a3b8;" onclick="closeModal('export-marks-modal')">Discard & Close</button>
         </div>
       </div>

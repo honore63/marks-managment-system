@@ -3293,3 +3293,73 @@ async function exportMarks(type) {
         toast("Data hydration failed. Check cloud sync.", "error");
     }
 }
+
+// ------------------------------------------------------------
+// Bulk Student Import (Paste or CSV Upload)
+// ------------------------------------------------------------
+function openImportStudentsModal() {
+    openModal('import-students-modal');
+}
+
+async function processStudentImport() {
+    const textarea = document.getElementById('import-students-textarea');
+    const fileInput = document.getElementById('import-students-file');
+    let csvData = '';
+
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        csvData = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result);
+            reader.onerror = e => reject(e);
+            reader.readAsText(file);
+        });
+    } else if (textarea) {
+        csvData = textarea.value;
+    }
+
+    if (!csvData) {
+        toast('No data provided for import.', 'warning');
+        return;
+    }
+
+    const lines = csvData.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const classId = document.getElementById('s-class-id')?.value;
+    if (!classId) {
+        toast('No active class selected for import.', 'error');
+        return;
+    }
+
+    const studentPromises = [];
+    for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length < 3) continue;
+        const fullName = parts[0];
+        const smd = parts[1];
+        const gender = parts[2];
+        const nameTokens = fullName.split(' ').filter(t => t);
+        const firstName = nameTokens.slice(0, -1).join(' ') || fullName;
+        const lastName = nameTokens.slice(-1).join(' ') || '';
+        
+        studentPromises.push(DB.addStudent({
+            first_name: firstName.toUpperCase(),
+            last_name: lastName.toUpperCase(),
+            sid: smd,
+            gender: gender,
+            class_id: classId,
+            created_at: new Date().toISOString()
+        }));
+    }
+
+    try {
+        await Promise.all(studentPromises);
+        toast('✅ Students imported successfully.', 'success');
+        closeModal('import-students-modal');
+        if (typeof renderStudentRegistry === 'function') {
+            await renderStudentRegistry();
+        }
+    } catch (e) {
+        console.error('Student import error:', e);
+        toast('❌ Failed to import some students.', 'error');
+    }
+}
