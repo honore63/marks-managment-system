@@ -1806,6 +1806,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (active === 'view-dashboard') await renderDashboard(); 
         if (active === 'view-verification') await renderVerificationView();
     });
+    SYNC.on('subjects', async () => { if (document.querySelector('.view.active')?.id === 'view-dashboard') await renderDashboard(); });
+    SYNC.on('classes', async () => { if (document.querySelector('.view.active')?.id === 'view-dashboard') await renderDashboard(); });
+    SYNC.on('students', async () => { if (document.querySelector('.view.active')?.id === 'view-students') await renderClassStudents(); });
+
     
     console.log('[CAMIS] Faculty Node fully synchronized.');
 });

@@ -173,7 +173,12 @@ const DB = {
     }
     
     // Normal Insertion
-    return await _supabase.from('profiles').insert([payload]).select();
+    const { data, error } = await _supabase.from('profiles').insert([payload]).select();
+    if (!error) {
+        const sc = await this._getSchoolCode();
+        DB_CACHE.set(`teachers_${sc}`, null);
+    }
+    return { data, error };
   },
   async updateTeacher(id, updates) {
     return await _supabase.from('profiles').update(updates).eq('id', id).select();
@@ -258,7 +263,9 @@ const DB = {
   },
   async addStudent(studentObj) {
     const sc = await this._getSchoolCode();
-    return await _supabase.from('students').insert([{ ...studentObj, school_code: sc }]).select();
+    const res = await _supabase.from('students').insert([{ ...studentObj, school_code: sc }]).select();
+    if (!res.error) DB_CACHE.set(`students_all_${sc}`, null);
+    return res;
   },
   async deleteStudent(id) {
     return await _supabase.from('students').delete().eq('id', id);
@@ -277,7 +284,9 @@ const DB = {
   },
   async addClass(name) {
     const sc = await this._getSchoolCode();
-    return await _supabase.from('classes').insert([{ name, school_code: sc }]).select();
+    const res = await _supabase.from('classes').insert([{ name, school_code: sc }]).select();
+    if (!res.error) DB_CACHE.set(`classes_${sc}`, null);
+    return res;
   },
   async deleteClass(id) {
     return await _supabase.from('classes').delete().eq('id', id);
@@ -301,7 +310,9 @@ const DB = {
   },
   async addSubject(subjectObj) {
     const sc = await this._getSchoolCode();
-    return await _supabase.from('subjects').insert([{ ...subjectObj, school_code: sc }]).select();
+    const res = await _supabase.from('subjects').insert([{ ...subjectObj, school_code: sc }]).select();
+    if (!res.error) DB_CACHE.set(`subjects_all_${sc}`, null);
+    return res;
   },
 
   // --- MARKS ---
@@ -418,7 +429,9 @@ const DB = {
   },
   async addAssessment(assessObj) {
     const sc = await this._getSchoolCode();
-    return await _supabase.from('assessments').insert([{ ...assessObj, school_code: sc }]).select();
+    const res = await _supabase.from('assessments').insert([{ ...assessObj, school_code: sc }]).select();
+    if (!res.error) DB_CACHE.set(`assessments_${sc}`, null);
+    return res;
   },
   async updateAssessment(id, updates) {
     return await _supabase.from('assessments').update(updates).eq('id', id).select();
