@@ -273,18 +273,24 @@
         </div>
 
         <div class="analytics-dashboard-grid" style="margin-top: 3rem; margin-bottom: 3.5rem;">
-            <div class="table-card" style="padding: 2rem;">
-               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                  <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b;">Institutional Performance Curve</h3>
+            <div class="chart-card">
+               <div class="chart-header">
+                  <h3>Institutional Performance Curve</h3>
                   <div class="badge badge-blue">GLOBAL YEARLY DATA</div>
                </div>
-               <div style="height: 350px;">
+               <div class="chart-canvas-wrapper" style="height: 350px;">
                   <canvas id="admin-main-perf-chart"></canvas>
                </div>
             </div>
-            <div class="table-card" style="padding: 2rem;">
-               <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b; margin-bottom: 1.5rem;">Grade Distribution</h3>
-               <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
+            <div class="chart-card">
+               <div class="chart-header">
+                  <h3>Grade Distribution</h3>
+                  <div class="chart-legend">
+                     <span class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span> Pass</span>
+                     <span class="legend-item"><span class="legend-dot" style="background:#f43f5e;"></span> Fail</span>
+                  </div>
+               </div>
+               <div class="chart-canvas-wrapper" style="height: 350px; display: flex; align-items: center; justify-content: center;">
                   <canvas id="admin-main-dist-chart"></canvas>
                </div>
             </div>
@@ -597,20 +603,26 @@
          </div>
 
          <!-- Charts Section -->
-         <div class="charts-grid">
-            <div class="chart-box">
-               <h3 style="font-size: 0.9rem; font-weight: 900; margin-bottom: 2rem; text-transform: uppercase; color: var(--text-gray);">Subject Performance Averages</h3>
-               <div style="height: 350px; width: 100%;">
-                  <canvas id="reports-bar-chart"></canvas>
-               </div>
-            </div>
-            <div class="chart-box">
-               <h3 style="font-size: 0.9rem; font-weight: 900; margin-bottom: 2rem; text-transform: uppercase; color: var(--text-gray);">Grade Distribution</h3>
-               <div style="height: 350px; width: 100%; display: flex; align-items: center; justify-content: center;">
-                  <canvas id="reports-pie-chart"></canvas>
-               </div>
-            </div>
-         </div>
+          <div class="charts-grid">
+             <div class="chart-card">
+                <div class="chart-header">
+                   <h3>Subject Performance Averages</h3>
+                   <div class="badge badge-blue">BY SUBJECT</div>
+                </div>
+                <div class="chart-canvas-wrapper" style="height: 350px;">
+                   <canvas id="reports-bar-chart"></canvas>
+                </div>
+             </div>
+             <div class="chart-card">
+                <div class="chart-header">
+                   <h3>Grade Distribution</h3>
+                   <div class="badge badge-purple">OVERALL</div>
+                </div>
+                <div class="chart-canvas-wrapper" style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                   <canvas id="reports-pie-chart"></canvas>
+                </div>
+             </div>
+          </div>
 
          <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 2rem; margin-top: 2rem;">
             <h3 style="font-weight: 900; margin-bottom: 2rem; color: #1e293b; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;"><i data-lucide="bar-chart-2" style="width:16px; height:16px; margin-right:4px;"></i> Institutional Performance Proclamations</h3>

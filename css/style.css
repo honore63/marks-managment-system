@@ -595,6 +595,66 @@ h1, h2, h3, h4, .logo-text, .nav-item, .btn, .nav-label, .term-lbl { font-family
 }
 .table-header h2 { font-size: 1.1rem; font-weight: 900; color: var(--text-main); letter-spacing: -0.02em; }
 
+/* Professional Chart Card Design */
+.chart-card {
+    background: white;
+    border-radius: 28px;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+}
+
+.chart-card:hover { 
+    transform: translateY(-5px);
+    box-shadow: 0 25px 40px -15px rgba(15, 23, 42, 0.1);
+    border-color: var(--primary);
+}
+
+.chart-card::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; width: 150px; height: 150px;
+    background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.chart-header h3 {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+}
+
+.chart-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.legend-item { display: flex; align-items: center; gap: 0.5rem; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.chart-canvas-wrapper {
+    position: relative;
+    width: 100%;
+    transition: all 0.3s;
+}
+
 .data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .data-table th { 
   background: #F8FAFC; 
