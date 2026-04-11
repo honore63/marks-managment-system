@@ -146,7 +146,7 @@
     
     .form-input {
       width: 100%;
-      padding: 1rem 1rem 1rem 3rem;
+      padding: 1rem 3.5rem 1rem 3rem;
       border: 1.5px solid #E2E8F0;
       border-radius: 14px;
       font-family: var(--font-body);
@@ -336,6 +336,10 @@
 <script src="js/db.js"></script>
 <script>
   const el = id => document.getElementById(id);
+  
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+  });
 
   function togglePasswordVisibility() {
     const pw = el('pass');
