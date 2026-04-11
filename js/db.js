@@ -475,7 +475,8 @@ const SYNC = {
     this._retryCount++;
     const delay = Math.min(2000 * this._retryCount, 15000); // Exponential backoff, max 15s
     console.log(`[SYNC] Retrying in ${delay}ms (attempt ${this._retryCount}/${this._maxRetries})...`);
-    toast(`🔄 Connection issue, retrying... (${this._retryCount})`, 'info');
+    // toast(`🔄 Connection issue, retrying... (${this._retryCount})`, 'info');
+    console.warn(`[DB] Connection issue, retrying... (${this._retryCount})`);
 
     clearTimeout(this._retryTimer);
     this._retryTimer = setTimeout(() => {
