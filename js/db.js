@@ -143,6 +143,7 @@ const DB = {
   },
 
   // --- TEACHERS ---
+  async getTeachers() {
     const sc = await this._getSchoolCode();
     const cached = DB_CACHE.get(`teachers_${sc}`);
     if (cached) return cached;
@@ -156,6 +157,7 @@ const DB = {
     }
 
     const { data, error } = await query;
+    if (error) { console.error('[DB] getTeachers:', error); return []; }
     DB_CACHE.set(`teachers_${sc}`, data || []);
     return data || [];
   },
@@ -267,6 +269,7 @@ const DB = {
   },
 
   // --- STUDENTS ---
+  async getStudents(classId = null) {
     const sc = await this._getSchoolCode();
     if (!classId) {
         const cached = DB_CACHE.get(`students_all_${sc}`);
@@ -303,6 +306,7 @@ const DB = {
   },
 
   // --- CLASSES ---
+  async getClasses() {
     const sc = await this._getSchoolCode();
     const cached = DB_CACHE.get(`classes_${sc}`);
     if (cached) return cached;
