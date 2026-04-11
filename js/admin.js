@@ -1725,6 +1725,7 @@ async function processAddTeacher() {
         const fname = document.getElementById('t-fname').value.trim();
         const lname = document.getElementById('t-lname').value.trim();
         const sdms  = document.getElementById('t-sdms').value.trim();
+        const schoolCode = document.getElementById('t-school-code').value.trim();
         const email = document.getElementById('t-email').value.trim();
         const phone = document.getElementById('t-phone').value.trim();
         const isClassTeacher = document.getElementById('role-class-teacher').checked;
@@ -1732,6 +1733,10 @@ async function processAddTeacher() {
         
         if (!isNonEmpty(fname) || !isNonEmpty(email) || !isValidEmail(email)) {
             return toast('⚠️ First Name and Valid Email are mandatory.', 'error');
+        }
+        
+        if (!isNonEmpty(schoolCode)) {
+            return toast('⚠️ Please allocate a School Code to link this user to an institution.', 'warning');
         }
         
         toast('🚀 Initializing institutional enrollment...', 'info');
@@ -1753,10 +1758,12 @@ async function processAddTeacher() {
             full_name: `${fname} ${lname}`, 
             email, 
             sdms_code: sdms,
+            school_code: schoolCode,
             role: teacherRole, 
             is_class_teacher: teacherRole === 'admin' ? false : isClassTeacher, 
             is_subject_teacher: teacherRole === 'admin' ? false : isSubjTeacher
         };
+
 
         // Add phone only if provided to prevent potential schema issues
         if (phone) teacherPayload.phone = phone;
