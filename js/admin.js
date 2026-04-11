@@ -499,9 +499,29 @@ async function renderCohortRegistry() {
             <td><code style="color:var(--primary); font-weight:800;">${s.sid || 'N/A'}</code></td>
             <td><span class="badge" style="background:#f1f5f9; color:#64748b; font-weight:800;">${classMap[s.class_id] || 'UNASSIGNED'}</span></td>
             <td><span class="badge badge-green">ENROLLED</span></td>
-            <td><button class="btn" style="padding: 4px 12px; font-size: 0.65rem;" onclick="openEditStudentModal('${s.id}')">EDIT</button></td>
+            <td style="display:flex; gap:0.5rem;">
+                <button class="btn" style="padding: 4px 12px; font-size: 0.65rem;" onclick="openEditStudentModal('${s.id}')">EDIT</button>
+                <button class="btn" style="padding: 4px 8px; font-size: 0.65rem; color: var(--danger); border-color: #fecaca; background: #fef2f2;" title="Remove Student" onclick="handleDeleteStudent('${s.id}', '${s.last_name} ${s.first_name}')"><i data-lucide="trash-2" style="width:14px; height:14px;"></i></button>
+            </td>
         </tr>
     `).join('') || '<tr><td colspan="7" style="text-align:center; padding:3rem; color:#94a3b8;">No students found matching filters.</td></tr>';
+}
+
+async function handleDeleteStudent(id, name) {
+    if (!confirm(`⚠️ PERMANENT ACTION: Are you sure you want to remove ${name} from the institutional registry? This will also wipe their grade history.`)) return;
+
+    toast('🚮 Terminating student node...', 'info');
+    try {
+        const { error } = await DB.deleteStudent(id);
+        if (error) throw error;
+
+        toast(`✅ ${name} has been removed from the registry.`, 'success');
+        await renderCohortRegistry();
+        await updateInstitutionalStats();
+    } catch (err) {
+        console.error('[REGISTRY] Student delete failed:', err);
+        toast('❌ Failed to remove student: ' + err.message, 'error');
+    }
 }
 
 /**
