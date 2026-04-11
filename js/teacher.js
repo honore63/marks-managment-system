@@ -1777,7 +1777,7 @@ async function renderProfile() {
     }
 }
 
-function handleLogout() { if (confirm('Disconnect from CAMIS Node?')) { SYNC.stop(); window.location.href='./Login.html'; } }
+function handleLogout() { if (confirm('Disconnect from CAMIS Node?')) { SYNC.stop(); if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache(); window.location.href='./Login.html'; } }
 
 document.addEventListener('DOMContentLoaded', async () => {
     await syncConfigs(); 

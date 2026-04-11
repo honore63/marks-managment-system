@@ -14,6 +14,7 @@ const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // DATABASE OPERATIONS (Single source of truth with Performance Caching)
 // ============================================================
 const DB_CACHE = {
+    _sc: null,
     get: (key) => {
         try {
             const data = localStorage.getItem(`camis_cache_${key}`);
@@ -131,14 +132,25 @@ const DB = {
     return data;
   },
 
+  // --- HELPERS ---
+  async _getSchoolCode() {
+    if (DB_CACHE._sc) return DB_CACHE._sc;
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return 'DEFAULT';
+    const { data: p } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
+    DB_CACHE._sc = p?.school_code || 'DEFAULT';
+    return DB_CACHE._sc;
+  },
+
   // --- TEACHERS ---
   async getTeachers() {
-    const cached = DB_CACHE.get('teachers');
+    const sc = await this._getSchoolCode();
+    const cached = DB_CACHE.get(`teachers_${sc}`);
     if (cached) return cached;
     
-    const { data, error } = await _supabase.from('profiles').select('*').eq('role', 'teacher');
+    const { data, error } = await _supabase.from('profiles').select('*').eq('role', 'teacher').eq('school_code', sc);
     if (error) { console.error('[DB] getTeachers:', error); return []; }
-    DB_CACHE.set('teachers', data || []);
+    DB_CACHE.set(`teachers_${sc}`, data || []);
     return data || [];
   },
   async addTeacher(teacherObj) {
@@ -230,21 +242,23 @@ const DB = {
 
   // --- STUDENTS ---
   async getStudents(classId = null) {
+    const sc = await this._getSchoolCode();
     if (!classId) {
-        const cached = DB_CACHE.get('students_all');
+        const cached = DB_CACHE.get(`students_all_${sc}`);
         if (cached) return cached;
     }
     
-    let query = _supabase.from('students').select('*, classes(name)');
+    let query = _supabase.from('students').select('*, classes(name)').eq('school_code', sc);
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getStudents:', error); return []; }
     
-    if (!classId) DB_CACHE.set('students_all', data || []);
+    if (!classId) DB_CACHE.set(`students_all_${sc}`, data || []);
     return data || [];
   },
   async addStudent(studentObj) {
-    return await _supabase.from('students').insert([studentObj]).select();
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('students').insert([{ ...studentObj, school_code: sc }]).select();
   },
   async deleteStudent(id) {
     return await _supabase.from('students').delete().eq('id', id);
@@ -252,40 +266,48 @@ const DB = {
 
   // --- CLASSES ---
   async getClasses() {
-    const cached = DB_CACHE.get('classes');
+    const sc = await this._getSchoolCode();
+    const cached = DB_CACHE.get(`classes_${sc}`);
     if (cached) return cached;
 
-    const { data, error } = await _supabase.from('classes').select('*').order('name');
+    const { data, error } = await _supabase.from('classes').select('*').eq('school_code', sc).order('name');
     if (error) { console.error('[DB] getClasses:', error); return []; }
-    DB_CACHE.set('classes', data || []);
+    DB_CACHE.set(`classes_${sc}`, data || []);
     return data || [];
   },
   async addClass(name) {
-    return await _supabase.from('classes').insert([{ name }]).select();
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('classes').insert([{ name, school_code: sc }]).select();
+  },
+  async deleteClass(id) {
+    return await _supabase.from('classes').delete().eq('id', id);
   },
 
   // --- SUBJECTS ---
   async getSubjects(classId = null) {
+    const sc = await this._getSchoolCode();
     if (!classId) {
-        const cached = DB_CACHE.get('subjects_all');
+        const cached = DB_CACHE.get(`subjects_all_${sc}`);
         if (cached) return cached;
     }
 
-    let query = _supabase.from('subjects').select('*, classes(name)');
+    let query = _supabase.from('subjects').select('*, classes(name)').eq('school_code', sc);
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getSubjects:', error); return []; }
     
-    if (!classId) DB_CACHE.set('subjects_all', data || []);
+    if (!classId) DB_CACHE.set(`subjects_all_${sc}`, data || []);
     return data || [];
   },
   async addSubject(subjectObj) {
-    return await _supabase.from('subjects').insert([subjectObj]).select();
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('subjects').insert([{ ...subjectObj, school_code: sc }]).select();
   },
 
   // --- MARKS ---
   async getMarks(filters = {}) {
-    let query = _supabase.from('marks').select('*');
+    const sc = await this._getSchoolCode();
+    let query = _supabase.from('marks').select('*').eq('school_code', sc);
     if (filters.studentId)    query = query.eq('student_id', filters.studentId);
     if (filters.subjectId)    query = query.eq('subject_id', filters.subjectId);
     if (filters.term)         query = query.eq('term', filters.term);
@@ -299,14 +321,17 @@ const DB = {
 
   // Upsert single mark — (student_id, subject_id, assessment_id, term) composite key
   async saveMark(markObj) {
-    return await _supabase.from('marks').upsert(markObj, {
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('marks').upsert({ ...markObj, school_code: sc }, {
       onConflict: 'student_id,subject_id,assessment_id,term,academic_year'
     }).select();
   },
 
   // Batch save — array of mark objects
   async saveMarksBatch(marksArray) {
-    return await _supabase.from('marks').upsert(marksArray, {
+    const sc = await this._getSchoolCode();
+    const batch = marksArray.map(m => ({ ...m, school_code: sc }));
+    return await _supabase.from('marks').upsert(batch, {
       onConflict: 'student_id,subject_id,assessment_id,term,academic_year'
     }).select();
   },
@@ -382,16 +407,18 @@ const DB = {
 
   // --- ASSESSMENTS ---
   async getAssessments() {
-    const cached = DB_CACHE.get('assessments');
+    const sc = await this._getSchoolCode();
+    const cached = DB_CACHE.get(`assessments_${sc}`);
     if (cached) return cached;
 
-    const { data, error } = await _supabase.from('assessments').select('*').order('created_at');
+    const { data, error } = await _supabase.from('assessments').select('*').eq('school_code', sc).order('created_at');
     if (error) { console.error('[DB] getAssessments:', error); return []; }
-    DB_CACHE.set('assessments', data || []);
+    DB_CACHE.set(`assessments_${sc}`, data || []);
     return data || [];
   },
   async addAssessment(assessObj) {
-    return await _supabase.from('assessments').insert([assessObj]).select();
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('assessments').insert([{ ...assessObj, school_code: sc }]).select();
   },
   async updateAssessment(id, updates) {
     return await _supabase.from('assessments').update(updates).eq('id', id).select();
@@ -430,6 +457,9 @@ const DB = {
     const sc = profile?.school_code || 'DEFAULT';
 
     return await _supabase.from('settings').upsert({ key: `school_info_${sc}`, value: info }, { onConflict: 'key' }).select();
+  },
+  clearCache() {
+    DB_CACHE.clear();
   }
 };
 
@@ -456,12 +486,10 @@ const SYNC = {
   },
 
   _emit(event, payload) {
-    // CACHE INVALIDATION: Purge local cache for the affected table
-    if (event === 'teachers') DB_CACHE.set('teachers', null);
-    if (event === 'students') DB_CACHE.set('students_all', null);
-    if (event === 'classes')   DB_CACHE.set('classes', null);
-    if (event === 'subjects')  DB_CACHE.set('subjects_all', null);
-    if (event === 'assessments') DB_CACHE.set('assessments', null);
+    // CACHE INVALIDATION: Purge local cache for the affected table across all schools
+    Object.keys(localStorage).forEach(k => {
+        if (k.includes(`camis_cache_${event}`)) localStorage.removeItem(k);
+    });
 
     (this._callbacks[event] || []).forEach(fn => {
       try { fn(payload); } catch(e) { console.error('[SYNC] Callback error on', event, ':', e); }

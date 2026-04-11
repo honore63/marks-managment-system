@@ -2325,6 +2325,7 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
 function handleLogout() {
     if (confirm('Disconnect from institutional node? All unsaved active sessions will be terminated.')) {
         SYNC.stop();
+        if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache();
         window.location.href = './Login.html';
     }
 }
