@@ -31,22 +31,26 @@ function isValidSDMS(code) { return /^[A-Z\d]{3,20}$/i.test(code); }
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
     if (!sb) return;
-    sb.classList.toggle('collapsed');
-    // Mobile-specific behavior
+    
     if (window.innerWidth <= 1024) {
         sb.classList.toggle('mobile-open');
+        if (overlay) overlay.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+    } else {
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
     }
-    // Save state
-    localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
 }
 
 // Close sidebar on link click (mobile)
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 1024) {
-        if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item')) {
+        if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item') || e.target.classList.contains('sidebar-item') || e.target.closest('.sidebar-item')) {
             const sb = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
             if (sb) sb.classList.remove('mobile-open');
+            if (overlay) overlay.style.display = 'none';
         }
     }
 });
@@ -229,13 +233,6 @@ function getComment(pct) {
     if (pct >= 60) return "Needs improvement! Focus on basics and practice more.";
     if (pct >= 50) return "Poor! Seek help and work on weak areas.";
     return "Unsatisfactory! Intensive support and revision needed.";
-}
-function toggleSidebar() {
-    const sidebar = document.getElementById('institutional-sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
-    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -17,7 +17,16 @@ let CURRENT_YEAR = '2025-2026';
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
-    if (sb) sb.classList.toggle('mobile-open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sb) return;
+    
+    if (window.innerWidth <= 1024) {
+        sb.classList.toggle('mobile-open');
+        if (overlay) overlay.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+    } else {
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+    }
 }
 
 async function syncSchoolData() {
@@ -56,9 +65,11 @@ async function repairLinkManually() {
 // Close sidebar on link click (mobile)
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 1024) {
-        if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item')) {
+        if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item') || e.target.classList.contains('sidebar-item') || e.target.closest('.sidebar-item')) {
             const sb = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
             if (sb) sb.classList.remove('mobile-open');
+            if (overlay) overlay.style.display = 'none';
         }
     }
 });
@@ -179,13 +190,6 @@ function getShortAbbr(abbr, id, name) {
     return str.substring(0, 3);
 }
 
-function toggleSidebar() {
-    const sidebar = document.getElementById('institutional-sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
-    }
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Restore Sidebar State

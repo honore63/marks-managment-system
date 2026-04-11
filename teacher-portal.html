@@ -114,15 +114,21 @@
     <!-- TOPBAR -->
     <!-- SUB-HEADER (Institutional Context) -->
     <div class="sub-header">
-      <div class="page-title-group">
-        <div class="breadcrumb" id="page-breadcrumb"><span>School</span><span>Teacher</span><span>Overview</span></div>
-        <h1 id="page-title">Teacher Dashboard</h1>
+      <div style="display:flex; align-items:center; gap:1rem;">
+         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:var(--text-main); font-size:1.5rem; cursor:pointer;">≡</button>
+         <div class="page-title-group">
+            <div class="breadcrumb" id="page-breadcrumb"><span>School</span><span>Teacher</span><span>Overview</span></div>
+            <h1 id="page-title" style="margin:0;">Teacher Dashboard</h1>
+         </div>
       </div>
       <div style="display:flex; gap: 1.5rem; align-items: center;">
          <div id="sync-badge" class="badge badge-blue">🔄 NODE SYNCED</div>
          <div id="sync-status" class="badge badge-blue">● ACTIVE</div>
       </div>
     </div>
+
+    <!-- MOBILE OVERLAY -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9998; backdrop-filter:blur(2px);"></div>
 
     <!-- CONTENT AREA -->
     <main class="main-content">
@@ -348,7 +354,7 @@
             <button class="btn btn-primary" onclick="openAddStudentModal()">+ Enroll New Student</button>
          </div>
 
-          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto;">
              <div class="table-wrapper">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
                    <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
@@ -474,7 +480,7 @@
          </div>
 
          <!-- Table Layout -->
-         <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
                <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
                   <tr id="marks-entry-thead-row"></tr>
