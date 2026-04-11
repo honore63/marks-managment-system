@@ -1521,6 +1521,15 @@ async function populateTeacherSelectors() {
 }
 
 function toggleAssignmentUI() {
+    const role = document.getElementById('t-role').value;
+    const respContainer = document.getElementById('responsibilities-container');
+    
+    if (role === 'admin') {
+        if (respContainer) respContainer.style.display = 'none';
+        return;
+    }
+    
+    if (respContainer) respContainer.style.display = 'block';
     const isClass = document.getElementById('role-class-teacher').checked;
     const isSubj = document.getElementById('role-subject-teacher').checked;
     document.getElementById('class-teacher-assignment').style.display = isClass ? 'block' : 'none';
@@ -1719,13 +1728,14 @@ async function processAddTeacher() {
             }
         }
 
+        const teacherRole = document.getElementById('t-role').value;
         const teacherPayload = {
             full_name: `${fname} ${lname}`, 
             email, 
             sdms_code: sdms,
-            role: 'teacher', 
-            is_class_teacher: isClassTeacher, 
-            is_subject_teacher: isSubjTeacher
+            role: teacherRole, 
+            is_class_teacher: teacherRole === 'admin' ? false : isClassTeacher, 
+            is_subject_teacher: teacherRole === 'admin' ? false : isSubjTeacher
         };
 
         // Add phone only if provided to prevent potential schema issues

@@ -882,7 +882,7 @@
 <!-- MODALS - Reusing existing IDs with enhanced styling -->
 <div class="modal-overlay" id="add-teacher-modal">
     <div class="modal-card" style="padding: 2.5rem; max-height: 90vh; overflow-y: auto;">
-        <h2 style="font-weight: 900; font-size: 1.25rem; margin-bottom: 2rem; color: var(--text-dark);">Faculty Onboarding</h2>
+        <h2 style="font-weight: 900; font-size: 1.25rem; margin-bottom: 2rem; color: var(--text-dark);">Institutional Enrollment</h2>
         <div style="display:flex; flex-direction:column; gap: 1.25rem;">
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
             <input type="text" id="t-fname" placeholder="First Name" class="input-field">
@@ -892,7 +892,15 @@
           <input type="email" id="t-email" placeholder="Institutional Email" class="input-field">
           <input type="text" id="t-phone" placeholder="Phone Number" class="input-field">
           
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.5rem;">
+          <div class="field">
+            <label style="font-size:0.65rem; font-weight:900; color:#64748b; margin-bottom:0.5rem; display:block; letter-spacing:0.04em; text-transform: uppercase;">System Access Level</label>
+            <select id="t-role" class="input-field" onchange="toggleAssignmentUI()">
+               <option value="teacher">Institutional Teacher</option>
+               <option value="admin">System Administrator</option>
+            </select>
+          </div>
+          
+          <div id="responsibilities-container" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.5rem;">
             <label style="font-size:0.65rem; font-weight:900; color:#64748b; margin-bottom:1rem; display:block; letter-spacing:0.04em; text-transform: uppercase;">Functional Responsibilities</label>
             <div style="display:flex; gap:2rem; margin-bottom:1.5rem;">
               <label style="display:flex; align-items:center; gap:0.5rem; font-weight:800; font-size:0.8rem; cursor:pointer;">
@@ -916,7 +924,7 @@
           </div>
 
           <div style="display:flex; gap: 1rem; margin-top: 1rem; position: relative; z-index: 50;">
-            <button type="button" class="btn btn-primary" style="flex:2; justify-content: center; cursor: pointer; pointer-events: auto;" onclick="processAddTeacher()" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Save teacher</button>
+            <button type="button" class="btn btn-primary" style="flex:2; justify-content: center; cursor: pointer; pointer-events: auto;" onclick="processAddTeacher()" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Register Account</button>
             <button type="button" class="btn" style="flex:1; justify-content: center; cursor: pointer; pointer-events: auto;" onclick="closeModal('add-teacher-modal')" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Discard</button>
           </div>
         </div>
