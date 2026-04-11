@@ -219,15 +219,29 @@
 
     /* MOBILE & TABLET OPTIMIZATIONS */
     @media (max-width: 1024px) {
-      .branding-section { display: none; }
-      .form-section { padding: 20px; background: #fff; }
-      .login-card { padding: 2.5rem; max-width: 100%; box-shadow: none; border: none; }
+      .login-container { flex-direction: column; height: auto; }
+      .branding-section { 
+          flex: none; width: 100%; 
+          padding: 3rem 1.5rem; 
+          min-height: auto;
+          text-align: center;
+          align-items: center;
+      }
+      .branding-heading { font-size: 2.25rem; margin-bottom: 1rem; }
+      .branding-sub { font-size: 0.95rem; margin: 0 auto; }
+      .mms-logo { justify-content: center; margin-bottom: 2rem; }
+      .visual-footer { display: none; }
+      
+      .form-section { padding: 40px 20px; background: #f8fafc; }
+      .login-card { padding: 2.5rem; max-width: 450px; box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.08); border-radius: 32px; border: 1px solid rgba(241, 245, 249, 0.8); }
     }
 
     @media (max-width: 480px) {
+      .branding-heading { font-size: 1.85rem; }
+      .branding-section { padding: 4rem 1.25rem; }
       .form-header h2 { font-size: 1.5rem; }
       .form-header p { font-size: 0.85rem; }
-      .login-card { padding: 1.5rem; }
+      .login-card { padding: 2rem 1.5rem; }
       .submit-btn { padding: 1rem; font-size: 0.9rem; }
       .form-input { padding-left: 2.75rem; font-size: 0.95rem; }
       .support-footer { font-size: 0.75rem; }
@@ -242,8 +256,8 @@
   <div class="branding-section">
     <div class="branding-content">
       <div class="mms-logo">
-        <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 60px; width: auto; object-fit: contain;">
-        <div style="font-family: var(--font-heading); font-weight: 900; font-size: 1.75rem; color: white;">MMS Portal</div>
+        <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 110px; width: auto; object-fit: contain;">
+        <div style="font-family: var(--font-heading); font-weight: 950; font-size: 2.2rem; color: white; letter-spacing: -1px;">MMS Portal</div>
       </div>
 
       <h1 class="branding-heading">Empowering School <br>Performance Management</h1>
