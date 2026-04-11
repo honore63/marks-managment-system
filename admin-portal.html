@@ -1280,10 +1280,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   
-  <script src="js/db.js?v=20260411"></script>
-  <script src="js/admin.js?v=20260411"></script>
-  <script src="js/font-switcher.js?v=20260411"></script>
-  <script src="js/ai-assistant.js"></script>
+  <script>
+    // Force fresh load every time - never serve stale JS
+    var _v = Date.now();
+    document.write('<scr'+'ipt src="js/db.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="js/admin.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="js/font-switcher.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="js/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
+  </script>
 
 </body>
 </html>
