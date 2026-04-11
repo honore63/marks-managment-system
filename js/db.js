@@ -143,13 +143,19 @@ const DB = {
   },
 
   // --- TEACHERS ---
-  async getTeachers() {
     const sc = await this._getSchoolCode();
     const cached = DB_CACHE.get(`teachers_${sc}`);
     if (cached) return cached;
     
-    const { data, error } = await _supabase.from('profiles').select('*').eq('role', 'teacher').eq('school_code', sc);
-    if (error) { console.error('[DB] getTeachers:', error); return []; }
+    let query = _supabase.from('profiles').select('*').eq('role', 'teacher');
+    // Legacy Bridge: Include NULLs if we are in 541023 or DEFAULT
+    if (sc === '541023' || sc === 'DEFAULT') {
+        query = query.or(`school_code.eq.${sc},school_code.is.null`);
+    } else {
+        query = query.eq('school_code', sc);
+    }
+
+    const { data, error } = await query;
     DB_CACHE.set(`teachers_${sc}`, data || []);
     return data || [];
   },
@@ -261,14 +267,19 @@ const DB = {
   },
 
   // --- STUDENTS ---
-  async getStudents(classId = null) {
     const sc = await this._getSchoolCode();
     if (!classId) {
         const cached = DB_CACHE.get(`students_all_${sc}`);
         if (cached) return cached;
     }
     
-    let query = _supabase.from('students').select('*, classes(name)').eq('school_code', sc);
+    let query = _supabase.from('students').select('*, classes(name)');
+    // Legacy Bridge
+    if (sc === '541023' || sc === 'DEFAULT') {
+        query = query.or(`school_code.eq.${sc},school_code.is.null`);
+    } else {
+        query = query.eq('school_code', sc);
+    }
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getStudents:', error); return []; }
@@ -292,12 +303,17 @@ const DB = {
   },
 
   // --- CLASSES ---
-  async getClasses() {
     const sc = await this._getSchoolCode();
     const cached = DB_CACHE.get(`classes_${sc}`);
     if (cached) return cached;
 
-    const { data, error } = await _supabase.from('classes').select('*').eq('school_code', sc).order('name');
+    let query = _supabase.from('classes').select('*');
+    if (sc === '541023' || sc === 'DEFAULT') {
+        query = query.or(`school_code.eq.${sc},school_code.is.null`);
+    } else {
+        query = query.eq('school_code', sc);
+    }
+    const { data, error } = await query.order('name');
     if (error) { console.error('[DB] getClasses:', error); return []; }
     DB_CACHE.set(`classes_${sc}`, data || []);
     return data || [];
