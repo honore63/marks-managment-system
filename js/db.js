@@ -89,7 +89,7 @@ const DB = {
 
     // PHASE 3: Auto-Linking (Fix existing ID mismatches)
     // Since we are moving the PK 'id' to match the Auth ID, we must also update all related assignments
-    const { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).single();
+    const { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
     
     if (linked) {
       const oldId = linked.id;
@@ -100,7 +100,7 @@ const DB = {
         // update assignments first to stay linked (if CASCADE not on)
         await _supabase.from('teacher_assignments').update({ teacher_id: newId }).eq('teacher_id', oldId);
         
-        const { data: updated, error: linkError } = await _supabase.from('profiles').update({ id: newId }).eq('id', oldId).select().single();
+        const { data: updated, error: linkError } = await _supabase.from('profiles').update({ id: newId }).eq('id', oldId).select().maybeSingle();
         if (linkError) {
            console.error('[AUTH] Profile link failed, trying email fallback:', linkError);
            await _supabase.from('profiles').update({ id: newId }).eq('email', email);
@@ -149,8 +149,11 @@ const DB = {
       created_at: new Date().toISOString()
     };
     
-    // Auto-Recovery feature: Check if a ghost profile already exists for this email
-    const { data: existing } = await _supabase.from('profiles').select('id').eq('email', teacherObj.email).maybeSingle();
+    // Auto-Recovery feature: Check if a ghost profile already exists for this email or SDMS code
+    const { data: existing } = await _supabase.from('profiles')
+        .select('id')
+        .or(`email.eq.${teacherObj.email},sdms_code.eq.${teacherObj.sdms_code}`)
+        .maybeSingle();
     
     if (existing) {
         console.warn(`[REGISTRY] Recovering orphaned profile for ${teacherObj.email}`);
@@ -399,7 +402,7 @@ const DB = {
 
   // --- SYSTEM CONFIG ---
   async getGradingScale() {
-    const { data, error } = await _supabase.from('settings').select('*').eq('key', 'grading_scale').single();
+    const { data, error } = await _supabase.from('settings').select('*').eq('key', 'grading_scale').maybeSingle();
     if (error) return null;
     return data.value;
   },
