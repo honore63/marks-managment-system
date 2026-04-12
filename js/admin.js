@@ -537,6 +537,24 @@ async function renderProfile() {
     if (sidebarInit) sidebarInit.textContent = initials;
     if (sidebarRole) sidebarRole.textContent = (profile.role || 'Administrator').toUpperCase();
 
+    // Hide sidebar group labels for non-student users
+    const userRole = (profile.role || 'Administrator').toLowerCase();
+    const sidebarLabels = document.querySelectorAll('.sidebar-group-label');
+    
+    // Add user role class to body for CSS styling
+    document.body.classList.remove('user-student', 'user-teacher', 'user-admin');
+    if (userRole === 'student') {
+        document.body.classList.add('user-student');
+        sidebarLabels.forEach(label => {
+            label.style.display = 'block';
+        });
+    } else {
+        document.body.classList.add(userRole === 'teacher' ? 'user-teacher' : 'user-admin');
+        sidebarLabels.forEach(label => {
+            label.style.display = 'none';
+        });
+    }
+
     // Populate Comprehensive Institutional Profile
     const info = await DB.getSchoolInfo();
     if (info) {
