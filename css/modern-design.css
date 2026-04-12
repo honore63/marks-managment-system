@@ -343,7 +343,7 @@ p {
   font-weight: 800;
   line-height: 1;
   margin-bottom: var(--spacing-xs);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
 }
 
 .stat-label {
