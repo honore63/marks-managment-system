@@ -3,6 +3,7 @@
 /* 
    CAMIS INSTITUTIONAL DESIGN SYSTEM
    Professional, High-Performance, Educational Management
+   🎯 FULLY RESPONSIVE - Mobile First Approach
 */
 
 :root {
@@ -37,6 +38,12 @@
   
   --font-main: 'Inter', sans-serif;
   --font-heading: 'Plus Jakarta Sans', sans-serif;
+  
+  /* Responsive Breakpoints */
+  --mobile: 480px;
+  --tablet: 768px;
+  --desktop: 1024px;
+  --wide: 1440px;
 }
 
 /* Base Styles */
@@ -45,6 +52,7 @@ html {
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
+  font-size: 16px;
 }
 
 body { 
@@ -53,6 +61,13 @@ body {
   font-family: var(--font-main); 
   line-height: 1.6;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch-friendly sizes for mobile */
+@media (max-width: 768px) {
+  html { font-size: 14px; }
+  body { line-height: 1.5; }
 }
 
 /* HIGH-END MINIMALIST SCROLLBAR (MMS Luxury Edition) */
@@ -88,16 +103,18 @@ h1, h2, h3, h4, .logo-text, .nav-item, .btn, .nav-label, .term-lbl { font-family
 
 /* Horizontal Navbar (CAMIS Executive Top) */
 .navbar {
-  width: 100%; height: 74px;
+  width: 100%; height: auto; min-height: 60px;
   background: var(--sidebar-bg); 
   background-image: radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.1) 0, transparent 50%), 
                     radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.1) 0, transparent 50%);
   color: white;
   display: grid; grid-template-columns: auto 1fr auto; align-items: center;
-  padding: 0 1.5rem;
+  padding: 0.75rem 1rem;
   z-index: 1000;
   box-shadow: 0 4px 30px rgba(0,0,0,0.15);
   position: relative;
+  gap: 1rem;
+}
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 /* CAMIS Profile Card - Professional Revision */
