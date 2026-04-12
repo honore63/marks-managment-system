@@ -5,13 +5,14 @@
 
 /* GLOBAL - Ensure white background */
 body {
-  background: white !important;
+  background: #F9FAFB !important;
+  overflow: hidden;
 }
 
 .main-wrapper,
 .layout,
 .content-area {
-  background: white !important;
+  background: #F9FAFB !important;
 }
 
 /* Card styles - white background with professional enhancements */
@@ -85,6 +86,21 @@ body {
 
 .table-card:hover {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Hide sidebar overlay on all screen sizes */
+#sidebar-overlay {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Canvas and chart styling */
+canvas {
+  background: transparent !important;
+}
+
+.chart-canvas-wrapper {
+  background: transparent !important;
 }
 
 /* ============================================================
@@ -722,6 +738,190 @@ textarea:focus-visible {
 @media (min-width: 769px) {
   .flex-mobile {
     flex-direction: row;
+  }
+}
+
+/* ============================================================
+   MOBILE FORM & INPUT IMPROVEMENTS
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* Profile layout goes single column */
+  .profile-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+    font-size: 2.5rem;
+  }
+
+  .profile-role {
+    justify-content: center;
+  }
+
+  /* Form sections stack better */
+  .form-section {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row-2,
+  .form-row-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Input fields get better touch targets */
+  .input-field {
+    padding: 0.9rem 1rem;
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 44px; /* Apple recommended touch target */
+  }
+
+  textarea.input-field {
+    min-height: 120px;
+  }
+
+  /* Buttons get better touch targets */
+  .btn {
+    padding: 0.9rem 1.25rem;
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .btn-full {
+    width: 100%;
+  }
+
+  .btn-lg {
+    padding: 1rem 1.5rem;
+    min-height: 48px;
+  }
+
+  /* Media upload boxes */
+  .media-preview {
+    width: 80px;
+    height: 80px;
+  }
+
+  /* Signature containers stack */
+  .signature-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .signature-preview {
+    height: 80px;
+  }
+
+  /* Modal optimizations */
+  .modal-overlay {
+    padding: 1rem;
+  }
+
+  .modal-card {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 90vh !important;
+  }
+
+  /* Labels for mobile */
+  .field label {
+    font-size: 0.75rem;
+  }
+
+  /* Section headers */
+  .form-section-title {
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Input group stacking */
+  .input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .input-group .btn {
+    width: 100%;
+  }
+
+  /* Media upload optimized */
+  .media-upload-box {
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .media-upload-text {
+    font-size: 0.8rem;
+  }
+
+  .media-upload-hint {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small optimizations */
+  .input-field {
+    padding: 0.85rem 0.9rem;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .btn {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  .btn-lg {
+    padding: 0.9rem 1rem;
+  }
+
+  .form-section {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .profile-avatar {
+    width: 90px;
+    height: 90px;
+    font-size: 2.2rem;
+  }
+
+  .profile-name {
+    font-size: 1.5rem;
+  }
+
+  .form-section-title {
+    font-size: 0.85rem;
+  }
+
+  .media-preview {
+    width: 70px;
+    height: 70px;
+  }
+
+  .field label {
+    font-size: 0.7rem;
+  }
+
+  .text-small {
+    font-size: 0.75rem;
+  }
+
+  /* Stack modal better */
+  .modal-card {
+    margin: 1rem;
   }
 }
 

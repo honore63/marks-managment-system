@@ -20,6 +20,10 @@
     .mobile-menu-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-dark); margin-right: 1rem; }
     @media (max-width: 1024px) { .mobile-menu-btn { display: block; } }
     
+    /* Canvas styling - ensure proper backgrounds */
+    canvas { background: transparent !important; }
+    .chart-canvas-wrapper { background: transparent !important; }
+    
     /* Reports Specific Styles preserved from original */
     .filter-bar { 
       display: flex; flex-wrap: wrap; gap: 1.25rem; 
@@ -153,7 +157,7 @@
       <!-- VIEW: DASHBOARD -->
       <div class="view active" id="view-dashboard">
         <!-- Institutional Identity Hub -->
-        <div class="table-card" style="padding: 1.5rem 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid var(--border);">
+        <div class="table-card" style="padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; background: white; border: 1px solid var(--border);">
             <div style="display: flex; align-items: center; gap: 1.5rem;">
                 <div class="school-logo-bub" style="font-weight: 900; background: var(--primary-glow); color: var(--primary); border: none;"><i data-lucide="school"></i></div>
                 <div>
@@ -161,14 +165,14 @@
                     <p id="school-code-hd" style="font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;">School ID • 541021</p>
                 </div>
             </div>
-            <div style="display: flex; gap: 0.75rem;">
-                <button class="btn btn-primary" onclick="openModal('add-teacher-modal')">+ REGISTER NEW TEACHER</button>
-                <button class="btn" style="background:#fff7ed; color:#c2410c; border-color:#fdba74; font-size: 0.65rem;" onclick="nuclearIdSync()">🚀 UNIQUE ID SYNC</button>
-            </div>
+                  <div style="display: flex; gap: 0.75rem;">
+                     <button class="btn btn-primary btn-lg" onclick="openModal('add-teacher-modal')">+ REGISTER NEW TEACHER</button>
+                     <button class="btn btn-secondary" style="font-size: 0.65rem;" onclick="nuclearIdSync()">🚀 UNIQUE ID SYNC</button>
+                  </div>
         </div>
 
         <!-- PRIMARY KPI TIERS -->
-        <div class="stats-grid" style="margin-bottom: 2.5rem;">
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
            <div class="stat-card">
               <div class="logo-main">MMS</div>
               <div class="stat-info">
@@ -211,7 +215,7 @@
            </div>
         </div>
 
-        <div class="dashboard-main-grid" style="margin-top: 2rem; align-items: start;">
+        <div class="dashboard-main-grid" style="margin-top: 1rem; align-items: start;">
            
            <!-- MAIN MONITOR: TEACHER ACTIVITY -->
            <div class="table-card">
@@ -263,11 +267,11 @@
               <div class="table-card" style="padding: 1.5rem; margin: 0;">
                  <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; margin-bottom: 1rem;">Quick Actions</h3>
                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="openModal('add-student-modal')">➕ Add Student</button>
-                    <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="openModal('add-teacher-modal')">➕ Add Teacher</button>
-                    <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="openAdminReportCardModal()">🎓 Batch Reports</button>
-                    <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="openAdminProclamationModal()">📜 Proclamation List</button>
-                    <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="switchView('settings')">⚙️ Change Term/Year</button>
+                    <button class="btn btn-secondary btn-full" onclick="openModal('add-student-modal')">➕ Add Student</button>
+                    <button class="btn btn-secondary btn-full" onclick="openModal('add-teacher-modal')">➕ Add Teacher</button>
+                    <button class="btn btn-secondary btn-full" onclick="openAdminReportCardModal()">🎓 Batch Reports</button>
+                    <button class="btn btn-secondary btn-full" onclick="openAdminProclamationModal()">📜 Proclamation List</button>
+                    <button class="btn btn-secondary btn-full" onclick="switchView('settings')">⚙️ Change Term/Year</button>
                  </div>
               </div>
 
@@ -275,7 +279,7 @@
 
         </div>
 
-        <div class="analytics-dashboard-grid" style="margin-top: 3rem; margin-bottom: 3.5rem;">
+        <div class="analytics-dashboard-grid" style="margin-top: 1.5rem; margin-bottom: 2rem;">
             <div class="chart-card">
                <div class="chart-header">
                   <h3>Institutional Performance Curve</h3>
@@ -745,80 +749,88 @@
       <div class="view" id="view-profile">
          <div class="table-card" style="padding: 3.5rem; max-width: 1000px; margin: 0 auto; border-radius: 30px;">
             <!-- Profile Identity Header -->
-            <div style="display:flex; align-items:center; gap: 2.5rem; margin-bottom: 4rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2.5rem;">
-               <div class="user-avatar" id="profile-avatar-init" style="width: 100px; height: 100px; font-size: 2.5rem; border-radius: 24px; box-shadow: 0 15px 35px rgba(37, 99, 235, 0.2);">AJ</div>
-               <div style="flex: 1;">
-                  <h2 style="font-size: 2rem; font-weight: 1000; color: #0f172a; letter-spacing: -1px;" id="profile-name-display">ADMINISTRATOR</h2>
-                  <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem; align-items: center;">
-                      <span style="background: var(--primary-glow); color: var(--primary); font-size: 0.75rem; font-weight: 900; padding: 6px 14px; border-radius: 99px; text-transform: uppercase; letter-spacing: 1px;">Head Administrator</span>
-                      <span style="color: #94a3b8; font-weight: 800; font-size: 0.75rem;">Institutional Registry Node Active</span>
+            <div class="profile-header">
+               <div class="profile-avatar" id="profile-avatar-init">AJ</div>
+               <div class="profile-info">
+                  <div class="profile-name" id="profile-name-display">ADMINISTRATOR</div>
+                  <div class="profile-role">
+                      <span class="profile-role-badge">Head Administrator</span>
+                      <span class="profile-meta">Institutional Registry Node Active</span>
                   </div>
                </div>
             </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 4rem;">
+            <div class="profile-layout">
                <!-- Column 1: Institutional Identity & Media -->
                <div style="display: flex; flex-direction: column; gap: 2.5rem;">
-                  <h3 style="font-size: 0.95rem; font-weight: 950; color: #1e293b; display: flex; align-items: center; gap: 0.75rem;">
-                     <i data-lucide="school" style="width: 20px; height: 20px; color: var(--primary);"></i> INSTITUTIONAL REGISTRY
-                  </h3>
+                  <div class="form-section">
+                  <div class="form-section-title">
+                     <i data-lucide="school"></i> INSTITUTIONAL REGISTRY
+                  </div>
                   
-                  <div class="resp-grid" style="gap: 1.25rem;">
+                  <div class="form-row form-row-2" style="gap: 1.25rem;">
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">School Name</label>
+                        <label>School Name</label>
                         <input type="text" id="prof-school-name-input" class="input-field" placeholder="Full Official Name">
                      </div>
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">School Code</label>
+                        <label>School Code</label>
                         <input type="text" id="prof-school-code-input" class="input-field" placeholder="e.g. EDM-01">
                      </div>
                   </div>
 
-                  <div class="resp-grid resp-grid-3" style="gap: 1.25rem;">
+                  <div class="form-row form-row-3" style="gap: 1.25rem;">
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Province</label>
+                        <label>Province</label>
                         <input type="text" id="prof-school-province" class="input-field" placeholder="Province">
                      </div>
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">District</label>
+                        <label>District</label>
                         <input type="text" id="prof-school-district" class="input-field" placeholder="District">
                      </div>
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Sector</label>
+                        <label>Sector</label>
                         <input type="text" id="prof-school-sector" class="input-field" placeholder="Sector">
                      </div>
                   </div>
 
-                  <div class="resp-grid" style="gap: 1.25rem;">
+                  <div class="form-row form-row-2" style="gap: 1.25rem;">
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Telephone</label>
+                        <label>Telephone</label>
                         <input type="text" id="prof-school-phone" class="input-field" placeholder="+250 ...">
                      </div>
                      <div class="field">
-                        <label style="font-size:0.6rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.5rem;">Email</label>
+                        <label>Email</label>
                         <input type="email" id="prof-school-email" class="input-field" placeholder="info@school.edu.rw">
                      </div>
                   </div>
+                  </div>
 
                   <!-- MEDIA HUB -->
-                  <div style="background: #f8fafc; border-radius: 20px; padding: 2rem; border: 1px solid #e2e8f0;">
-                     <label style="font-size:0.7rem; font-weight:950; color:#1e293b; text-transform:uppercase; display:block; margin-bottom:1.5rem; letter-spacing: 0.5px;">Institutional Media Assets</label>
+                  <div class="form-section">
+                     <div class="form-section-title">
+                        <i data-lucide="image"></i> INSTITUTIONAL MEDIA ASSETS
+                     </div>
                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                         <div style="text-align: center;">
-                           <div id="prof-logo-preview" style="width: 80px; height: 80px; background: white; border: 2px dashed #cbd5e1; border-radius: 12px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                               <i data-lucide="image" style="color: #94a3b8;"></i>
+                           <div class="media-preview">
+                              <i data-lucide="image" style="color: #94a3b8; font-size: 2rem;"></i>
                            </div>
-                           <button class="btn" style="font-size: 0.6rem; padding: 4px 10px; background: white; width: 100%; justify-content: center;" onclick="document.getElementById('prof-logo-file').click()">LOGO</button>
+                           <div class="media-upload-text">School Logo</div>
+                           <button class="btn btn-secondary" style="width: 100%; font-size: 0.75rem;" onclick="document.getElementById('prof-logo-file').click()">📤 UPLOAD LOGO</button>
                            <input type="file" id="prof-logo-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-logo-base64', 'prof-logo-preview')">
                            <input type="hidden" id="prof-logo-base64">
+                           <div id="prof-logo-preview" style="display:none;"></div>
                         </div>
                         <div style="text-align: center;">
-                           <div id="prof-stamp-preview" style="width: 80px; height: 80px; background: white; border: 2px dashed #cbd5e1; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                               <i data-lucide="stamp" style="color: #94a3b8;"></i>
+                           <div class="media-preview" style="border-radius: 50%;">
+                              <i data-lucide="stamp" style="color: #94a3b8; font-size: 2rem;"></i>
                            </div>
-                           <button class="btn" style="font-size: 0.6rem; padding: 4px 10px; background: white; width: 100%; justify-content: center;" onclick="document.getElementById('prof-stamp-file').click()">STAMP</button>
+                           <div class="media-upload-text">School Stamp</div>
+                           <button class="btn btn-secondary" style="width: 100%; font-size: 0.75rem;" onclick="document.getElementById('prof-stamp-file').click()">📤 UPLOAD STAMP</button>
                            <input type="file" id="prof-stamp-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-stamp-base64', 'prof-stamp-preview')">
                            <input type="hidden" id="prof-stamp-base64">
+                           <div id="prof-stamp-preview" style="display:none;"></div>
                         </div>
                      </div>
                   </div>
@@ -826,48 +838,54 @@
 
                <!-- Column 2: Leadership & Signatures -->
                <div style="display: flex; flex-direction: column; gap: 2.5rem;">
-                  <h3 style="font-size: 0.95rem; font-weight: 950; color: #1e293b; display: flex; align-items: center; gap: 0.75rem;">
-                     <i data-lucide="award" style="width: 20px; height: 20px; color: #f59e0b;"></i> LEADERSHIP MANDATES
-                  </h3>
+                  <div class="form-section">
+                  <div class="form-section-title">
+                     <i data-lucide="award"></i> LEADERSHIP MANDATES
+                  </div>
 
-                  <div style="background: #fff; border-radius: 20px; padding: 2.5rem; border: 2px solid #f1f5f9; display: flex; flex-direction: column; gap: 2rem;">
-                     <!-- Head Teacher -->
-                     <div>
-                        <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.75rem;">Headteacher / Principal Name</label>
+                  <!-- Head Teacher -->
+                  <div style="margin-bottom: 2rem;">
+                     <div class="field" style="margin-bottom: 1rem;">
+                        <label>Headteacher / Principal Name</label>
                         <input type="text" id="prof-ht-name" class="input-field" placeholder="Full Name">
-                        <div style="display:flex; align-items:center; gap: 1rem; margin-top: 1rem;">
-                           <div id="prof-ht-sig-preview" style="height: 50px; flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 8px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                              <span style="font-size: 0.6rem; color: #94a3b8;">Headteacher Signature</span>
-                           </div>
-                           <button class="btn" style="font-size: 0.6rem;" onclick="document.getElementById('prof-ht-sig-file').click()">Upload Signature</button>
-                           <input type="file" id="prof-ht-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-ht-sig-base64', 'prof-ht-sig-preview')">
-                           <input type="hidden" id="prof-ht-sig-base64">
-                        </div>
                      </div>
+                     <div class="signature-container">
+                        <div class="signature-preview" id="prof-ht-sig-preview">
+                              <span class="signature-placeholder">Headteacher Signature</span>
+                        </div>
+                        <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.75rem;" onclick="document.getElementById('prof-ht-sig-file').click()">📤 Upload</button>
+                        <input type="file" id="prof-ht-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-ht-sig-base64', 'prof-ht-sig-preview')">
+                        <input type="hidden" id="prof-ht-sig-base64">
+                     </div>
+                  </div>
 
-                     <!-- DOS -->
-                     <div>
-                        <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.75rem;">DOS (Dean of Studies) Name</label>
+                  <!-- DOS -->
+                  <div>
+                     <div class="field" style="margin-bottom: 1rem;">
+                        <label>DOS (Dean of Studies) Name</label>
                         <input type="text" id="prof-dos-name" class="input-field" placeholder="Full Name">
-                        <div style="display:flex; align-items:center; gap: 1rem; margin-top: 1rem;">
-                           <div id="prof-dos-sig-preview" style="height: 50px; flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 8px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                              <span style="font-size: 0.6rem; color: #94a3b8;">DOS Signature</span>
-                           </div>
-                           <button class="btn" style="font-size: 0.6rem;" onclick="document.getElementById('prof-dos-sig-file').click()">Upload Signature</button>
-                           <input type="file" id="prof-dos-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-dos-sig-base64', 'prof-dos-sig-preview')">
-                           <input type="hidden" id="prof-dos-sig-base64">
+                     </div>
+                     <div class="signature-container">
+                        <div class="signature-preview" id="prof-dos-sig-preview">
+                              <span class="signature-placeholder">DOS Signature</span>
                         </div>
+                        <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.75rem;" onclick="document.getElementById('prof-dos-sig-file').click()">📤 Upload</button>
+                        <input type="file" id="prof-dos-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-dos-sig-base64', 'prof-dos-sig-preview')">
+                        <input type="hidden" id="prof-dos-sig-base64">
                      </div>
                   </div>
-
-                  <div class="field">
-                     <label style="font-size:0.65rem; font-weight:900; color:#64748b; text-transform:uppercase; display:block; margin-bottom:0.75rem;">Executive Professional Mandate</label>
-                     <textarea id="prof-responsibility" class="input-field" style="min-height: 80px; line-height: 1.5;" placeholder="Describe your primary responsibilities..."></textarea>
                   </div>
 
-                  <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem;">
-                     <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1.25rem; font-weight: 900; font-size: 0.9rem;" onclick="saveAdminProfileUpdates()">💾 COMMIT ALL INSTITUTIONAL CHANGES</button>
-                     <p style="text-align: center; font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">All changes will immediately appear in reports & proclamations</p>
+                  <div class="form-section">
+                  <div class="field">
+                     <label>Executive Professional Mandate</label>
+                     <textarea id="prof-responsibility" class="input-field" style="min-height: 120px; line-height: 1.6;" placeholder="Describe your primary responsibilities..."></textarea>
+                  </div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                     <button class="btn btn-primary btn-full btn-lg" onclick="saveAdminProfileUpdates()">💾 COMMIT ALL INSTITUTIONAL CHANGES</button>
+                     <p class="text-center text-small text-muted">All changes will immediately appear in reports & proclamations</p>
                   </div>
                </div>
             </div>
@@ -933,8 +951,8 @@
           </div>
 
           <div style="display:flex; gap: 1rem; margin-top: 1rem; position: relative; z-index: 50;">
-            <button type="button" class="btn btn-primary" style="flex:2; justify-content: center; cursor: pointer; pointer-events: auto;" onclick="processAddTeacher()" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Register Account</button>
-            <button type="button" class="btn" style="flex:1; justify-content: center; cursor: pointer; pointer-events: auto;" onclick="closeModal('add-teacher-modal')" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">Discard</button>
+            <button type="button" class="btn btn-primary btn-full" style="cursor: pointer; pointer-events: auto;" onclick="processAddTeacher()" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">✓ Register Account</button>
+            <button type="button" class="btn btn-secondary btn-full" style="cursor: pointer; pointer-events: auto;" onclick="closeModal('add-teacher-modal')" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">⟲ Discard</button>
           </div>
         </div>
     </div>
