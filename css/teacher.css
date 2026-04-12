@@ -1,9 +1,9 @@
-/* TEACHER SPECIFIC STYLES (CAMIS AESTHETIC) */
+/* TEACHER SPECIFIC STYLES (CAMIS AESTHETIC) - Enhanced Contrast */
 :root {
-    --camis-blue: #3b82f6;
-    --camis-green: #10b981;
-    --camis-yellow: #f59e0b;
-    --camis-red: #ef4444;
+    --camis-blue: #1D4ED8;        /* Strong Blue */
+    --camis-green: #059669;       /* Deep Green */
+    --camis-yellow: #D97706;      /* Deep Amber */
+    --camis-red: #DC2626;         /* Strong Red */
 }
 
 @keyframes spin {
@@ -104,6 +104,18 @@
     text-align: center;
     font-weight: 700;
     color: var(--camis-blue);
+    outline: none;
+    transition: all 0.2s;
+}
+.mark-input:focus {
+    border-color: var(--camis-blue);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+.mark-input:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 @media print {
