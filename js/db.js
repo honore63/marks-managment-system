@@ -11,6 +11,79 @@ const { createClient } = supabase;
 const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ============================================================
+// SECURITY: INPUT SANITIZATION & VALIDATION
+// ============================================================
+
+/**
+ * Sanitize string input to prevent XSS attacks
+ * Escapes HTML special characters
+ */
+function sanitizeInput(str) {
+    if (typeof str !== 'string') return str;
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+/**
+ * Validate email format (basic check)
+ */
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// ============================================================
+// SECURITY: RATE LIMITING & SESSION MANAGEMENT
+// ============================================================
+
+const RATE_LIMIT_STORE = {};
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+let SESSION_TIMEOUT_ID = null;
+
+/**
+ * Check login attempt rate limiting
+ * Max 5 attempts per identifier per day
+ */
+function checkLoginRateLimit(identifier) {
+    const today = new Date().toISOString().split('T')[0];
+    const key = `login_${identifier}_${today}`;
+    const attempts = RATE_LIMIT_STORE[key] || 0;
+    
+    if (attempts >= 5) {
+        const error = new Error('Too many login attempts. Please try again tomorrow or contact your administrator.');
+        error.code = 'RATE_LIMIT_EXCEEDED';
+        throw error;
+    }
+    
+    RATE_LIMIT_STORE[key] = attempts + 1;
+    return true;
+}
+
+/**
+ * Initialize session timeout tracking
+ * Auto-logout after 30 minutes of inactivity
+ */
+function initSessionTimeout() {
+    function resetTimeout() {
+        if (SESSION_TIMEOUT_ID) clearTimeout(SESSION_TIMEOUT_ID);
+        
+        SESSION_TIMEOUT_ID = setTimeout(() => {
+            console.warn('[SESSION] Timeout: User inactive for 30 minutes');
+            DB.signOut();
+            window.location.href = '/index.html?session=expired';
+        }, SESSION_TIMEOUT_MS);
+    }
+    
+    // Reset timeout on any user activity
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+        document.addEventListener(event, resetTimeout, true);
+    });
+    
+    // Initial timeout
+    resetTimeout();
+}
+
+// ============================================================
 // DATABASE OPERATIONS (Single source of truth with Performance Caching)
 // ============================================================
 const DB_CACHE = {
@@ -36,6 +109,14 @@ const DB = {
    * NEW: Auto-detects role and school_code for auto-redirect
    */
   async signIn(identifier, password) {
+    // SECURITY: Check rate limiting (max 5 attempts per day per identifier)
+    try {
+        checkLoginRateLimit(identifier);
+    } catch (rateLimitError) {
+        console.warn('[AUTH] Rate limit exceeded:', identifier);
+        throw rateLimitError;
+    }
+    
     let email = identifier;
 
     // Resolve identifier to email if it's SDMS or Phone
@@ -129,6 +210,13 @@ const DB = {
     // PHASE 5: Log multi-admin access
     console.log(`[AUTH] ✅ ${profile.role.toUpperCase()} logged in for school ${profile.school_code}`);
     
+    // PHASE 6: Initialize session timeout (30 minutes of inactivity)
+    setTimeout(() => {
+      if (typeof initSessionTimeout === 'function') {
+        initSessionTimeout();
+      }
+    }, 100);
+    
     return { 
       user: authData.user, 
       profile,
@@ -149,6 +237,25 @@ const DB = {
       await _supabase.from('profiles').update({ temp_password_active: false }).eq('id', user.id);
     }
     return data;
+  },
+
+  async signOut() {
+    // Clear session timeout
+    if (SESSION_TIMEOUT_ID) clearTimeout(SESSION_TIMEOUT_ID);
+    
+    // Clear cache
+    DB_CACHE.clear();
+    sessionStorage.clear();
+    
+    // Sign out from Supabase
+    const { error } = await _supabase.auth.signOut();
+    if (error) {
+      console.error('[AUTH] Sign out error:', error);
+      throw error;
+    }
+    
+    console.log('[AUTH] ✅ User signed out');
+    return true;
   },
 
   // --- HELPERS ---

@@ -15,13 +15,21 @@ const EMAILJS_PUBLIC_KEY = 'FYXWiqYgYOm_Z0-4J';
 const EMAILJS_SERVICE_ID = 'service_ka4tosb';
 const EMAILJS_TEMPLATE_ID = 'template_ichzoqb';
 
-const TWILIO_SID     = 'YOUR_TWILIO_SID';
-const TWILIO_TOKEN   = 'YOUR_TWILIO_TOKEN';
-const TWILIO_NUMBER  = 'YOUR_TWILIO_NUMBER';
-const TWILIO_API_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`;
+// SECURITY NOTE: Twilio is disabled until properly configured
+// To enable: Add real credentials from environment variables or backend
+const TWILIO_ENABLED = false;
+const TWILIO_SID     = null; // 'YOUR_ACTUAL_SID' - NEVER hardcode production credentials
+const TWILIO_TOKEN   = null; // Load from backend or environment
+const TWILIO_NUMBER  = null; // Load from backend or environment
+const TWILIO_API_URL = null; // Disabled until credentials are configured
 
 if (typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+// Helper to check Twilio availability
+function isTwilioConfigured() {
+    return TWILIO_ENABLED && TWILIO_SID && TWILIO_TOKEN && TWILIO_NUMBER;
 }
 
 // ============================================================
