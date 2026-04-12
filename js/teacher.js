@@ -13,7 +13,107 @@
 
 const el = id => document.getElementById(id);
 
-let CURRENT_YEAR = '2025-2026'; 
+let CURRENT_YEAR = '2025-2026';
+
+// ============================================================
+// MULTI-ADMIN PORTAL INITIALIZATION - TEACHER SIDE
+// Step 5: Initialize teacher portal with real-time sync
+// ============================================================
+
+/**
+ * Initialize Teacher Portal with Real-Time Sync
+ */
+async function initTeacherPortal() {
+  try {
+    console.log('[INIT] Starting teacher portal initialization...');
+
+    // Check if user is authenticated
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) {
+      console.warn('[AUTH] No user found, redirecting to login');
+      window.location.href = '/index.html';
+      return;
+    }
+
+    // Get current user's school code
+    const schoolCode = await getCurrentSchoolCode();
+    console.log(`[TEACHER] Connected to school: ${schoolCode}`);
+
+    // Load school settings from database
+    const settings = await fetchSchoolSettings(schoolCode);
+    if (settings && settings.info) {
+      SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+      console.log('[SCHOOL] Loaded info:', SCHOOL_INFO);
+    }
+
+    // Update UI header with school info
+    const schoolNameEl = document.getElementById('school-name-hd');
+    const schoolCodeEl = document.getElementById('school-code-hd');
+    if (schoolNameEl) schoolNameEl.textContent = SCHOOL_INFO.school || 'MMS Portal';
+    if (schoolCodeEl) schoolCodeEl.textContent = `School ID • ${SCHOOL_INFO.code}`;
+
+    // Mark this teacher as active
+    await updateLastSync();
+
+    // Enable real-time sync for this school
+    const channel = subscribeToSchoolChanges(schoolCode);
+    console.log('[SYNC] Teacher subscribed to school changes');
+
+    // Setup listeners for UI updates (mark approvals, etc)
+    setupTeacherUIListeners(schoolCode);
+
+    // Start regular sync tracking (every 30 seconds)
+    setInterval(() => updateLastSync(), 30 * 1000);
+
+    console.log('[INIT] Teacher portal ready!');
+
+  } catch (error) {
+    console.error('[INIT] Error:', error);
+    alert('Failed to initialize teacher portal. Please refresh and try again.');
+  }
+}
+
+/**
+ * Setup real-time listeners for teacher portal
+ */
+function setupTeacherUIListeners(schoolCode) {
+  
+  if (SYNC && typeof SYNC.on === 'function') {
+    // Listen for mark approvals/rejections
+    SYNC.on('marks', (payload) => {
+      console.log('[UPDATE] Marks changed:', payload.eventType);
+      
+      if (payload.new?.is_approved) {
+        toast('✅ Your marks have been approved by admin', 'success');
+        if (typeof renderDashboard === 'function') renderDashboard();
+      }
+      
+      if (payload.new?.is_submitted) {
+        toast('📤 Marks submitted for review', 'info');
+        if (typeof renderDashboard === 'function') renderDashboard();
+      }
+    });
+
+    // Listen for student changes
+    SYNC.on('students', (payload) => {
+      console.log('[UPDATE] Students updated');
+      if (typeof syncSchoolData === 'function') syncSchoolData();
+    });
+
+    // Listen for admin notifications
+    SYNC.on('school_settings', (payload) => {
+      console.log('[UPDATE] School settings updated');
+      fetchSchoolSettings(schoolCode).then(settings => {
+        if (settings && settings.info) {
+          SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+        }
+      });
+    });
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initTeacherPortal);
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
@@ -1774,6 +1874,23 @@ async function renderProfile() {
             if (MY_PROFILE.is_subject_teacher) roles.push('SUBJECT');
             sidebarRole.textContent = roles.length > 0 ? roles.join(' & ') + ' TEACHER' : 'PEDAGOGICAL FACULTY';
         }
+
+        // Role-Based UI Enforcement
+        const classElements = [
+            'side-class-monitor', 
+            'side-students', 
+            'dash-action-monitor',
+            'side-reports',
+            'side-proclamation',
+            'dash-action-reports',
+            'dash-action-proclamation'
+        ];
+        classElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = MY_PROFILE.is_class_teacher ? (id.includes('side') ? 'flex' : 'block') : 'none';
+            }
+        });
     }
 }
 

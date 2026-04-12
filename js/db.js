@@ -32,7 +32,8 @@ const DB_CACHE = {
 const DB = {
   // --- AUTHENTICATION & SESSION ---
   /**
-   * Universal Login: handles Email, Phone, or SDMS Code
+   * Universal Login: handles Email, SDMS Code, or Phone
+   * NEW: Auto-detects role and school_code for auto-redirect
    */
   async signIn(identifier, password) {
     let email = identifier;
@@ -62,7 +63,7 @@ const DB = {
 
     // PHASE 2: Auto-Provisioning (New account creation)
     if (authError && (authError.message.includes('Invalid') || authError.status === 400)) {
-      const { data: p } = await _supabase.from('profiles').select('*').eq('email', email).single();
+      const { data: p } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
       
       if (p && p.temp_password_active) {
         // Detect Role-Based Default Password Requirement
@@ -88,8 +89,7 @@ const DB = {
       throw authError;
     }
 
-    // PHASE 3: Auto-Linking (Fix existing ID mismatches)
-    // Since we are moving the PK 'id' to match the Auth ID, we must also update all related assignments
+    // PHASE 3: Fetch Profile (Auto-detect school & role)
     const { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
     
     if (linked) {
@@ -98,7 +98,7 @@ const DB = {
 
       // Only attempt to migrate if they differ
       if (oldId !== newId) {
-        // update assignments first to stay linked (if CASCADE not on)
+        // Update assignments first to stay linked (if CASCADE not on)
         await _supabase.from('teacher_assignments').update({ teacher_id: newId }).eq('teacher_id', oldId);
         
         const { data: updated, error: linkError } = await _supabase.from('profiles').update({ id: newId }).eq('id', oldId).select().maybeSingle();
@@ -117,7 +117,26 @@ const DB = {
       throw new Error('Authenticated, but no institutional profile exists. Contact Admin to register your SDMS/Email.');
     }
     
-    return { user: authData.user, profile };
+    // PHASE 4: Auto-Redirect Logic (NEW)
+    // Store school code and role for auto-redirect after login
+    if (profile.school_code) {
+      sessionStorage.setItem('current_school_code', profile.school_code);
+    }
+    if (profile.role) {
+      sessionStorage.setItem('current_role', profile.role);
+    }
+    
+    // PHASE 5: Log multi-admin access
+    console.log(`[AUTH] ✅ ${profile.role.toUpperCase()} logged in for school ${profile.school_code}`);
+    
+    return { 
+      user: authData.user, 
+      profile,
+      // Auto-detect redirect target
+      redirect_target: profile.role === 'admin' ? '/admin-portal.html' : '/teacher-portal.html',
+      school_code: profile.school_code,
+      role: profile.role
+    };
   },
 
   async updatePassword(newPassword) {
@@ -163,8 +182,11 @@ const DB = {
   },
   async addTeacher(teacherObj) {
     // teacherObj expected to have: full_name, email, role, sdms_code, phone, is_class_teacher, is_subject_teacher
+    const sc = await this._getSchoolCode();
     const payload = {
       ...teacherObj,
+      role: 'teacher',
+      school_code: sc,  // CRITICAL: Add school code for multi-admin sync
       temp_password_active: true, // Force password change on first login
       created_at: new Date().toISOString()
     };
@@ -179,7 +201,6 @@ const DB = {
         console.warn(`[REGISTRY] Recovering orphaned profile for ${teacherObj.email}`);
         const res = await _supabase.from('profiles').update(payload).eq('id', existing.id).select();
         if (!res.error) {
-            const sc = await this._getSchoolCode();
             DB_CACHE.set(`teachers_${sc}`, null);
         }
         return res;
@@ -188,7 +209,6 @@ const DB = {
     // Normal Insertion
     const { data, error } = await _supabase.from('profiles').insert([payload]).select();
     if (!error) {
-        const sc = await this._getSchoolCode();
         DB_CACHE.set(`teachers_${sc}`, null);
     }
     return { data, error };
@@ -257,6 +277,15 @@ const DB = {
     return await _supabase.from('teacher_assignments').insert([{ teacher_id: teacherId, class_id: classId, subject_id: subjectId, type: 'subject' }]);
   },
   async deleteTeacher(id) {
+    // 1. Permanent Wipe: Clean all foreign key relationships
+    await _supabase.from('teacher_assignments').delete().eq('teacher_id', id);
+    
+    // 2. Supabase Auth Wipe: Invoke backend RPC to delete user identity directly from Supabase Auth
+    // This permanently frees the Email and ID to be used again without any 'already exists' conflicts
+    var rpcResult = await _supabase.rpc('admin_delete_auth_user', { target_id: id });
+    if (rpcResult.error) console.warn('[DELETE] RPC Auth delete failed (function may be missing):', rpcResult.error);
+
+    // 3. UI/Schema Wipe: Clean up profile record
     const res = await _supabase.from('profiles').delete().eq('id', id);
     if (!res.error) {
         const sc = await this._getSchoolCode();
@@ -297,9 +326,13 @@ const DB = {
     return res;
   },
   async deleteStudent(id) {
-    const res = await _supabase.from('students').delete().eq('id', id);
+    const sc = await this._getSchoolCode();
+    // 1. Permanent Wipe: Clean orphan marks and reports (only for this school)
+    await _supabase.from('marks').delete().eq('student_id', id).eq('school_code', sc);
+
+    // 2. Schema Wipe
+    const res = await _supabase.from('students').delete().eq('id', id).eq('school_code', sc);
     if (!res.error) {
-        const sc = await this._getSchoolCode();
         DB_CACHE.set(`students_all_${sc}`, null);
     }
     return res;
@@ -336,9 +369,9 @@ const DB = {
     return res;
   },
   async deleteClass(id) {
-    const res = await _supabase.from('classes').delete().eq('id', id);
+    const sc = await this._getSchoolCode();
+    const res = await _supabase.from('classes').delete().eq('id', id).eq('school_code', sc);
     if (!res.error) {
-        const sc = await this._getSchoolCode();
         DB_CACHE.set(`classes_${sc}`, null);
     }
     return res;
@@ -537,6 +570,432 @@ const DB = {
     DB_CACHE.clear();
   }
 };
+
+// ============================================================
+// MULTI-ADMIN SYNCHRONIZED PORTAL FUNCTIONS
+// School code filtering, real-time sync, broadcast
+// ============================================================
+
+/**
+ * Get the current user's school code
+ * Critical: All queries MUST filter by this
+ */
+async function getCurrentSchoolCode() {
+  try {
+    const cacheKey = 'current_school_code';
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) return cached;
+    
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return 'DEFAULT';
+    
+    const { data: profile } = await _supabase
+      .from('profiles')
+      .select('school_code')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    const schoolCode = profile?.school_code || 'DEFAULT';
+    sessionStorage.setItem(cacheKey, schoolCode);
+    return schoolCode;
+  } catch (error) {
+    console.error('[DB] Error getting school code:', error);
+    return 'DEFAULT';
+  }
+}
+
+/**
+ * Register an admin/teacher with a school code
+ */
+async function registerUserWithSchoolCode(email, password, fullName, role, schoolCode) {
+  try {
+    const { data: schoolExists } = await _supabase
+      .from('schools')
+      .select('code')
+      .eq('code', schoolCode)
+      .maybeSingle();
+    
+    if (!schoolExists && schoolCode !== 'DEFAULT') {
+      console.warn(`[ADMIN] School ${schoolCode} not found. Create it in database first.`);
+      throw new Error(`School code ${schoolCode} does not exist. Contact admin to register.`);
+    }
+    
+    const { data: authData, error: authError } = await _supabase.auth.signUp({
+      email,
+      password
+    });
+    
+    if (authError) throw authError;
+    
+    const { data: profile, error: profileError } = await _supabase
+      .from('profiles')
+      .insert([{
+        id: authData.user.id,
+        email,
+        full_name: fullName,
+        role,
+        school_code: schoolCode,
+        school_code_ref: schoolCode !== 'DEFAULT' ? schoolCode : null,
+        temp_password_active: false,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    
+    if (profileError) throw profileError;
+    
+    sessionStorage.setItem('current_school_code', schoolCode);
+    
+    console.log(`[ADMIN] Successfully registered ${role} for school ${schoolCode}`);
+    return { success: true, user: authData.user, profile };
+    
+  } catch (error) {
+    console.error('[ADMIN] Registration failed:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get all admins in the same school
+ */
+async function getAdminsInSchool(schoolCode) {
+  try {
+    const { data: admins, error } = await _supabase
+      .from('profiles')
+      .select('id, full_name, email, last_sync_at')
+      .eq('school_code', schoolCode)
+      .eq('role', 'admin');
+    
+    if (error) {
+      console.error('[DB] Error fetching school admins:', error);
+      return [];
+    }
+    
+    return admins || [];
+  } catch (error) {
+    console.error('[DB] Failed to get admins in school:', error);
+    return [];
+  }
+}
+
+/**
+ * Get all active sessions for a school
+ */
+async function getActiveSessions(schoolCode) {
+  try {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: activeSessions, error } = await _supabase
+      .from('profiles')
+      .select('id, full_name, email, role, last_sync_at')
+      .eq('school_code', schoolCode)
+      .gt('last_sync_at', oneDayAgo)
+      .order('last_sync_at', { ascending: false });
+    
+    if (error) {
+      console.error('[DB] Error fetching active sessions:', error);
+      return [];
+    }
+    
+    return activeSessions || [];
+  } catch (error) {
+    console.error('[DB] Failed to get active sessions:', error);
+    return [];
+  }
+}
+
+/**
+ * Update user's last sync timestamp
+ */
+async function updateLastSync() {
+  try {
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) return;
+    
+    await _supabase
+      .from('profiles')
+      .update({ last_sync_at: new Date().toISOString() })
+      .eq('id', user.id);
+  } catch (error) {
+    console.error('[DB] Error updating last sync:', error);
+  }
+}
+
+/**
+ * Get school settings from database
+ */
+async function fetchSchoolSettings(schoolCode) {
+  try {
+    const cacheKey = `school_settings_${schoolCode}`;
+    const cached = localStorage.getItem(cacheKey);
+    
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const ageMs = Date.now() - parsed.timestamp;
+      if (ageMs < 3600000) return parsed.data;
+    }
+    
+    const { data, error } = await _supabase
+      .from('school_settings')
+      .select('info, grading_scale, curriculum, academic_year, term')
+      .eq('school_code', schoolCode)
+      .maybeSingle();
+    
+    if (error) {
+      console.warn('[DB] Error fetching school settings:', error);
+      return null;
+    }
+    
+    if (data) {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+      return data;
+    }
+    
+    const { data: school } = await _supabase
+      .from('schools')
+      .select('*')
+      .eq('code', schoolCode)
+      .maybeSingle();
+    
+    if (school) {
+      const schoolInfo = {
+        info: {
+          republic: 'REPUBLIC OF RWANDA',
+          ministry: 'MINISTRY OF EDUCATION',
+          school: school.name,
+          district: school.district,
+          sector: school.sector,
+          code: school.code,
+          level: school.level,
+          email: school.email,
+          phone: school.phone,
+          headteacher: school.headteacher,
+          activeYear: school.academic_year
+        }
+      };
+      
+      localStorage.setItem(cacheKey, JSON.stringify({
+        data: schoolInfo,
+        timestamp: Date.now()
+      }));
+      
+      return schoolInfo;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[DB] Failed to fetch school settings:', error);
+    return null;
+  }
+}
+
+/**
+ * Update school settings (admin only)
+ */
+async function updateSchoolSettings(schoolCode, updates) {
+  try {
+    const { data, error } = await _supabase
+      .from('school_settings')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('school_code', schoolCode)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    localStorage.removeItem(`school_settings_${schoolCode}`);
+    
+    console.log('[DB] School settings updated');
+    return data;
+  } catch (error) {
+    console.error('[DB] Error updating school settings:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to real-time updates for a specific school code
+ */
+function subscribeToSchoolChanges(schoolCode) {
+  const channel = _supabase
+    .channel(`school-${schoolCode}-sync`);
+  
+  channel.on('postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'marks',
+      filter: `school_code=eq.${schoolCode}`
+    },
+    (payload) => {
+      console.log('[SYNC] Marks updated for school', schoolCode, payload);
+      if (window.SYNC && window.SYNC._emit) {
+        window.SYNC._emit('marks', payload);
+      }
+    }
+  );
+  
+  channel.on('postgres_changes',
+    {
+      event: '*', 
+      schema: 'public',
+      table: 'students',
+      filter: `school_code=eq.${schoolCode}`
+    },
+    (payload) => {
+      console.log('[SYNC] Students updated for school', schoolCode);
+      if (window.SYNC && window.SYNC._emit) {
+        window.SYNC._emit('students', payload);
+      }
+    }
+  );
+  
+  channel.on('postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'profiles',
+      filter: `school_code=eq.${schoolCode}`
+    },
+    (payload) => {
+      console.log('[SYNC] Staff updated for school', schoolCode);
+      if (window.SYNC && window.SYNC._emit) {
+        window.SYNC._emit('teachers', payload);
+      }
+    }
+  );
+  
+  channel.on('postgres_changes',
+    {
+      event: '*',
+      schema: 'public',
+      table: 'school_settings',
+      filter: `school_code=eq.${schoolCode}`
+    },
+    (payload) => {
+      console.log('[SYNC] School settings changed for', schoolCode);
+      localStorage.removeItem(`school_settings_${schoolCode}`);
+      if (window.SYNC && window.SYNC._emit) {
+        window.SYNC._emit('school_settings', payload);
+      }
+    }
+  );
+  
+  channel.subscribe((status) => {
+    console.log(`[SYNC] School channel status: ${status}`);
+    if (status === 'SUBSCRIBED') {
+      console.log(`✅ Real-time sync enabled for school ${schoolCode}`);
+    }
+  });
+  
+  return channel;
+}
+
+/**
+ * Unsubscribe from school-specific changes
+ */
+function unsubscribeFromSchoolChanges(schoolCode) {
+  try {
+    _supabase.removeChannel(`school-${schoolCode}-sync`);
+    console.log(`[SYNC] Unsubscribed from school ${schoolCode}`);
+  } catch (error) {
+    console.warn('[SYNC] Error unsubscribing:', error);
+  }
+}
+
+/**
+ * Send notification to all admins in a school
+ */
+async function broadcastToSchool(schoolCode, message, actionType = 'info') {
+  try {
+    const admins = await getAdminsInSchool(schoolCode);
+    
+    _supabase.channel(`school-${schoolCode}-notifications`).send({
+      type: 'broadcast',
+      event: 'admin_notification',
+      payload: {
+        message,
+        actionType,
+        timestamp: new Date().toISOString(),
+        targetAdmins: admins.map(a => a.id)
+      }
+    });
+    
+    console.log(`[BROADCAST] Sent "${message}" to ${admins.length} admins in school ${schoolCode}`);
+  } catch (error) {
+    console.error('[BROADCAST] Error:', error);
+  }
+}
+
+/**
+ * Smart upsert for marks with conflict resolution
+ */
+async function saveMarkWithTracking(markObj, editBy) {
+  try {
+    const payload = {
+      ...markObj,
+      last_edited_by: editBy,
+      last_edited_at: new Date().toISOString()
+    };
+    
+    const { data, error } = await _supabase
+      .from('marks')
+      .upsert(payload, {
+        onConflict: 'student_id,subject_id,assessment_id,term,academic_year'
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    console.log('[DB] Mark saved with tracking');
+    return data;
+  } catch (error) {
+    console.error('[DB] Error saving mark with tracking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify data consistency across all admins in school
+ */
+async function verifySchoolDataConsistency(schoolCode) {
+  try {
+    const report = {
+      schoolCode,
+      timestamp: new Date().toISOString(),
+      checks: {}
+    };
+    
+    const { data: studentsWithWrongCode } = await _supabase
+      .from('students')
+      .select('id, school_code')
+      .neq('school_code', schoolCode)
+      .eq('class_id->school_code', schoolCode);
+    
+    report.checks.orphanStudents = studentsWithWrongCode?.length || 0;
+    
+    const { data: marksWithWrongCode } = await _supabase
+      .from('marks')
+      .select('id')
+      .neq('school_code', schoolCode)
+      .gt('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString());
+    
+    report.checks.recentInvalidMarks = marksWithWrongCode?.length || 0;
+    
+    console.log('[CONSISTENCY] Check report:', report);
+    return report;
+  } catch (error) {
+    console.error('[CONSISTENCY] Error verifying data:', error);
+    return null;
+  }
+}
 
 // ============================================================
 // REALTIME SYNC ENGINE

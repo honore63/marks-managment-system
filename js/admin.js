@@ -24,10 +24,173 @@ if (typeof emailjs !== 'undefined') {
     emailjs.init(EMAILJS_PUBLIC_KEY);
 }
 
+// ============================================================
+// MULTI-ADMIN PORTAL INITIALIZATION
+// Step 4: Initialize portal with real-time sync
+// ============================================================
+
+/**
+ * Initialize Admin Portal with Multi-Admin Sync
+ * Call this on page load
+ */
+async function initAdminPortal() {
+  try {
+    console.log('[INIT] Starting admin portal initialization...');
+
+    // Check if user is authenticated
+    const { data: { user } } = await _supabase.auth.getUser();
+    if (!user) {
+      console.warn('[AUTH] No user found, redirecting to login');
+      window.location.href = '/index.html';
+      return;
+    }
+
+    // Get current user's school code
+    const schoolCode = await getCurrentSchoolCode();
+    console.log(`[ADMIN] Connected to school: ${schoolCode}`);
+
+    // Load school settings from database
+    const settings = await fetchSchoolSettings(schoolCode);
+    if (settings && settings.info) {
+      SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+      console.log('[SCHOOL] Loaded info:', SCHOOL_INFO);
+    }
+
+    // Update UI header with school info
+    const schoolNameEl = document.getElementById('school-name-hd');
+    const schoolCodeEl = document.getElementById('school-code-hd');
+    if (schoolNameEl) schoolNameEl.textContent = SCHOOL_INFO.school || 'MMS Portal';
+    if (schoolCodeEl) schoolCodeEl.textContent = `School ID • ${SCHOOL_INFO.code}`;
+
+    // Mark this admin as active
+    await updateLastSync();
+
+    // Show active admins count
+    const activeAdmins = await getAdminsInSchool(schoolCode);
+    console.log(`[TEAM] ${activeAdmins.length} admin(s) active`);
+    updateAdminActivityPanel(activeAdmins);
+
+    // Enable real-time sync for this school
+    const channel = subscribeToSchoolChanges(schoolCode);
+    console.log('[SYNC] Subscribed to school changes');
+
+    // Setup listeners for UI updates
+    setupUIListeners(schoolCode);
+
+    // Start regular sync tracking (every 30 seconds)
+    setInterval(() => updateLastSync(), 30 * 1000);
+
+    console.log('[INIT] Admin portal ready!');
+
+  } catch (error) {
+    console.error('[INIT] Error:', error);
+    alert('Failed to initialize portal. Please refresh and try again.');
+  }
+}
+
+/**
+ * Setup listeners for real-time updates
+ * Updates UI when other admins make changes
+ */
+function setupUIListeners(schoolCode) {
+  
+  // Listen for new students
+  if (SYNC && typeof SYNC.on === 'function') {
+    SYNC.on('students', (payload) => {
+      console.log('[UPDATE] Students changed:', payload.eventType);
+      if (payload.eventType === 'INSERT') {
+        toast('📚 New student added', 'info');
+        if (typeof loadStudentsTable === 'function') loadStudentsTable();
+      } else if (payload.eventType === 'DELETE') {
+        toast('🗑️ Student removed', 'info');
+        if (typeof loadStudentsTable === 'function') loadStudentsTable();
+      } else if (payload.eventType === 'UPDATE') {
+        if (typeof loadStudentsTable === 'function') loadStudentsTable();
+      }
+    });
+
+    // Listen for mark submissions/approvals
+    SYNC.on('marks', (payload) => {
+      console.log('[UPDATE] Marks changed:', payload.eventType);
+      if (payload.new?.is_approved) {
+        toast('✅ Marks approved', 'success');
+      }
+      if (payload.new?.is_submitted) {
+        toast('📤 Marks submitted for review', 'info');
+      }
+      if (typeof loadMarksApprovalQueue === 'function') loadMarksApprovalQueue();
+    });
+
+    // Listen for teacher changes
+    SYNC.on('teachers', (payload) => {
+      console.log('[UPDATE] Teachers changed:', payload.eventType);
+      if (payload.eventType === 'INSERT') {
+        toast('👨‍🏫 New teacher registered', 'success');
+      }
+      if (typeof loadTeachersTable === 'function') loadTeachersTable();
+    });
+
+    // Listen for school settings changes
+    SYNC.on('school_settings', (payload) => {
+      console.log('[UPDATE] School settings updated');
+      fetchSchoolSettings(schoolCode).then(settings => {
+        if (settings && settings.info) {
+          SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+        }
+      });
+    });
+  }
+}
+
+/**
+ * Display active admins in a panel
+ */
+async function updateAdminActivityPanel(activeAdmins) {
+  try {
+    const panelEl = document.getElementById('admin-activity-panel');
+    if (!panelEl) return;
+
+    const { data: { user } } = await _supabase.auth.getUser();
+    const currentUserId = user?.id;
+
+    let html = `
+      <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; margin-bottom: 1rem;">
+        <h4 style="margin-top: 0;">👥 Active Admins (${activeAdmins.length})</h4>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+    `;
+
+    for (const admin of activeAdmins) {
+      const isCurrentUser = admin.id === currentUserId;
+      const lastSync = new Date(admin.last_sync_at);
+      const minutesAgo = Math.round((Date.now() - lastSync) / 60000);
+
+      html += `
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+          <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+          <strong>${admin.full_name}${isCurrentUser ? ' (You)' : ''}</strong>
+          <span style="color: #64748b; font-size: 0.8rem;">${minutesAgo}m ago</span>
+        </div>
+      `;
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    panelEl.innerHTML = html;
+  } catch (error) {
+    console.error('[UI] Error updating activity panel:', error);
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initAdminPortal);
+
 // CAMIS Validation Utilities
 function isNonEmpty(value) { return value && value.trim().length > 0; }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-function isValidSDMS(code) { return /^[A-Z\d]{3,20}$/i.test(code); }
+function isValidSDMS(code) { return /^\d{10}$/.test(code); }
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
@@ -1725,8 +1888,8 @@ async function saveAssignmentCorrections() {
         return toast('Name and email are required.', 'error');
     }
     if (tSdms && !isValidSDMS(tSdms)) {
-        alert('Invalid SDMS Code format. Must be 3-20 characters.');
-        return toast('Invalid SDMS.', 'error');
+        alert('Invalid SDMS Code format. Must be exactly 10 digits.');
+        return toast('Invalid SDMS: Must be 10 digits.', 'error');
     }
 
     // Update profile flags and basics
@@ -1756,6 +1919,10 @@ async function processAddTeacher() {
         
         if (!isNonEmpty(fname) || !isNonEmpty(email) || !isValidEmail(email)) {
             return toast('⚠️ First Name and Valid Email are mandatory.', 'error');
+        }
+        
+        if (sdms && !isValidSDMS(sdms)) {
+            return toast('⚠️ Invalid SDMS Code format. Must be exactly 10 digits.', 'error');
         }
         
         if (!/^\d{6}$/.test(schoolCode)) {

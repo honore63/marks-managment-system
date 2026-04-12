@@ -85,11 +85,11 @@
        </div>
        
        <div class="sidebar-group-label">Analytics</div>
-       <div class="sidebar-item" data-view="reports" onclick="switchView('reports', this)">
+       <div class="sidebar-item" id="side-reports" style="display:none;" data-view="reports" onclick="switchView('reports', this)">
           <i data-lucide="trending-up"></i>
           <span class="sidebar-item-text">Performance Reports</span>
        </div>
-       <div class="sidebar-item" onclick="openTeacherProclamationModal()">
+       <div class="sidebar-item" id="side-proclamation" style="display:none;" onclick="openTeacherProclamationModal()">
           <i data-lucide="award"></i>
           <span class="sidebar-item-text">Proclamation</span>
        </div>
@@ -193,8 +193,8 @@
                   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                       <button class="btn btn-primary" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="switchView('marks-entry', document.getElementById('nav-academics'))"><i data-lucide="edit-3" style="width:16px; margin-right:8px;"></i> Target Marks Entry</button>
                       <button id="dash-action-monitor" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: #eff6ff; color: #1e40af; border-color: #bfdbfe; display:none;" onclick="switchView('class-monitor', document.getElementById('nav-academics'))"><i data-lucide="activity" style="width:16px; margin-right:8px;"></i> Monitor Class Progress</button>
-                      <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg);" onclick="switchView('reports', document.getElementById('nav-reports-main'))"><i data-lucide="file-text" style="width:16px; margin-right:8px;"></i> Generate Report Cards</button>
-                      <button class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg);" onclick="openTeacherProclamationModal()"><i data-lucide="award" style="width:16px; margin-right:8px;"></i> Class Proclamation</button>
+                      <button id="dash-action-reports" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg); display:none;" onclick="switchView('reports', document.getElementById('nav-reports-main'))"><i data-lucide="file-text" style="width:16px; margin-right:8px;"></i> Generate Report Cards</button>
+                      <button id="dash-action-proclamation" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg); display:none;" onclick="openTeacherProclamationModal()"><i data-lucide="award" style="width:16px; margin-right:8px;"></i> Class Proclamation</button>
                   </div>
                </div>
 

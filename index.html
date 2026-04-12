@@ -302,6 +302,7 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="js/db.js"></script>
+<script src="js/validation.js"></script>
 <script>
   const el = id => document.getElementById(id);
 
@@ -328,10 +329,14 @@
 
       toast(`Access Granted: Welcome, ${profile.full_name || 'User'}`, 'success');
       
-      // Auto-redirect based on detected role
+      // Auto-redirect based on detected role (NEW)
+      const redirectTarget = profile.role === 'admin' ? 'admin-portal.html' : 'teacher-portal.html';
+      const schoolCode = profile.school_code || 'DEFAULT';
+      
+      console.log(`[LOGIN] Redirecting to ${redirectTarget} for school ${schoolCode}`);
+      
       setTimeout(() => {
-        const target = profile.role === 'admin' ? 'admin-portal.html' : 'teacher-portal.html';
-        window.location.href = target;
+        window.location.href = redirectTarget;
       }, 1000);
 
     } catch (err) {
@@ -354,6 +359,401 @@
 
 <script src="js/font-switcher.js"></script>
 <script src="js/ai-assistant.js"></script>
+
+<!-- ============================================================
+ADMIN REGISTRATION & LOGIN MODAL
+Multi-Admin Synchronized Portal
+============================================================ -->
+
+<div id="admin-register-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <button class="modal-close" onclick="closeModal('admin-register-modal')">&times;</button>
+        
+        <div class="modal-header">
+            <h2 style="margin: 0;">Admin Registration</h2>
+            <p style="color: #64748b; font-size: 0.9rem; margin-top: 0.5rem;">
+                Create a new admin account for your school
+            </p>
+        </div>
+        
+        <div class="modal-body">
+            <form id="admin-registration-form" onsubmit="handleAdminRegistration(event)">
+                <!-- STEP 1: SCHOOL CODE (CRITICAL) -->
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 8px;">
+                    <label for="admin-school-code" style="display: block; font-weight: 700; margin-bottom: 0.5rem; color: #1e40af;">
+                        🏫 School Code (6 digits) <span style="color: red;">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="admin-school-code" 
+                        placeholder="e.g., 541021" 
+                        maxlength="6"
+                        required 
+                        class="input-field"
+                        pattern="[0-9]{6}"
+                        title="School Code must be exactly 6 digits"
+                        style="width: 100%; padding: 0.75rem; border: 2px solid #93c5fd; border-radius: 8px;"
+                    />
+                    <p style="font-size: 0.8rem; color: #1e40af; margin-top: 0.5rem;">
+                        ⓘ All admins with this code will access the SAME unified portal and see real-time synchronized data
+                    </p>
+                    <div id="school-code-check" style="margin-top: 0.5rem; display: none; padding: 0.5rem; border-radius: 4px;">
+                        <!-- Shows verification result -->
+                    </div>
+                </div>
+                
+                <!-- Full Name -->
+                <div style="margin-bottom: 1rem;">
+                    <label for="admin-full-name" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Full Name <span style="color: red;">*</span>
+                    </label>
+                    <input type="text" id="admin-full-name" placeholder="Dr. John Doe" required class="input-field" />
+                </div>
+                
+                <!-- Email -->
+                <div style="margin-bottom: 1rem;">
+                    <label for="admin-email" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Email <span style="color: red;">*</span>
+                    </label>
+                    <input type="email" id="admin-email" placeholder="admin@school.rw" required class="input-field" />
+                </div>
+                
+                <!-- Password -->
+                <div style="margin-bottom: 1rem;">
+                    <label for="admin-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Password <span style="color: red;">*</span>
+                    </label>
+                    <input type="password" id="admin-password" placeholder="Min. 8 characters" required class="input-field" minlength="8" />
+                </div>
+                
+                <!-- Confirm Password -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="admin-confirm-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Confirm Password <span style="color: red;">*</span>
+                    </label>
+                    <input type="password" id="admin-confirm-password" placeholder="Repeat password" required class="input-field" />
+                </div>
+                
+                <!-- Rules & Agreement -->
+                <div style="padding: 1rem; background: #fef3c7; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <h4 style="margin: 0 0 0.5rem 0; color: #92400e;">📋 Multi-Admin Portal Rules:</h4>
+                    <ul style="margin: 0; padding-left: 1.5rem; color: #78350f; font-size: 0.9rem; line-height: 1.6;">
+                        <li>All admins with the same school code will access ONE unified portal</li>
+                        <li>Data changes are synced in REAL-TIME across all admins</li>
+                        <li>You cannot create separate portals with the same school code</li>
+                        <li>All actions are logged and visible to other admins</li>
+                    </ul>
+                    <label style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                        <input type="checkbox" id="admin-agree-rules" required />
+                        <span>I understand and agree to these rules</span>
+                    </label>
+                </div>
+                
+                <!-- Buttons -->
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        ✅ Register Admin
+                    </button>
+                    <button type="button" class="btn" onclick="closeModal('admin-register-modal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Existing Admin Login -->
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p style="color: #64748b; margin-bottom: 0.5rem;">Already have an admin account?</p>
+                <button class="btn btn-secondary" onclick="switchLoginMode('existing-admin')" style="width: 100%;">
+                    👤 Login as Existing Admin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+EXISTING ADMIN LOGIN MODAL
+For admins joining an existing school portal
+============================================================ -->
+
+<div id="existing-admin-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+        <button class="modal-close" onclick="closeModal('existing-admin-modal')">&times;</button>
+        
+        <div class="modal-header">
+            <h2 style="margin: 0;">Admin Login</h2>
+            <p style="color: #64748b; font-size: 0.9rem; margin-top: 0.5rem;">
+                Access your school's unified admin portal
+            </p>
+        </div>
+        
+        <div class="modal-body">
+            <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+                <!-- Email or SDMS Code -->
+                <div style="margin-bottom: 1rem;">
+                    <label for="admin-login-id" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Email or Admin ID
+                    </label>
+                    <input type="text" id="admin-login-id" placeholder="admin@school.rw or admin ID" required class="input-field" />
+                </div>
+                
+                <!-- Password -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label for="admin-login-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
+                        Password
+                    </label>
+                    <input type="password" id="admin-login-password" placeholder="Your password" required class="input-field" />
+                </div>
+                
+                <!-- School Code (Optional, for verification) -->
+                <div style="margin-bottom: 1.5rem; padding: 0.75rem; background: #f1f5f9; border-radius: 6px;">
+                    <label for="admin-login-school-code" style="display: block; font-weight: 700; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                        Your School Code (optional, for verification)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="admin-login-school-code" 
+                        placeholder="541021" 
+                        maxlength="6"
+                        class="input-field" 
+                        style="font-size: 0.9rem;"
+                    />
+                </div>
+                
+                <!-- Login Info -->
+                <div style="padding: 0.75rem; background: #ecfdf5; border-left: 3px solid #10b981; border-radius: 4px; margin-bottom: 1rem; font-size: 0.85rem;">
+                    <strong style="color: #047857;">ℹ️ Unified Portal:</strong>
+                    <p style="margin: 0.25rem 0 0 0; color: #065f46;">
+                        Logging in will automatically connect you to your school's admin portal. If other admins from your school are logged in, you will see the same real-time data.
+                    </p>
+                </div>
+                
+                <!-- Buttons -->
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        🔓 Login
+                    </button>
+                    <button type="button" class="btn" onclick="closeModal('existing-admin-modal')" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Switch to Registration -->
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p style="color: #64748b; margin-bottom: 0.5rem;">Need to create a new admin account?</p>
+                <button class="btn btn-secondary" onclick="switchLoginMode('new-admin')" style="width: 100%;">
+                    ➕ Register New Admin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+JAVASCRIPT HANDLERS FOR ADMIN MODALS
+============================================================ -->
+
+<script>
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = 'none';
+}
+
+function switchLoginMode(mode) {
+  closeModal('admin-register-modal');
+  closeModal('existing-admin-modal');
+  if (mode === 'new-admin') {
+    document.getElementById('admin-register-modal').style.display = 'flex';
+  } else if (mode === 'existing-admin') {
+    document.getElementById('existing-admin-modal').style.display = 'flex';
+  }
+}
+
+/**
+ * Handle Admin Registration with School Code Enforcement
+ */
+async function handleAdminRegistration(event) {
+  event.preventDefault();
+  
+  const schoolCode = document.getElementById('admin-school-code').value.trim();
+  const fullName = document.getElementById('admin-full-name').value.trim();
+  const email = document.getElementById('admin-email').value.trim();
+  const password = document.getElementById('admin-password').value;
+  const confirmPassword = document.getElementById('admin-confirm-password').value;
+  const agreedRules = document.getElementById('admin-agree-rules').checked;
+  
+  if (!schoolCode || schoolCode.length !== 6) {
+    toast('School code must be exactly 6 digits', 'error');
+    return;
+  }
+  
+  if (password !== confirmPassword) {
+    toast('Passwords do not match', 'error');
+    return;
+  }
+  
+  if (!agreedRules) {
+    toast('You must agree to the portal rules to continue', 'error');
+    return;
+  }
+  
+  try {
+    const { data: school } = await _supabase
+      .from('schools')
+      .select('code, name')
+      .eq('code', schoolCode)
+      .maybeSingle();
+    
+    if (!school) {
+      toast(`❌ School code ${schoolCode} not found. Please verify or contact administrator.`, 'error');
+      return;
+    }
+    
+    const verifyDiv = document.getElementById('school-code-check');
+    verifyDiv.style.display = 'block';
+    verifyDiv.style.background = '#dcfce7';
+    verifyDiv.style.borderLeft = '3px solid #16a34a';
+    verifyDiv.style.color = '#166534';
+    verifyDiv.innerHTML = `
+      ✅ Found: <strong>${school.name}</strong> (${school.code})<br>
+      <small>You will join the unified portal for this school</small>
+    `;
+    
+    toast('Creating admin account...', 'info');
+    
+    const { success, user, profile } = await registerUserWithSchoolCode(
+      email,
+      password,
+      fullName,
+      'admin',
+      schoolCode
+    );
+    
+    if (success) {
+      toast(`✅ Admin account created! Welcome to ${school.name}`, 'success');
+      closeModal('admin-register-modal');
+      
+      setTimeout(() => {
+        window.location.href = '/admin-portal.html';
+      }, 1500);
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+    toast(`❌ Registration failed: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Handle Existing Admin Login
+ */
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  
+  const identifier = document.getElementById('admin-login-id').value.trim();
+  const password = document.getElementById('admin-login-password').value;
+  const schoolCode = document.getElementById('admin-login-school-code').value.trim();
+  
+  if (!identifier || !password) {
+    toast('Please enter email/ID and password', 'error');
+    return;
+  }
+  
+  try {
+    toast('Authenticating...', 'info');
+    const { user, profile } = await DB.signIn(identifier, password);
+    
+    if (profile && profile.role === 'admin') {
+      if (schoolCode && profile.school_code !== schoolCode) {
+        toast('⚠️ Warning: Your account is for school ' + profile.school_code, 'warning');
+      }
+      toast(`✅ Welcome back, ${profile.full_name}!`, 'success');
+      setTimeout(() => {
+        window.location.href = '/admin-portal.html';
+      }, 1500);
+    } else {
+      toast('❌ This account is not an admin account', 'error');
+    }
+  } catch (error) {
+    toast(`❌ Login failed: ${error.message}`, 'error');
+  }
+}
+
+// Modal styling
+const style = document.createElement('style');
+style.textContent = `
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .modal-body {
+    padding: 1.5rem;
+  }
+  .input-field {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  .input-field:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #3b82f6;
+    color: white;
+  }
+  .btn-primary:hover {
+    background: #2563eb;
+  }
+  .btn-secondary {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+  .btn-secondary:hover {
+    background: #cbd5e1;
+  }
+`;
+document.head.appendChild(style);
+</script>
 
 </body>
 </html>
