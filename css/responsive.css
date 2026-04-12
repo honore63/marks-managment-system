@@ -14,7 +14,7 @@ body {
   background: white !important;
 }
 
-/* Card styles - white background */
+/* Card styles - white background with professional enhancements */
 .card,
 .material-card,
 .stat-card,
@@ -22,7 +22,69 @@ body {
 .kpi-card,
 .welcome-card {
   background: white !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #e0e7ff !important;
+  border-radius: 12px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.card:hover,
+.material-card:hover,
+.stat-card:hover,
+.table-card:hover,
+.kpi-card:hover,
+.welcome-card:hover {
+  border-color: #c7d2fe !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(99, 102, 241, 0.1) !important;
+  transform: translateY(-2px) !important;
+}
+
+.stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed) !important;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover::before {
+  opacity: 1;
+}
+
+.material-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+.material-card:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.welcome-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #f3e8ff !important;
+}
+
+.welcome-card:hover {
+  border-color: #e9d5ff !important;
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15) !important;
+}
+
+.table-card {
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.table-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ============================================================
