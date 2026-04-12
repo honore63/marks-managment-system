@@ -911,8 +911,8 @@ p {
    ============================================================ */
 
 .sidebar {
-  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
-  color: var(--color-text-light);
+  background: #FFFFFF;
+  color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -921,13 +921,14 @@ p {
   top: 0;
   width: 260px;
   z-index: 1000;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
   overflow-y: auto;
+  border-right: 1px solid #D1D5DB;
 }
 
 .sidebar-header {
   padding: var(--spacing-2xl);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid #D1D5DB;
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -948,15 +949,16 @@ p {
 
 .sidebar-title {
   font-size: 14px;
-  font-weight: 700;
-  color: white;
+  font-weight: 800;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .sidebar-subtitle {
   font-size: 11px;
-  color: var(--color-text-light);
+  color: #9CA3AF;
   margin: 0;
+  font-weight: 600;
 }
 
 .sidebar-nav {
@@ -974,7 +976,7 @@ p {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-secondary);
+  color: #9CA3AF;
   padding: var(--spacing-md) var(--spacing-2xl);
   margin: 0;
 }
@@ -984,25 +986,25 @@ p {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-2xl);
-  color: var(--color-text-light);
+  color: #64748b;
   text-decoration: none;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   transition: all var(--transition-base);
   cursor: pointer;
   border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
+  background: #F3F4F6;
+  color: var(--color-primary);
 }
 
 .nav-item.active {
-  background: rgba(29, 78, 216, 0.15);
-  color: white;
-  border-left-color: white;
-  font-weight: 600;
+  background: #EFF6FF;
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+  font-weight: 700;
 }
 
 .nav-item:focus-visible {
@@ -1027,7 +1029,7 @@ p {
 }
 
 .sidebar-footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #D1D5DB;
   padding: var(--spacing-2xl);
   display: flex;
   align-items: center;
@@ -1054,15 +1056,16 @@ p {
 
 .sidebar-user-name {
   font-size: 12px;
-  font-weight: 600;
-  color: white;
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .sidebar-user-role {
   font-size: 10px;
-  color: var(--color-text-muted);
+  color: #9CA3AF;
   margin: 0;
+  font-weight: 500;
 }
 
 /* ============================================================
