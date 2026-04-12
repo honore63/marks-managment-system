@@ -32,31 +32,31 @@
   --color-surface-secondary: #F8FAFC;
   
   --color-text-primary: #111827;   /* Dark gray - Main text */
-  --color-text-secondary: #4B5563; /* Medium gray - Secondary text */
-  --color-text-muted: #9CA3AF;     /* Light gray - Muted text */
+  --color-text-secondary: #374151; /* Medium gray - Secondary text (enhanced) */
+  --color-text-muted: #667085;     /* Medium gray - Muted text (enhanced visibility) */
   --color-text-light: #D1D5DB;     /* Very light - Borders */
   
-  --color-border: #E5E7EB;         /* Subtle border */
-  --color-border-light: #F3F4F6;   /* Light border */
+  --color-border: #D1D5DB;         /* Stronger border for visibility */
+  --color-border-light: #E5E7EB;   /* Light border */
   
   --color-overlay-light: rgba(0, 0, 0, 0.05);
   --color-overlay-medium: rgba(0, 0, 0, 0.1);
   --color-overlay-dark: rgba(0, 0, 0, 0.6);
   
-  /* SHADOWS - Professional Depth */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  /* SHADOWS - Professional Depth (Enhanced for Better Visibility) */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.14), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 20px -4px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 30px -6px rgba(0, 0, 0, 0.16), 0 10px 12px -4px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
   
-  /* SHADOWS - Colored */
-  --shadow-primary: 0 10px 25px -5px rgba(37, 99, 235, 0.15);
-  --shadow-success: 0 10px 25px -5px rgba(16, 185, 129, 0.15);
-  --shadow-warning: 0 10px 25px -5px rgba(245, 158, 11, 0.15);
-  --shadow-danger: 0 10px 25px -5px rgba(239, 68, 68, 0.15);
+  /* SHADOWS - Colored (Enhanced) */
+  --shadow-primary: 0 10px 25px -5px rgba(29, 78, 216, 0.2);
+  --shadow-success: 0 10px 25px -5px rgba(5, 150, 105, 0.2);
+  --shadow-warning: 0 10px 25px -5px rgba(217, 119, 6, 0.2);
+  --shadow-danger: 0 10px 25px -5px rgba(220, 38, 38, 0.2);
   
   /* BORDER RADIUS - Clean & Modern */
   --radius-xs: 4px;
@@ -244,10 +244,11 @@ p {
 
 .card-subtitle {
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: var(--spacing-xs) 0 0 0;
+  font-weight: 600;
 }
 
 .card-body {
@@ -388,10 +389,11 @@ p {
   padding: var(--spacing-xs) var(--spacing-md);
   border-radius: var(--radius-full);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Badge Colors */
@@ -969,10 +971,10 @@ p {
 
 .nav-section-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   padding: var(--spacing-md) var(--spacing-2xl);
   margin: 0;
 }
