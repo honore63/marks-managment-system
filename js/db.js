@@ -325,6 +325,20 @@ const DB = {
     if (!res.error) DB_CACHE.set(`students_all_${sc}`, null);
     return res;
   },
+
+  /**
+   * Batch add students (bulk import)
+   * @param {Array} studentsArray - Array of student objects
+   * @returns {Promise} Result of bulk insert
+   */
+  async addStudentsBatch(studentsArray) {
+    const sc = await this._getSchoolCode();
+    const batch = studentsArray.map(s => ({ ...s, school_code: sc, created_at: new Date().toISOString() }));
+    const res = await _supabase.from('students').insert(batch).select();
+    if (!res.error) DB_CACHE.set(`students_all_${sc}`, null);
+    return res;
+  },
+
   async deleteStudent(id) {
     const sc = await this._getSchoolCode();
     // 1. Permanent Wipe: Clean orphan marks and reports (only for this school)

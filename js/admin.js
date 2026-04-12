@@ -3968,17 +3968,28 @@ async function renderAdminDashboardCharts() {
 
 // ------------------------------------------------------------
 // Bulk Student Import Logic (Admin Context)
-// ------------------------------------------------------------
+// ============================================================
+// ENHANCED WITH VALIDATION AND ERROR HANDLING
+// ============================================================
+
 async function openImportStudentsModal() {
     try {
         const classes = await DB.getClasses();
         const select = document.getElementById('import-target-class');
         if (select && classes) {
-            select.innerHTML = classes.map(c => `<option value="${c.id}">${c.level} ${c.stream || ''}</option>`).join('');
+            select.innerHTML = `<option value="">-- Select Target Class --</option>` +
+                classes.map(c => `<option value="${c.id}">${c.name || c.level} ${c.stream || ''}</option>`).join('');
         }
+        
+        // Clear previous import data
+        const textarea = document.getElementById('import-students-textarea');
+        const fileInput = document.getElementById('import-students-file');
+        if (textarea) textarea.value = '';
+        if (fileInput) fileInput.value = '';
+        
         openModal('import-students-modal');
     } catch (e) {
-        console.error('Failed to load classes for import:', e);
+        console.error('[IMPORT] Failed to load classes:', e);
         toast('Error preparing import modal.', 'error');
     }
 }
@@ -3989,65 +4000,71 @@ async function processStudentImport() {
     const classId = document.getElementById('import-target-class').value;
     let csvData = '';
 
+    // Validation: Class selected
     if (!classId) {
-        toast('Please select a target class.', 'warning');
+        toast('⚠️ Please select a target class.', 'warning');
         return;
     }
 
+    // Get CSV data from file or textarea
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
         const file = fileInput.files[0];
+        
+        // Validate file type
+        if (!file.name.endsWith('.csv') && !file.type.startsWith('text')) {
+            toast('❌ Please upload a CSV file.', 'error');
+            return;
+        }
+        
         csvData = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = e => resolve(e.target.result);
             reader.onerror = e => reject(e);
             reader.readAsText(file);
         });
-    } else if (textarea) {
+    } else if (textarea && textarea.value.trim()) {
         csvData = textarea.value;
     }
 
-    if (!csvData) {
-        toast('No student data detected.', 'warning');
+    if (!csvData || csvData.trim().length === 0) {
+        toast('⚠️ No student data provided. Paste data or upload a CSV file.', 'warning');
         return;
     }
 
-    const lines = csvData.split(/\r?\n/).filter(l => l.trim().length > 0);
-    const studentPromises = [];
-    
-    toast(`Processing ${lines.length} students...`, 'info');
-
-    for (const line of lines) {
-        const parts = line.split(',').map(p => p.trim());
-        if (parts.length < 3) continue;
-
-        const fullName = parts[0];
-        const smd = parts[1];
-        const gender = parts[2];
-
-        // Name splitting logic
-        const nameTokens = fullName.split(' ').filter(t => t);
-        const firstName = nameTokens.slice(0, -1).join(' ') || fullName;
-        const lastName = nameTokens.slice(-1).join(' ') || '';
-
-        studentPromises.push(DB.addStudent({
-            first_name: firstName,
-            last_name: lastName,
-            smd: smd,
-            gender: gender,
-            class_id: classId
-        }));
-    }
-
     try {
-        await Promise.all(studentPromises);
-        toast('✅ Bulk import completed successfully.', 'success');
-        closeModal('import-students-modal');
-        // Refresh registry if current view is students
-        if (typeof renderCohortRegistry === 'function') {
-            renderCohortRegistry();
+        // Parse CSV data
+        const students = StudentRegistration.parseCSV(csvData, classId);
+        
+        if (students.length === 0) {
+            toast('❌ No valid students found in the data.', 'error');
+            return;
+        }
+
+        toast(`📋 Processing ${students.length} students...`, 'info');
+
+        // Bulk import with validation
+        const result = await StudentRegistration.bulkImport(students, classId);
+
+        if (result.success) {
+            toast(`✅ Successfully imported ${result.imported}/${result.totalProcessed} students!`, 'success');
+            closeModal('import-students-modal');
+            
+            // Refresh the display
+            if (typeof renderCohortRegistry === 'function') {
+                await renderCohortRegistry();
+            }
+        } else {
+            // Partial or full failure
+            if (result.errors.length > 0) {
+                const errorMsg = result.errors.slice(0, 3).join('\n');
+                console.error('[IMPORT] Errors:', result.errors);
+                toast(`❌ Import failed:\n${errorMsg}${result.errors.length > 3 ? '\n...' : ''}`, 'error');
+            } else {
+                toast(`⚠️ No students were imported.`, 'warning');
+            }
         }
     } catch (e) {
-        console.error('Import Error:', e);
+        console.error('[IMPORT] Error:', e);
         toast('❌ Partial import failure. Check network.', 'error');
     }
 }
