@@ -508,8 +508,9 @@ async function switchView(viewId, el) {
       const breadEl = document.getElementById('page-breadcrumb');
       
       if (titleEl) titleEl.textContent = hd[0];
-      if (breadEl) {
-          breadEl.innerHTML = `<span>${hd[1]}</span><span>${hd[2]}</span>`;
+      const breadViewEl = document.getElementById('breadcrumb-view');
+      if (breadViewEl) {
+          breadViewEl.textContent = hd[0];
       }
     }
 

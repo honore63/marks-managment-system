@@ -201,4 +201,33 @@ function toast(msg, type = 'info') {
     setTimeout(() => t.remove(), 4000);
 }
 
+function toggleSidebar() {
+    const sb = document.querySelector('.sidebar');
+    if (sb) sb.classList.toggle('open');
+}
+
+function switchView(viewId, el) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const target = document.getElementById('view-' + viewId);
+    if (target) target.classList.add('active');
+    if (el) el.classList.add('active');
+
+    const meta = {
+        'dashboard': ['Global School Registry', 'Master Registry'],
+        'schools': ['Institutional Nodes', 'Infrastructure'],
+        'users': ['Global User Registry', 'Human Capital']
+    };
+
+    if (meta[viewId]) {
+        const titleEl = document.getElementById('page-title');
+        const breadViewEl = document.getElementById('breadcrumb-view');
+        if (titleEl) titleEl.textContent = meta[viewId][0];
+        if (breadViewEl) breadViewEl.textContent = meta[viewId][1];
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
 document.addEventListener('DOMContentLoaded', initSystemAdmin);

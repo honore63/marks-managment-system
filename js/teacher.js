@@ -483,11 +483,10 @@ async function switchView(viewId, el) {
 
     if (META[viewId]) {
         const titleEl = document.getElementById('page-title');
-        const breadEl = document.getElementById('page-breadcrumb');
+        const breadViewEl = document.getElementById('breadcrumb-view');
         if (titleEl) titleEl.textContent = META[viewId][0];
-        if (breadEl) {
-            const parts = META[viewId][1].split(' → ');
-            breadEl.innerHTML = `<span>${parts[0]}</span><span>${parts[1]}</span>`;
+        if (breadViewEl) {
+            breadViewEl.textContent = META[viewId][0];
         }
     }
 

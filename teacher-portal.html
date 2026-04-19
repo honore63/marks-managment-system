@@ -76,18 +76,30 @@
 
     @media (max-width: 768px) {
       body { color: #000000 !important; font-weight: 700 !important; }
+      .sub-header { 
+        position: sticky !important; top: 0; z-index: 10001; 
+        padding: 0.85rem 1rem !important; background: #fff !important;
+        border-bottom: 3px solid #000 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+      }
+      .mobile-menu-btn { 
+        display: flex !important; align-items: center; justify-content: center;
+        width: 44px; height: 44px; background: #000 !important; color: #fff !important;
+        border-radius: 12px; font-size: 1.6rem !important;
+      }
+      .breadcrumb { display: none !important; }
+      #page-title { font-size: 1.2rem !important; letter-spacing: -0.5px !important; }
       .sidebar-item-text { font-weight: 1000 !important; color: #000000 !important; }
       .stat-val { color: #1e3a8a !important; font-weight: 1000 !important; font-size: 2.2rem !important; }
       .stat-lbl { color: #000000 !important; font-weight: 1000 !important; text-transform: uppercase; border-bottom: 1.5px solid #000; display: inline-block; margin-bottom: 5px; }
-      .badge { border: 2.5px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; background: #ffffff !important; }
+      .badge { border: 2px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; background: #ffffff !important; padding: 4px 10px !important; font-size: 0.55rem !important; }
+      #sync-indicator { padding: 4px 10px !important; font-size: 0.55rem !important; border: 2px solid #000 !important; }
       .table-card th { background: #000000 !important; color: #ffffff !important; font-weight: 1000 !important; padding: 12px 8px !important; }
       .table-card td { color: #000000 !important; font-weight: 900 !important; border-bottom: 2px solid #000000 !important; padding: 15px 8px !important; }
       .btn { border: 3px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; }
       .btn-primary { background: #000000 !important; color: #ffffff !important; border-color: #000000 !important; }
       input, select, textarea { border: 2.5px solid #000000 !important; color: #000000 !important; font-weight: 1000 !important; background: #fff !important; }
       .checklist-group { border: 2px solid #000 !important; }
-      .check-item { border: 2px solid #000 !important; font-weight: 1000 !important; color: #000 !important; }
-      .check-item.active { background: #000 !important; color: #fff !important; }
       #sync-badge { background: #000 !important; color: #fff !important; font-weight: 1000 !important; padding: 5px 15px !important; border-radius: 4px !important; }
     }
   </style>
@@ -181,18 +193,27 @@
   <!-- MAIN WRAPPER -->
   <div class="main-wrapper">
     <!-- TOPBAR -->
-    <!-- SUB-HEADER (Institutional Context) -->
-    <div class="sub-header">
-      <div style="display:flex; align-items:center; gap:1rem;">
-         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:var(--text-main); font-size:1.5rem; cursor:pointer;">≡</button>
+    <!-- SUB-HEADER (Institutional Context Refined) -->
+    <div class="sub-header" style="background: #fff; border-bottom: 1.5px solid #e2e8f0; padding: 1.25rem 2.5rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display:flex; align-items:center; gap:1.5rem;">
+         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:#000; font-size:1.5rem; cursor:pointer;">≡</button>
          <div class="page-title-group">
-            <div class="breadcrumb" id="page-breadcrumb"><span>School</span><span>Teacher</span><span>Overview</span></div>
-            <h1 id="page-title" style="margin:0;">Teacher Dashboard</h1>
+            <div class="breadcrumb" style="font-size: 0.65rem; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+               <span>Academic Governance</span> 
+               <span style="opacity: 0.2; font-weight: 400;">/</span> 
+               <span id="breadcrumb-view" style="color: #000;">Dashboard</span>
+            </div>
+            <h1 id="page-title" style="margin:0; font-size: 1.85rem; font-weight: 1000; color: #000; letter-spacing: -1.25px;">Faculty Dashboard</h1>
          </div>
       </div>
-      <div style="display:flex; gap: 1.5rem; align-items: center;">
-         <div id="sync-badge" class="badge badge-blue">🔄 NODE SYNCED</div>
-         <div id="sync-status" class="badge badge-blue">● ACTIVE</div>
+      <div style="display:flex; gap: 0.75rem; align-items: center;">
+         <div id="sync-indicator" style="background: #000; color: #fff; padding: 8px 16px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000; display: flex; align-items: center; gap: 8px; border: 1.5px solid #000;">
+            <div style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e;"></div> 
+            LIVE NODE SYNC
+         </div>
+         <div class="badge" style="background: #fff; color: #000; border: 2px solid #000; padding: 6px 14px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000;">
+            ● INSTANCE ACTIVE
+         </div>
       </div>
     </div>
 

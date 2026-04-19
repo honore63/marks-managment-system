@@ -69,7 +69,20 @@
     @media (max-width: 768px) {
       .main-content { padding: 1rem !important; }
       .kpi-grid, .stats-grid, .charts-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
-      .table-card, .card { border: 2px solid #000 !important; border-radius: 12px !important; }
+      .sub-header { 
+        position: sticky !important; top: 0; z-index: 10001; 
+        padding: 0.85rem 1.25rem !important; background: #fff !important;
+        border-bottom: 3px solid #000 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+      }
+      .mobile-menu-btn { 
+        display: flex !important; align-items: center; justify-content: center;
+        width: 44px; height: 44px; background: #000 !important; color: #fff !important;
+        border-radius: 12px; font-size: 1.6rem !important;
+      }
+      .breadcrumb { display: none !important; }
+      #page-title { font-size: 1.2rem !important; letter-spacing: -0.5px !important; }
+      .stat-card, .card { border: 2.5px solid #000 !important; }
       .table-card th, th { background: #000 !important; color: #fff !important; font-weight: 1000 !important; text-transform: uppercase; font-size: 0.65rem !important; }
       .table-card td, td { color: #000 !important; font-weight: 850 !important; border-bottom: 1.5px solid #e2e8f0 !important; }
       .badge { border: 2px solid #000 !important; font-weight: 1000 !important; color: #000 !important; background: #fff !important; }
@@ -156,18 +169,27 @@
   <!-- MAIN WRAPPER -->
   <div class="main-wrapper">
     <!-- TOPBAR -->
-    <!-- SUB-HEADER (Institutional Context) -->
-    <div class="sub-header">
-      <div style="display:flex; align-items:center; gap:1rem;">
-         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:var(--text-main); font-size:1.5rem; cursor:pointer;">≡</button>
+    <!-- SUB-HEADER (Institutional Governance Refined) -->
+    <div class="sub-header" style="background: #fff; border-bottom: 1.5px solid #e2e8f0; padding: 1.25rem 2.5rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display:flex; align-items:center; gap:1.5rem;">
+         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:#000; font-size:1.5rem; cursor:pointer;">≡</button>
          <div class="page-title-group">
-            <div class="breadcrumb" id="page-breadcrumb"><span>Dashboard</span><span>Overview</span></div>
-            <h1 id="page-title" style="margin:0;">Institutional Management</h1>
+            <div class="breadcrumb" style="font-size: 0.65rem; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+               <span>Institutional Control</span> 
+               <span style="opacity: 0.2;">/</span> 
+               <span id="breadcrumb-view" style="color: #000;">Master Dashboard</span>
+            </div>
+            <h1 id="page-title" style="margin:0; font-size: 1.85rem; font-weight: 1000; color: #000; letter-spacing: -1.25px;">Admin Portal</h1>
          </div>
       </div>
-      <div style="display:flex; gap: 1.5rem; align-items: center;">
-         <div id="setup-status" class="badge badge-blue">SYSTEM INITIALIZED</div>
-         <div id="sync-status" class="badge badge-blue">🔄 NODE SYNCED</div>
+      <div style="display:flex; gap: 0.75rem; align-items: center;">
+         <div id="sync-indicator" style="background: #000; color: #fff; padding: 8px 16px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000; display: flex; align-items: center; gap: 8px; border: 1.5px solid #000;">
+            <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6;"></div> 
+            ADMIN NODE SYNCED
+         </div>
+         <div class="badge" style="background: #fff; color: #000; border: 2px solid #000; padding: 6px 14px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000;">
+            ● GOVERNANCE ACTIVE
+         </div>
       </div>
     </div>
 
