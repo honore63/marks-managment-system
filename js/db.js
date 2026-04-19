@@ -135,12 +135,34 @@ const DB = {
     }
 
     // PHASE 1: Try Standard Login
-    const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
-      email,
-      password
+    let finalEmail = identifier.trim();
+    const isSdmsLogin = /^[0-9]{6}$/.test(finalEmail);
+    if (isSdmsLogin) finalEmail = `sdms${finalEmail}@mms.rw`;
+
+    let { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
+      email: finalEmail,
+      password: password
     });
 
-    let profile = null;
+    // AUTO-REGISTRATION for first-time Login
+    if (authError && (authError.message.includes('Invalid login') || authError.status === 400)) {
+        console.log('[AUTH] Checking for institutional record eligibility...');
+        const { data: profileCheck } = await _supabase.from('profiles').select('*').eq('email', finalEmail).maybeSingle();
+        
+        if (profileCheck && profileCheck.temp_password_active) {
+            console.log('[AUTH] Provisioning first-time credentials...');
+            const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({
+                email: finalEmail,
+                password: password
+            });
+            if (!signUpError) {
+                authData = signUpData;
+                authError = null;
+            }
+        }
+    }
+
+    if (authError) throw authError;
 
     // PHASE 2: Auto-Provisioning (New account creation)
     if (authError && (authError.message.includes('Invalid') || authError.status === 400)) {
@@ -171,8 +193,34 @@ const DB = {
     }
 
     // PHASE 3: Fetch Profile (Auto-detect school & role)
-    const { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+    let { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
     
+    // RECOVERY: If profile is missing but user is authenticated, create a default profile record
+    if (!linked && authData.user) {
+        console.warn('[AUTH] Orphaned Auth account detected. Auto-creating profile for:', email);
+        // AUTO-MAPPING: Extract SDMS from email (e.g., sdms541010@mms.rw)
+        let school_node = 'DEFAULT';
+        if (email.startsWith('sdms')) {
+            const matches = email.match(/\d+/);
+            if (matches) school_node = matches[0];
+        } else if (email === 'system@admin.ed') {
+            school_node = 'GLOBAL';
+        }
+
+        const fallbackProfile = {
+            id: authData.user.id,
+            email: email,
+            full_name: email.split('@')[0].toUpperCase(),
+            role: email === 'system@admin.ed' ? 'system_admin' : 'admin', 
+            school_code: school_node,
+            created_at: new Date().toISOString(),
+            last_sync_at: new Date().toISOString()
+        };
+        const { data: created, error: createError } = await _supabase.from('profiles').insert([fallbackProfile]).select().maybeSingle();
+        if (!createError) linked = created;
+        else console.error('[AUTH] Profile self-healing failed:', createError);
+    }
+
     if (linked) {
       const oldId = linked.id;
       const newId = authData.user.id;
@@ -194,17 +242,26 @@ const DB = {
       }
     }
 
-    if (!profile) {
+    // FORCE ROLE OVERRIDE for master administrator
+    if (finalEmail === 'system@admin.ed') {
+        profile.role = 'system_admin';
+        profile.school_code = 'GLOBAL';
+    }
+
+    if (!profile && !linked) {
       throw new Error('Authenticated, but no institutional profile exists. Contact Admin to register your SDMS/Email.');
+    } else if (!profile) {
+      profile = linked;
     }
     
-    // PHASE 4: Auto-Redirect Logic (NEW)
-    // Store school code and role for auto-redirect after login
-    if (profile.school_code) {
-      sessionStorage.setItem('current_school_code', profile.school_code);
-    }
-    if (profile.role) {
-      sessionStorage.setItem('current_role', profile.role);
+    // PHASE 4: Session Management (Isolation)
+    if (profile.role === 'system_admin') {
+      sessionStorage.clear(); // Crucial: Remove any old admin/teacher school cache
+      sessionStorage.setItem('current_role', 'system_admin');
+      sessionStorage.setItem('current_school_code', 'GLOBAL');
+    } else {
+      if (profile.school_code) sessionStorage.setItem('current_school_code', profile.school_code);
+      if (profile.role) sessionStorage.setItem('current_role', profile.role);
     }
     
     // PHASE 5: Log multi-admin access
@@ -220,8 +277,9 @@ const DB = {
     return { 
       user: authData.user, 
       profile,
-      // Auto-detect redirect target
-      redirect_target: profile.role === 'admin' ? '/admin-portal.html' : '/teacher-portal.html',
+      // Auto-detect redirect target based on institutional level
+      redirect_target: profile.role === 'system_admin' ? '/system-admin-portal.html' : 
+                       (profile.role === 'admin' ? '/admin-portal.html' : '/teacher-portal.html'),
       school_code: profile.school_code,
       role: profile.role
     };
@@ -237,6 +295,13 @@ const DB = {
       await _supabase.from('profiles').update({ temp_password_active: false }).eq('id', user.id);
     }
     return data;
+  },
+
+  getAuthContext() {
+    return {
+      role: sessionStorage.getItem('current_role'),
+      school_code: sessionStorage.getItem('current_school_code')
+    };
   },
 
   async signOut() {
@@ -262,9 +327,16 @@ const DB = {
   async _getSchoolCode() {
     if (DB_CACHE._sc) return DB_CACHE._sc;
     const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return 'DEFAULT';
-    const { data: p } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
-    DB_CACHE._sc = p?.school_code || 'DEFAULT';
+    if (!user) return 'UNAUTHORIZED';
+    const { data: p } = await _supabase.from('profiles').select('role, school_code').eq('id', user.id).maybeSingle();
+    
+    // System Admins are global
+    if (p?.role === 'system_admin') {
+      DB_CACHE._sc = 'GLOBAL';
+      return 'GLOBAL';
+    }
+    
+    DB_CACHE._sc = p?.school_code || 'DENIED';
     return DB_CACHE._sc;
   },
 
@@ -275,10 +347,9 @@ const DB = {
     if (cached) return cached;
     
     let query = _supabase.from('profiles').select('*').eq('role', 'teacher');
-    // Legacy Bridge: Include NULLs if we are in 541023 or DEFAULT
-    if (sc === '541023' || sc === 'DEFAULT') {
-        query = query.or(`school_code.eq.${sc},school_code.is.null`);
-    } else {
+    
+    // STRICT SDMS FILTERING
+    if (sc !== 'GLOBAL') {
         query = query.eq('school_code', sc);
     }
 
@@ -292,16 +363,15 @@ const DB = {
     const sc = await this._getSchoolCode();
     const payload = {
       ...teacherObj,
-      role: 'teacher',
-      school_code: sc,  // CRITICAL: Add school code for multi-admin sync
-      temp_password_active: true, // Force password change on first login
+      role: teacherObj.role || 'teacher',
+      school_code: sc,
       created_at: new Date().toISOString()
     };
     
-    // Auto-Recovery feature: Check if a ghost profile already exists for this email or SDMS code
+    // Auto-Recovery feature: Check if a ghost profile already exists for this email
     const { data: existing } = await _supabase.from('profiles')
         .select('id')
-        .or(`email.eq.${teacherObj.email},sdms_code.eq.${teacherObj.sdms_code}`)
+        .eq('email', teacherObj.email)
         .maybeSingle();
     
     if (existing) {
@@ -331,31 +401,65 @@ const DB = {
   
   // --- TEACHER ASSIGNMENTS ---
   async getTeacherAssignments(teacherId) {
-    // CAMIS: Optimized select with foreign key hints
-    let query = _supabase.from('teacher_assignments')
-      .select(`
-        *,
-        profiles!teacher_id (id, full_name, role),
-        classes!class_id (id, name),
-        subjects!subject_id (id, name, abbr)
-      `);
-    
-    if (arguments.length > 0) {
-        if (!teacherId) {
-            console.warn('[DB] getTeacherAssignments: Attempted fetch with null teacherId');
-            return []; 
-        }
-        query = query.eq('teacher_id', teacherId);
-    }
+    try {
+      // STEP 1: Flat query — no joins (bulletproof)
+      let query = _supabase.from('teacher_assignments').select('*');
+      
+      if (arguments.length > 0) {
+          if (!teacherId) {
+              console.warn('[DB] getTeacherAssignments: Attempted fetch with null teacherId');
+              return []; 
+          }
+          query = query.eq('teacher_id', teacherId);
+      }
 
-    const { data, error } = await query;
-    if (error) { 
-        console.error('[DB] getTeacherAssignments Fatal:', error); 
-        // Fallback: Fetch without joins if joins are failing due to schema mismatches
-        const { data: raw } = await _supabase.from('teacher_assignments').select('*').eq('teacher_id', teacherId);
-        return raw || [];
+      const { data: rawAssignments, error } = await query;
+      if (error) { 
+          console.error('[DB] getTeacherAssignments Error:', error); 
+          return []; 
+      }
+      if (!rawAssignments || rawAssignments.length === 0) {
+          console.warn('[DB] getTeacherAssignments: 0 records found for teacher:', teacherId);
+          return [];
+      }
+
+      console.log(`[DB] getTeacherAssignments: Found ${rawAssignments.length} raw assignment(s)`);
+
+      // STEP 2: Collect unique IDs for enrichment
+      const classIds = [...new Set(rawAssignments.map(a => a.class_id).filter(Boolean))];
+      const subjectIds = [...new Set(rawAssignments.map(a => a.subject_id).filter(Boolean))];
+      const teacherIds = [...new Set(rawAssignments.map(a => a.teacher_id).filter(Boolean))];
+
+      // STEP 3: Fetch lookup data in parallel
+      const [classesRes, subjectsRes, profilesRes] = await Promise.all([
+        classIds.length > 0 ? _supabase.from('classes').select('id, name').in('id', classIds) : { data: [] },
+        subjectIds.length > 0 ? _supabase.from('subjects').select('id, name, abbr').in('id', subjectIds) : { data: [] },
+        teacherIds.length > 0 ? _supabase.from('profiles').select('id, full_name, role').in('id', teacherIds) : { data: [] }
+      ]);
+
+      // Build lookup maps
+      const classMap = {};
+      (classesRes.data || []).forEach(c => classMap[c.id] = c);
+      const subjectMap = {};
+      (subjectsRes.data || []).forEach(s => subjectMap[s.id] = s);
+      const profileMap = {};
+      (profilesRes.data || []).forEach(p => profileMap[p.id] = p);
+
+      // STEP 4: Enrich each assignment with names
+      const enriched = rawAssignments.map(a => ({
+        ...a,
+        classes: classMap[a.class_id] || { id: a.class_id, name: 'Unknown Class' },
+        subjects: subjectMap[a.subject_id] || { id: a.subject_id, name: 'Unknown Subject', abbr: '' },
+        profiles: profileMap[a.teacher_id] || { id: a.teacher_id, full_name: 'Teacher', role: 'teacher' }
+      }));
+
+      console.log(`[DB] getTeacherAssignments: Enriched ${enriched.length} assignment(s) with class/subject names`);
+      return enriched;
+      
+    } catch (err) {
+      console.error('[DB] getTeacherAssignments Fatal:', err);
+      return [];
     }
-    return data || [];
   },
   async saveTeacherAssignment(assignment) {
     return await _supabase.from('teacher_assignments').insert([assignment]).select();
@@ -383,6 +487,9 @@ const DB = {
   async assignSubjectTeacher(teacherId, classId, subjectId) {
     return await _supabase.from('teacher_assignments').insert([{ teacher_id: teacherId, class_id: classId, subject_id: subjectId, type: 'subject' }]);
   },
+  async saveTeacherAssignment(assignment) {
+    return await _supabase.from('teacher_assignments').insert([assignment]);
+  },
   async deleteTeacher(id) {
     // 1. Permanent Wipe: Clean all foreign key relationships
     await _supabase.from('teacher_assignments').delete().eq('teacher_id', id);
@@ -407,23 +514,35 @@ const DB = {
   // --- STUDENTS ---
   async getStudents(classId = null) {
     const sc = await this._getSchoolCode();
-    if (!classId) {
-        const cached = DB_CACHE.get(`students_all_${sc}`);
-        if (cached) return cached;
-    }
+    const { data: { user } } = await _supabase.auth.getUser();
+    
+    // FETCH ROLE FOR JURISDICTION FILTERING
+    const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
     
     let query = _supabase.from('students').select('*, classes(name)');
-    // Legacy Bridge
-    if (sc === '541023' || sc === 'DEFAULT') {
-        query = query.or(`school_code.eq.${sc},school_code.is.null`);
-    } else {
-        query = query.eq('school_code', sc);
+    
+    // 1. SaaS Isolation
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
+    
+    // 2. Teacher Role Jurisdiction
+    if (profile?.role === 'teacher') {
+        const assignments = await this.getTeacherAssignments(profile.id);
+        const myClassIds = [...new Set(assignments.filter(a => a.type === 'class').map(a => a.class_id))];
+        const mySubjectClassIds = [...new Set(assignments.filter(a => a.type === 'subject').map(a => a.class_id))];
+        
+        // Combine all classes where this teacher has jurisdiction
+        const allowedClasses = [...new Set([...myClassIds, ...mySubjectClassIds])];
+        
+        if (allowedClasses.length > 0) {
+            query = query.in('class_id', allowedClasses);
+        } else {
+            return []; // No assignments, no access
+        }
     }
+    
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getStudents:', error); return []; }
-    
-    if (!classId) DB_CACHE.set(`students_all_${sc}`, data || []);
     return data || [];
   },
   async addStudent(studentObj) {
@@ -466,11 +585,12 @@ const DB = {
     if (cached) return cached;
 
     let query = _supabase.from('classes').select('*');
-    if (sc === '541023' || sc === 'DEFAULT') {
-        query = query.or(`school_code.eq.${sc},school_code.is.null`);
-    } else {
+    
+    // STRICT SDMS FILTERING
+    if (sc !== 'GLOBAL') {
         query = query.eq('school_code', sc);
     }
+    
     const { data, error } = await query.order('name');
     if (error) { console.error('[DB] getClasses:', error); return []; }
     DB_CACHE.set(`classes_${sc}`, data || []);
@@ -501,17 +621,31 @@ const DB = {
   // --- SUBJECTS ---
   async getSubjects(classId = null) {
     const sc = await this._getSchoolCode();
-    if (!classId) {
-        const cached = DB_CACHE.get(`subjects_all_${sc}`);
-        if (cached) return cached;
-    }
+    const { data: { user } } = await _supabase.auth.getUser();
+    const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
 
-    let query = _supabase.from('subjects').select('*, classes(name)').eq('school_code', sc);
+    let query = _supabase.from('subjects').select('*, classes(name)');
+    
+    // 1. SaaS Isolation
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
+    
+    // 2. Teacher Jurisdiction (Subject Level)
+    if (profile?.role === 'teacher') {
+        const assignments = await this.getTeacherAssignments(profile.id);
+        const mySubIds = [...new Set(assignments.filter(a => a.type === 'subject' || a.type === 'class_subject').map(a => a.subject_id))];
+        const isClassTeacher = assignments.some(a => a.type === 'class');
+
+        // If NOT a head class teacher, restrict to only their subjects
+        if (!isClassTeacher && mySubIds.length > 0) {
+            query = query.in('id', mySubIds);
+        } else if (!isClassTeacher && mySubIds.length === 0) {
+            return []; // Complete lockout if no assignments
+        }
+    }
+    
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
     if (error) { console.error('[DB] getSubjects:', error); return []; }
-    
-    if (!classId) DB_CACHE.set(`subjects_all_${sc}`, data || []);
     return data || [];
   },
   async addSubject(subjectObj) {
@@ -524,13 +658,36 @@ const DB = {
   // --- MARKS ---
   async getMarks(filters = {}) {
     const sc = await this._getSchoolCode();
+    const { data: { user } } = await _supabase.auth.getUser();
+    const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
+
     let query = _supabase.from('marks').select('*').eq('school_code', sc);
+    
+    // Teacher Jurisdiction Enforcement
+    if (profile?.role === 'teacher') {
+        const assignments = await this.getTeacherAssignments(profile.id);
+        const myClassIds = [...new Set(assignments.filter(a => a.type === 'class').map(a => a.class_id))];
+        const mySubAssignments = assignments.filter(a => a.type === 'subject');
+
+        if (myClassIds.length > 0) {
+            // Class teachers can see everything in their classes OR their assigned subjects elsewhere
+            query = query.or(`class_id.in.(${myClassIds.join(',')}),subject_id.in.(${mySubAssignments.map(a => a.subject_id).join(',')})`);
+        } else if (mySubAssignments.length > 0) {
+            // Subject-only teachers only see their subjects
+            query = query.in('subject_id', mySubAssignments.map(a => a.subject_id));
+        } else {
+             return []; // No assignments found
+        }
+    }
+
     if (filters.studentId)    query = query.eq('student_id', filters.studentId);
     if (filters.subjectId)    query = query.eq('subject_id', filters.subjectId);
     if (filters.term)         query = query.eq('term', filters.term);
     if (filters.year)         query = query.eq('academic_year', filters.year);
+    if (filters.id)           query = query.eq('id', filters.id);
     if (filters.classId)      query = query.eq('class_id', filters.classId);
     if (filters.classIds)     query = query.in('class_id', filters.classIds);
+    
     const { data, error } = await query;
     if (error) { console.error('[DB] getMarks:', error); return []; }
     return data || [];
@@ -555,6 +712,7 @@ const DB = {
 
   // --- MARKS: SUBMISSION ---
   async submitMarksForClass(subjectId, classId, term = 2) {
+    const sc = await this._getSchoolCode();
     const updatePayload = {
       is_submitted: true,
       submitted_at: new Date().toISOString()
@@ -563,6 +721,10 @@ const DB = {
       .update(updatePayload)
       .eq('subject_id', subjectId)
       .eq('term', term);
+    
+    // STRICT SDMS FILTERING
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
+    
     // Only filter by class_id if the column exists
     if (classId) query = query.eq('class_id', classId);
     return await query.select();
@@ -588,12 +750,18 @@ const DB = {
   },
 
   async approveAllSubmittedMarks() {
-    return await _supabase.from('marks').update({
+    const sc = await this._getSchoolCode();
+    let query = _supabase.from('marks').update({
       is_approved: true,
       is_submitted: true,
       approved_at: new Date().toISOString(),
       rejection_comment: null
-    }).eq('is_submitted', true).eq('is_approved', false).select();
+    }).eq('is_submitted', true).eq('is_approved', false);
+
+    // STRICT SDMS FILTERING
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
+
+    return await query.select();
   },
 
   async rejectMark(markId, comment = '') {
@@ -668,16 +836,34 @@ const DB = {
   async getSchoolInfo() {
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return null;
+    
     const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
     const sc = profile?.school_code || 'DEFAULT';
 
-    const { data, error } = await _supabase.from('settings').select('*').eq('key', `school_info_${sc}`).maybeSingle();
-    if (error || !data) {
-        // Fallback to legacy key for reverse compatibility if new one doesn't exist
-        const { data: fallback } = await _supabase.from('settings').select('*').eq('key', 'school_info').maybeSingle();
-        return fallback ? fallback.value : null;
-    }
-    return data.value;
+    // 1. PRIMARY SOURCE: Official registry from System Administrator
+    const { data: schoolRecord } = await _supabase
+      .from('schools')
+      .select('*')
+      .eq('sdms_code', sc)
+      .maybeSingle();
+
+    // 2. SECONDARY SOURCE: School-specific settings
+    const { data: schoolSettings } = await _supabase
+      .from('school_settings')
+      .select('info')
+      .eq('school_code', sc)
+      .maybeSingle();
+
+    // Merge: Prioritize Registry Name, but allow settings to fill in phone/email
+    const info = {
+      school: schoolRecord?.name || 'MMS PORTAL',
+      district: schoolRecord?.district || '',
+      sector: schoolRecord?.sector || '',
+      code: sc,
+      ...(schoolSettings?.info || {})
+    };
+
+    return info;
   },
   async saveSchoolInfo(info) {
     const { data: { user } } = await _supabase.auth.getUser();
@@ -703,22 +889,17 @@ const DB = {
  */
 async function getCurrentSchoolCode() {
   try {
-    const cacheKey = 'current_school_code';
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) return cached;
-    
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return 'DEFAULT';
     
+    // FETCH DIRECTLY FROM DB - NO CACHE ALLOWED
     const { data: profile } = await _supabase
       .from('profiles')
       .select('school_code')
       .eq('id', user.id)
       .maybeSingle();
     
-    const schoolCode = profile?.school_code || 'DEFAULT';
-    sessionStorage.setItem(cacheKey, schoolCode);
-    return schoolCode;
+    return profile?.school_code || 'DEFAULT';
   } catch (error) {
     console.error('[DB] Error getting school code:', error);
     return 'DEFAULT';
@@ -728,40 +909,21 @@ async function getCurrentSchoolCode() {
 /**
  * Register an admin/teacher with a school code
  */
-async function registerUserWithSchoolCode(email, password, fullName, role, schoolCode) {
+async function registerUserWithSchoolCode(adminName, schoolName, sdmsCode, schoolCode) {
   try {
-    const { data: schoolExists } = await _supabase
-      .from('schools')
-      .select('code')
-      .eq('code', schoolCode)
-      .maybeSingle();
+    // 1. Provision Admin Profile with SDMS-based Credentials
+    // Email format: sdms[CODE]@edumarks.rw | Password: [CODE]
+    const sdmsEmail = `sdms${sdmsCode}@edumarks.rw`;
     
-    if (!schoolExists && schoolCode !== 'DEFAULT') {
-      console.warn(`[ADMIN] School ${schoolCode} not found. Create it in database first.`);
-      throw new Error(`School code ${schoolCode} does not exist. Contact admin to register.`);
-    }
-    
-    const { data: authData, error: authError } = await _supabase.auth.signUp({
-      email,
-      password
-    });
-    
-    if (authError) throw authError;
-    
-    const { data: profile, error: profileError } = await _supabase
-      .from('profiles')
-      .insert([{
-        id: authData.user.id,
-        email,
-        full_name: fullName,
-        role,
-        school_code: schoolCode,
-        school_code_ref: schoolCode !== 'DEFAULT' ? schoolCode : null,
-        temp_password_active: false,
+    const { error: profileError } = await _supabase.from('profiles').upsert({
+        email: sdmsEmail,
+        full_name: adminName,
+        role: 'admin',
+        school_code: sdmsCode,
+        school_name: schoolName,
+        temp_password_active: true, // This allows the auto-signup logic in DB.signIn to work
         created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
+    }, { onConflict: 'email' });
     
     if (profileError) throw profileError;
     
@@ -848,12 +1010,15 @@ async function updateLastSync() {
 async function fetchSchoolSettings(schoolCode) {
   try {
     const cacheKey = `school_settings_${schoolCode}`;
-    const cached = localStorage.getItem(cacheKey);
     
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      const ageMs = Date.now() - parsed.timestamp;
-      if (ageMs < 3600000) return parsed.data;
+    // BYPASS CACHE IF REQUESTED OR IF DATA IS STALE
+    if (!window._FORCE_REFRESH) {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const ageMs = Date.now() - parsed.timestamp;
+          if (ageMs < 600000) return parsed.data; // Reduce cache to 10 mins
+        }
     }
     
     const { data, error } = await _supabase
@@ -878,7 +1043,7 @@ async function fetchSchoolSettings(schoolCode) {
     const { data: school } = await _supabase
       .from('schools')
       .select('*')
-      .eq('code', schoolCode)
+      .eq('sdms_code', schoolCode)
       .maybeSingle();
     
     if (school) {
@@ -985,6 +1150,9 @@ function subscribeToSchoolChanges(schoolCode) {
       filter: `school_code=eq.${schoolCode}`
     },
     (payload) => {
+      // SECURITY GUARD: Backup validation to prevent cross-leakage
+      if (schoolCode !== 'GLOBAL' && payload.new && payload.new.school_code !== schoolCode) return;
+      
       console.log('[SYNC] Staff updated for school', schoolCode);
       if (window.SYNC && window.SYNC._emit) {
         window.SYNC._emit('teachers', payload);
@@ -1266,6 +1434,14 @@ const SYNC = {
             this._emit('assignments', payload);
           }
       )
+      // SCHOOL SETTINGS — Admin updates logo, terms, etc.
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'school_settings' },
+          payload => {
+            console.log('[SYNC] school_settings →', payload.eventType);
+            this._emit('school_settings', payload);
+          }
+      )
       .subscribe(status => {
         console.log('[SYNC] Channel status:', status);
         this._updateBadge(status);
@@ -1283,6 +1459,23 @@ const SYNC = {
 
   isConnected() {
     return this._connected;
+  },
+
+  clearCache() {
+    console.log('[DB] Clearing all institutional cache...');
+    const keysToKeep = ['sb-auth-token']; // Keep auth token for proper signout if needed
+    
+    // Clear Session Storage
+    sessionStorage.clear();
+    
+    // Selective Local Storage Clear
+    Object.keys(localStorage).forEach(key => {
+      if (!keysToKeep.includes(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('[DB] Institutional node wiped.');
   }
 };
 

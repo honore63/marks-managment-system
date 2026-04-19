@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/modern-design.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/ai-assistant.css">
+  <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
@@ -274,7 +275,7 @@
           <label class="input-label">Authorization Key</label>
           <div class="input-wrapper">
             <i data-lucide="lock" class="input-icon" style="color: #94a3b8; width: 18px; height: 18px;"></i>
-            <input type="password" id="pass" class="form-input" placeholder="Password" required>
+            <input type="password" id="pass" class="form-input" placeholder="Password" required autocomplete="current-password">
           </div>
         </div>
 
@@ -292,10 +293,6 @@
 
         <div class="role-hint">Automatic Role Detection Enabled</div>
       </form>
-
-      <div class="support-footer">
-        Need technical assistance? <a href="#">Visit Support Center</a>
-      </div>
     </div>
   </div>
 
@@ -418,7 +415,7 @@ Multi-Admin Synchronized Portal
                     <label for="admin-email" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
                         Email <span style="color: red;">*</span>
                     </label>
-                    <input type="email" id="admin-email" placeholder="admin@school.rw" required class="input-field" />
+                    <input type="email" id="admin-email" placeholder="admin@school.rw" required class="input-field" autocomplete="username" />
                 </div>
                 
                 <!-- Password -->
@@ -426,7 +423,7 @@ Multi-Admin Synchronized Portal
                     <label for="admin-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
                         Password <span style="color: red;">*</span>
                     </label>
-                    <input type="password" id="admin-password" placeholder="Min. 8 characters" required class="input-field" minlength="8" />
+                    <input type="password" id="admin-password" placeholder="Min. 8 characters" required class="input-field" minlength="8" autocomplete="new-password" />
                 </div>
                 
                 <!-- Confirm Password -->
@@ -434,7 +431,7 @@ Multi-Admin Synchronized Portal
                     <label for="admin-confirm-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
                         Confirm Password <span style="color: red;">*</span>
                     </label>
-                    <input type="password" id="admin-confirm-password" placeholder="Repeat password" required class="input-field" />
+                    <input type="password" id="admin-confirm-password" placeholder="Repeat password" required class="input-field" autocomplete="new-password" />
                 </div>
                 
                 <!-- Rules & Agreement -->
@@ -497,7 +494,7 @@ For admins joining an existing school portal
                     <label for="admin-login-id" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
                         Email or Admin ID
                     </label>
-                    <input type="text" id="admin-login-id" placeholder="admin@school.rw or admin ID" required class="input-field" />
+                    <input type="text" id="admin-login-id" placeholder="admin@school.rw or admin ID" required class="input-field" autocomplete="username" />
                 </div>
                 
                 <!-- Password -->
@@ -505,7 +502,7 @@ For admins joining an existing school portal
                     <label for="admin-login-password" style="display: block; font-weight: 700; margin-bottom: 0.5rem;">
                         Password
                     </label>
-                    <input type="password" id="admin-login-password" placeholder="Your password" required class="input-field" />
+                    <input type="password" id="admin-login-password" placeholder="Your password" required class="input-field" autocomplete="current-password" />
                 </div>
                 
                 <!-- School Code (Optional, for verification) -->
@@ -666,16 +663,17 @@ async function handleAdminLogin(event) {
     toast('Authenticating...', 'info');
     const { user, profile } = await DB.signIn(identifier, password);
     
-    if (profile && profile.role === 'admin') {
-      if (schoolCode && profile.school_code !== schoolCode) {
-        toast('⚠️ Warning: Your account is for school ' + profile.school_code, 'warning');
-      }
+    if (profile) {
       toast(`✅ Welcome back, ${profile.full_name}!`, 'success');
       setTimeout(() => {
-        window.location.href = '/admin-portal.html';
+        const userRole = profile.role || 'teacher';
+        let target = 'teacher-portal.html';
+        if (userRole === 'system_admin') target = 'system-admin-portal.html';
+        else if (userRole === 'admin') target = 'admin-portal.html';
+        window.location.href = target;
       }, 1500);
     } else {
-      toast('❌ This account is not an admin account', 'error');
+      toast('❌ Institutional record not found.', 'error');
     }
   } catch (error) {
     toast(`❌ Login failed: ${error.message}`, 'error');
@@ -758,5 +756,6 @@ style.textContent = `
 document.head.appendChild(style);
 </script>
 
+<script src="js/fullscreen.js"></script>
 </body>
 </html>

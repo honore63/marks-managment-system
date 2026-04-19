@@ -59,6 +59,7 @@
     .edit-row { margin-bottom: 0.5rem; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -161,8 +162,8 @@
             <div style="display: flex; align-items: center; gap: 1.5rem;">
                 <div class="school-logo-bub" style="font-weight: 900; background: var(--primary-glow); color: var(--primary); border: none;"><i data-lucide="school"></i></div>
                 <div>
-                    <h2 id="school-name-hd" style="font-size: 1.75rem; font-weight: 1000; letter-spacing: -1px; color: var(--text-main);">GSNYAGAHANDAGAZA</h2>
-                    <p id="school-code-hd" style="font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;">School ID • 541021</p>
+                   <h1 id="school-name-hd" style="margin: 0; font-size: 1.1rem; font-weight: 900; color: #1e293b; letter-spacing: -0.02em;">MMS PORTAL</h1>
+                   <p id="school-code-hd" style="font-size: 0.65rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;">SDMS Code • LOADING...</p>
                 </div>
             </div>
                   <div style="display: flex; gap: 0.75rem;">
@@ -771,11 +772,11 @@
                   <div class="form-row form-row-2" style="gap: 1.25rem;">
                      <div class="field">
                         <label>School Name</label>
-                        <input type="text" id="prof-school-name-input" class="input-field" placeholder="Full Official Name">
+                        <input type="text" id="prof-school-name-input" class="input-field" readonly style="background: #f8fafc; cursor: not-allowed; border-color: #e2e8f0; color: #64748b;" placeholder="Full Official Name">
                      </div>
                      <div class="field">
                         <label>School Code</label>
-                        <input type="text" id="prof-school-code-input" class="input-field" placeholder="e.g. EDM-01">
+                        <input type="text" id="prof-school-code-input" class="input-field" readonly style="background: #f8fafc; cursor: not-allowed; border-color: #e2e8f0; color: #64748b;" placeholder="e.g. EDM-01">
                      </div>
                   </div>
 
@@ -894,12 +895,8 @@
 
     </main>
 
-    <!-- 🔻 INSTITUTIONAL FOOTER -->
-    <!-- 🔻 INSTITUTIONAL FOOTER -->
-    <footer class="main-footer">
-      <div class="footer-line">Copyright © 2026 <span class="footer-logo-text">MMS 2.0</span></div>
-      <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Unified Academic Governance Console</div>
-    </footer>
+    <!-- 🔻 FOOTER REMOVED FOR CLEANER INTERFACE -->
+    </main>
   </div>
 </div>
 
@@ -914,7 +911,9 @@
           </div>
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
             <input type="text" id="t-sdms" placeholder="SDMS Code (Unique Identifier)" class="input-field">
-            <input type="text" id="t-school-code" placeholder="School Code (Allocation)" class="input-field" title="Assign users with the same code to group them into the same school portal">
+            <div id="t-secure-node-badge" style="background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; padding: 0 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; border: 1px solid #e2e8f0;">
+               <i data-lucide="shield-check" style="width:14px; margin-right:5px;"></i> SECURE NODE: ...
+            </div>
           </div>
           <input type="email" id="t-email" placeholder="Institutional Email" class="input-field">
           <input type="text" id="t-phone" placeholder="Phone Number" class="input-field">
@@ -1020,6 +1019,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="edit-class-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Update Class Group</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="hidden" id="edit-c-id">
+      <input type="text" id="edit-c-name" placeholder="Class Name" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveClassUpdate()">Save Changes</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-class-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="add-subject-modal">
   <div class="modal-card" style="padding: 2.5rem;">
     <h2 style="font-weight:900; margin-bottom:1.5rem;">Define New Subject</h2>
@@ -1029,6 +1042,21 @@
       <div style="display:flex; gap: 1rem; margin-top: 1rem;">
         <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="addSubject()">Commit Subject</button>
         <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-subject-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-subject-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Update Curriculum Subject</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="hidden" id="edit-sub-id">
+      <input type="text" id="edit-sub-name" placeholder="Subject Name" class="input-field">
+      <input type="text" id="edit-sub-abbr" placeholder="Abbreviation" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveSubjectUpdate()">Save Changes</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-subject-modal')">Cancel</button>
       </div>
     </div>
   </div>
@@ -1311,5 +1339,6 @@
     document.write('<scr'+'ipt src="js/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
   </script>
 
+<script src="js/fullscreen.js"></script>
 </body>
 </html>

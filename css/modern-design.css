@@ -680,7 +680,7 @@ p {
 }
 
 .grid-4 {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .grid-full {
@@ -916,14 +916,12 @@ p {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 260px;
+  width: 280px;
+  flex-shrink: 0;
   z-index: 1000;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 1px 0 10px rgba(0, 0, 0, 0.03);
   overflow-y: auto;
-  border-right: 1px solid #D1D5DB;
+  border-right: 1px solid #E2E8F0;
 }
 
 .layout-sidebar {
@@ -933,15 +931,16 @@ p {
   background: #F9FAFB;
 }
 
-/* Main wrapper gets offset for fixed sidebar */
+/* Main wrapper fills remaining flex space */
 .main-wrapper {
   flex: 1;
-  margin-left: 260px;
+  margin-left: 0; /* Removed margin-left because we are using flex:1 now */
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
   background: #F9FAFB;
+  min-width: 0; /* Prevents flex children from breaking parent width */
 }
 
 .sidebar-header {

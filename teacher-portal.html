@@ -46,7 +46,27 @@
     .check-item:hover { background: white; border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1); }
     .check-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25); }
   </style>
+  <style id="mms-mobile-high-contrast">
+    /* NUCLEAR CONTRAST OVERHAUL FOR MOBILE ACCESS */
+    @media (max-width: 768px) {
+      body { color: #000000 !important; font-weight: 700 !important; }
+      .sidebar-item-text { font-weight: 950 !important; color: #000000 !important; }
+      .stat-lbl { color: #000000 !important; font-weight: 950 !important; text-transform: uppercase; font-size: 0.75rem !important; }
+      .stat-val { color: #1e3a8a !important; font-weight: 1000 !important; font-size: 2rem !important; }
+      .badge { border: 2px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; background: #ffffff !important; }
+      .badge-green { background: #dcfce7 !important; color: #14532d !important; border-color: #14532d !important; }
+      .table-card th { background: #0f172a !important; color: #ffffff !important; font-weight: 950 !important; text-transform: uppercase; font-size: 0.65rem !important; }
+      .table-card td { color: #000000 !important; font-weight: 850 !important; border-bottom: 1.5px solid #e2e8f0 !important; padding-top: 15px !important; padding-bottom: 15px !important; }
+      .btn { border: 2px solid #000000 !important; font-weight: 950 !important; letter-spacing: 0.5px !important; }
+      .btn-primary { background: #1e3a8a !important; color: #ffffff !important; border-color: #1e3a8a !important; }
+      .sub-header { border-bottom: 3px solid #0f172a !important; background: #ffffff !important; }
+      .page-title-group h1 { font-weight: 1000 !important; color: #000000 !important; }
+      #sync-badge { background: #000000 !important; color: #ffffff !important; font-weight: 1000 !important; }
+      input, select { border: 2px solid #000000 !important; color: #000000 !important; font-weight: 900 !important; }
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -67,36 +87,56 @@
     </div>
     
     <div class="sidebar-nav">
-       <div class="sidebar-group-label">Instructional Hub</div>
-       <div class="sidebar-item active" data-view="dashboard" onclick="switchView('dashboard', this)">
-          <i data-lucide="layout-dashboard"></i>
-          <span class="sidebar-item-text">Overview</span>
-       </div>
+       <div class="sidebar-group-label">Main</div>
+        <div class="sidebar-item active" id="side-dashboard" data-view="dashboard" onclick="switchView('dashboard', this)">
+           <i data-lucide="layout"></i>
+           <span class="sidebar-item-text">My Classes</span>
+        </div>
+        <div class="sidebar-item" id="side-monitor" style="display:none;" data-view="class-monitor" onclick="switchView('class-monitor', this)">
+           <i data-lucide="shield-check"></i>
+           <span class="sidebar-item-text">Performance Tracking</span>
+        </div>
        
-       <div class="sidebar-group-label">Academics</div>
-       <div class="sidebar-item" data-view="marks-entry" onclick="switchView('marks-entry', this)">
-          <i data-lucide="edit-3"></i>
-          <span class="sidebar-item-text">Marks Recording</span>
-       </div>
+       <div class="sidebar-group-label">Instruction</div>
        <div class="sidebar-item" id="side-class-monitor" style="display:none;" data-view="class-monitor" onclick="switchView('class-monitor', this)">
-          <i data-lucide="shield-check"></i>
-          <span class="sidebar-item-text">Class Monitor</span>
+          <i data-lucide="monitor"></i>
+          <span class="sidebar-item-text">My Classes</span>
        </div>
        <div class="sidebar-item" id="side-students" style="display:none;" data-view="students" onclick="switchView('students', this)">
-          <i data-lucide="user-plus"></i>
-          <span class="sidebar-item-text">Student Registry</span>
+          <i data-lucide="users"></i>
+          <span class="sidebar-item-text">Students Management</span>
        </div>
+       <div class="sidebar-item" id="side-verification" data-view="verification" onclick="switchView('verification', this)">
+          <i data-lucide="book-open"></i>
+          <span class="sidebar-item-text">Assigned Subjects</span>
+       </div>
+        <div class="sidebar-item" id="side-marks-entry" data-view="marks-entry" onclick="switchView('marks-entry', this)">
+           <i data-lucide="edit-3"></i>
+           <span class="sidebar-item-text">Marks Entry</span>
+        </div>
        
-       <div class="sidebar-group-label">Analytics</div>
+       <div class="sidebar-group-label">Administration</div>
        <div class="sidebar-item" id="side-reports" style="display:none;" data-view="reports" onclick="switchView('reports', this)">
-          <i data-lucide="trending-up"></i>
-          <span class="sidebar-item-text">Performance Reports</span>
+          <i data-lucide="pie-chart"></i>
+          <span class="sidebar-item-text">Reporting & Analytics</span>
+       </div>
+       <div class="sidebar-item" id="side-approval-status" data-view="approval-status" onclick="switchView('approval-status', this)">
+          <i data-lucide="check-circle"></i>
+          <span class="sidebar-item-text">Status & Sync</span>
        </div>
        <div class="sidebar-item" id="side-proclamation" style="display:none;" onclick="openTeacherProclamationModal()">
-          <i data-lucide="award"></i>
-          <span class="sidebar-item-text">Proclamation</span>
-       </div>
-    </div>
+           <i data-lucide="award"></i>
+           <span class="sidebar-item-text">Proclamation</span>
+        </div>
+
+        <!-- DYNAMIC QUICK JUMP -->
+        <div class="sidebar-group-label" id="side-quick-jump-label" style="display:none; margin-top:1.5rem; color: #3b82f6;">🚀 Quick Jump</div>
+        <div id="side-quick-jump-container"></div>
+
+        <div class="sidebar-item" data-view="profile" onclick="switchView('profile', this)" style="margin-top: auto;">
+           <i data-lucide="user"></i>
+           <span class="sidebar-item-text">My Profile</span>
+        </div>    </div>
     
     <div class="sidebar-footer">
        <div class="user-compact" onclick="switchView('profile')">
@@ -145,15 +185,17 @@
                   <h2 id="dash-teacher-name" style="font-size: 2.5rem; letter-spacing: -2px; margin-bottom: 0;">MMS Dashboard</h2>
                   <p id="dash-school-name" style="font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; margin-top: -5px;">Marks Management System</p>
                   <div style="display:flex; gap: 0.75rem; margin-top: 1.25rem;">
-                     <div class="badge badge-blue">👤 <span id="dash-profile-name">Teacher</span></div>
-                     <div class="badge badge-blue">🆔 <span id="dash-profile-code">SDMS: Loading...</span></div>
+                      <div class="badge badge-blue">👤 <span id="dash-profile-name">Teacher</span></div>
+                      <div class="badge badge-blue">🆔 <span id="dash-profile-code">ID: Loading...</span></div>
+                      <div class="badge badge-blue">📧 <span id="dash-profile-email">Loading...</span></div>
                   </div>
               </div>
            </div>
            <div style="text-align: right;">
-              <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Current Session</div>
-              <div style="font-weight: 900; color: #1e293b;" id="dash-acad-session">Term 2 / 2025-2026</div>
-           </div>
+               <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Current Session</div>
+               <div style="font-weight: 900; color: #1e293b;" id="dash-acad-session">Term 2 / 2025-2026</div>
+               <div id="sync-badge" class="badge" style="margin-top:4px; font-size:0.6rem; cursor:pointer;" onclick="renderDashboard()">🔄 SYNCING...</div>
+            </div>
         </div>
 
         <div class="stats-grid resp-grid-4">
@@ -201,12 +243,15 @@
                   </div>
                </div>
 
-               <div class="alert-box" id="teacher-dashboard-alert" style="margin: 0; flex-direction: column; align-items: flex-start; gap: 0.5rem; border-color: var(--primary-glow); border-left-color: var(--primary);">
-                  <div style="display: flex; justify-content: space-between; width: 100%;">
-                     <div class="stat-lbl" style="font-weight: 800; color: var(--primary);">System Notification</div>
-                     <div class="alert-icon" style="width: 24px; height: 24px; font-size: 0.8rem; background: var(--primary-glow); color: var(--primary);">🔔</div>
+               <div class="table-card" style="padding: 1.5rem; margin: 0; display: flex; flex-direction: column; height: 100%; max-height: 350px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                     <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="bell" style="width:16px;"></i> Live Notifications</h3>
+                     <span class="badge badge-blue" id="notification-count" style="font-size: 0.65rem;">0 New</span>
                   </div>
-                  <div class="stat-sub" style="margin: 0; font-weight: 600; color: #64748b;" id="teacher-dash-notification">Make sure all records are submitted before the term deadline.</div>
+                  <div id="teacher-notification-feed" style="display: flex; flex-direction: column; gap: 0.75rem; flex: 1; overflow-y: auto; padding-right: 5px;">
+                     <!-- Dynamic notifications injected here -->
+                     <div style="text-align:center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.8rem; font-style: italic;">No recent system activity.</div>
+                  </div>
                </div>
            </div>
 
@@ -347,6 +392,37 @@
          </div>
       </div>
 
+      <!-- VIEW: MARKS ENTRY -->
+      <div class="view" id="view-marks-entry">
+          <div class="table-card" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+               <div>
+                  <h3 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin: 0;">Institutional Jurisdictions</h3>
+                  <p style="font-size: 0.8rem; color: #64748b; margin: 0; margin-top: 0.25rem;">Select a course to proceed with academic recording.</p>
+               </div>
+            </div>
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">#</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Course name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Class group</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="marks-entry-courses-tbody"></tbody>
+                </table>
+             </div>
+          </div>
+      </div>
+
+      <!-- VIEW: VERIFICATION (Academic Courses) -->
+      <div class="view" id="view-verification"></div>
+
+      <!-- VIEW: APPROVAL STATUS (Submission Registry) -->
+      <div class="view" id="view-approval-status"></div>
+
       <!-- VIEW: STUDENT REGISTRY (Class Teacher Only) -->
       <div class="view" id="view-students">
          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
@@ -354,7 +430,7 @@
                <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b;">👥 Student Management</h1>
                <p style="font-size: 0.85rem; color: #64748b;">Manage enrollment and registry for your assigned class.</p>
             </div>
-            <button class="btn btn-primary" onclick="openAddStudentModal()">+ Enroll New Student</button>
+            <button class="btn btn-primary" id="btn-enroll-student" onclick="openAddStudentModal()">+ Enroll New Student</button>
          </div>
 
           <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto;">
@@ -639,12 +715,6 @@
 
     </main>
 
-    <!-- 🔻 INSTITUTIONAL FOOTER -->
-    <!-- 🔻 INSTITUTIONAL FOOTER -->
-    <footer class="main-footer">
-      <div class="footer-line">Copyright © 2026 <span class="footer-logo-text">MMS 2.0</span></div>
-      <div style="font-size: 0.7rem; opacity: 0.7; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Unified Academic Governance Console</div>
-    </footer>
   </div>
 </div>
 
@@ -829,5 +899,6 @@
   document.write('<scr'+'ipt src="js/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
 </script>
 
+<script src="js/fullscreen.js"></script>
 </body>
 </html>

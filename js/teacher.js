@@ -12,6 +12,21 @@
 'use strict';
 
 const el = id => document.getElementById(id);
+if (typeof SYNC === 'undefined') window.SYNC = DB; // Institutional Synchronization Bridge
+
+let MY_PROFILE = null;
+let MY_ASSIGNMENTS = [];
+let SCHOOL_INFO = { 
+    school: 'MMS INSTITUTIONAL PORTAL', 
+    district: '', 
+    sector: '',
+    code: 'LOADING...', 
+    phone: '',
+    headteacher: '',
+    academic_year: '2025/2026',
+    active_term: '2',
+    done_date: new Date().toLocaleDateString('en-GB')
+};
 
 let CURRENT_YEAR = '2025-2026';
 
@@ -37,20 +52,154 @@ async function initTeacherPortal() {
 
     // Get current user's school code
     const schoolCode = await getCurrentSchoolCode();
-    console.log(`[TEACHER] Connected to school: ${schoolCode}`);
+    
+    // FETCH INSTITUTIONAL IDENTITY — Multi-Strategy Lookup
+    let profile = null;
+    
+    // Strategy 1: Lookup by auth user ID (most reliable)
+    const { data: profileById } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    if (profileById) {
+        profile = profileById;
+        console.log('[PROFILE] ✅ Found profile by auth ID');
+    }
+    
+    // Strategy 2: Lookup by email
+    if (!profile && user.email) {
+        const { data: profileByEmail } = await _supabase.from('profiles').select('*').eq('email', user.email).maybeSingle();
+        if (profileByEmail) {
+            profile = profileByEmail;
+            console.log('[PROFILE] ✅ Found profile by email');
+        }
+    }
+    
+    // Strategy 3: Lookup by SDMS-generated email pattern
+    if (!profile && user.email) {
+        const sdmsMatch = user.email.match(/^sdms(\d+)@/);
+        if (sdmsMatch) {
+            const { data: profileBySdms } = await _supabase.from('profiles').select('*').eq('sdms_code', sdmsMatch[1]).maybeSingle();
+            if (profileBySdms) {
+                profile = profileBySdms;
+                console.log('[PROFILE] ✅ Found profile by SDMS code');
+            }
+        }
+    }
+    
+    if (!profile) {
+        console.error('[PROFILE] Member registry record missing for:', user.email, user.id);
+        alert('Institutional Error: Your profile was not found in the member registry. Contact your school administrator.');
+        return;
+    }
+    
+    MY_PROFILE = profile;
+    MY_ASSIGNMENTS = await DB.getTeacherAssignments(profile.id);
+    console.log(`[TEACHER] ${profile.full_name || 'Teacher'} authenticated for school: ${schoolCode}`);
+    
+    // === DIAGNOSTIC LOGGING (Check browser console for these) ===
+    console.log('[DEBUG] Profile ID used for assignments:', profile.id);
+    console.log('[DEBUG] Profile email:', profile.email);
+    console.log('[DEBUG] Assignments returned:', MY_ASSIGNMENTS.length);
+    console.log('[DEBUG] Assignment types:', MY_ASSIGNMENTS.map(a => a.type));
+    console.log('[DEBUG] Full assignments data:', JSON.stringify(MY_ASSIGNMENTS, null, 2));
 
     // Load school settings from database
     const settings = await fetchSchoolSettings(schoolCode);
+    
+    // FETCH REAL NAME FROM SYSTEM ADMIN REGISTRY (PRIMARY)
+    const officialInfo = await DB.getSchoolInfo();
+    
+    if (officialInfo) {
+      SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
+    }
+    
     if (settings && settings.info) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
-      console.log('[SCHOOL] Loaded info:', SCHOOL_INFO);
+      // Preserve registry name if settings name is missing or generic
+      if (officialInfo && officialInfo.school) SCHOOL_INFO.school = officialInfo.school;
+      SCHOOL_INFO.code = schoolCode;
+      console.log('[SCHOOL] Verified Institutional Name:', SCHOOL_INFO.school);
     }
 
     // Update UI header with school info
     const schoolNameEl = document.getElementById('school-name-hd');
     const schoolCodeEl = document.getElementById('school-code-hd');
-    if (schoolNameEl) schoolNameEl.textContent = SCHOOL_INFO.school || 'MMS Portal';
-    if (schoolCodeEl) schoolCodeEl.textContent = `School ID • ${SCHOOL_INFO.code}`;
+    const schoolNodeBadge = document.getElementById('school-node-badge');
+    
+    if (schoolNameEl) {
+        schoolNameEl.textContent = (SCHOOL_INFO.school && SCHOOL_INFO.school !== 'MMS INSTITUTIONAL PORTAL') 
+            ? SCHOOL_INFO.school.toUpperCase() 
+            : 'MMS PORTAL';
+    }
+    if (schoolCodeEl) schoolCodeEl.textContent = `SDMS Code • ${schoolCode}`;
+    if (schoolNodeBadge) schoolNodeBadge.textContent = (SCHOOL_INFO.school || 'MMS Institutional').toUpperCase();
+    
+    // Refresh Icons
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // ============================================================
+    // CRITICAL: ROLE-BASED SIDEBAR ACTIVATION ENGINE
+    // ============================================================
+    const isClassTeacher = MY_ASSIGNMENTS.some(a => a.type === 'class');
+    const isSubjectTeacher = MY_ASSIGNMENTS.some(a => a.type === 'subject');
+    
+    console.log(`[SIDEBAR] Roles detected → Class Teacher: ${isClassTeacher}, Subject Teacher: ${isSubjectTeacher}`);
+    console.log(`[SIDEBAR] Total assignments loaded: ${MY_ASSIGNMENTS.length}`);
+
+    // Show Class Teacher exclusive tools
+    if (isClassTeacher) {
+        const classMonitor = document.getElementById('side-class-monitor');
+        const studentsNav = document.getElementById('side-students');
+        const reportsNav = document.getElementById('side-reports');
+        const proclamationNav = document.getElementById('side-proclamation');
+        
+        if (classMonitor) classMonitor.style.display = 'flex';
+        if (studentsNav) studentsNav.style.display = 'flex';
+        if (reportsNav) reportsNav.style.display = 'flex';
+        if (proclamationNav) proclamationNav.style.display = 'flex';
+        
+        console.log('[SIDEBAR] ✅ Class Teacher tools activated');
+    }
+
+    // Subject Teachers also get Reports access
+    if (isSubjectTeacher && !isClassTeacher) {
+        const reportsNav = document.getElementById('side-reports');
+        if (reportsNav) reportsNav.style.display = 'flex';
+        console.log('[SIDEBAR] ✅ Subject Teacher report access activated');
+    }
+
+    // ============================================================
+    // PROFILE IDENTITY ENGINE — Populate Header + Sidebar Footer
+    // ============================================================
+    const teacherName = MY_PROFILE?.full_name || 'Teacher';
+    const teacherSdms = MY_PROFILE?.sdms_code || MY_PROFILE?.school_code || schoolCode || 'N/A';
+    
+    const dashTeacherName = document.getElementById('dash-teacher-name');
+    const dashSchoolName = document.getElementById('dash-school-name');
+    const dashProfileName = document.getElementById('dash-profile-name');
+    const dashProfileCode = document.getElementById('dash-profile-code');
+    const sidebarUserName = document.getElementById('sidebar-user-name');
+    const sidebarUserRole = document.getElementById('sidebar-user-role');
+    const sidebarAvatarInit = document.getElementById('sidebar-avatar-init');
+    
+    // Header Identity
+    if (dashTeacherName) dashTeacherName.textContent = `Welcome, ${teacherName}`;
+    if (dashSchoolName) dashSchoolName.textContent = SCHOOL_INFO.school || 'MMS Portal';
+    if (dashProfileName) dashProfileName.textContent = teacherName;
+    if (dashProfileCode) dashProfileCode.textContent = `SDMS: ${teacherSdms}`;
+    
+    // Sidebar Footer Identity
+    if (sidebarUserName) sidebarUserName.textContent = teacherName;
+    if (sidebarUserRole) {
+        if (isClassTeacher && isSubjectTeacher) sidebarUserRole.textContent = 'Class Lead & Instructor';
+        else if (isClassTeacher) sidebarUserRole.textContent = 'Class Lead';
+        else if (isSubjectTeacher) sidebarUserRole.textContent = 'Subject Instructor';
+        else sidebarUserRole.textContent = 'Pedagogical Faculty';
+    }
+    if (sidebarAvatarInit) sidebarAvatarInit.textContent = teacherName.charAt(0).toUpperCase();
+
+    console.log(`[IDENTITY] ✅ Welcome, ${teacherName} | School: ${SCHOOL_INFO.school} | SDMS: ${teacherSdms}`);
+
+    // Render the main dashboard view with data
+    await renderDashboard();
 
     // Mark this teacher as active
     await updateLastSync();
@@ -189,16 +338,8 @@ const SUBJECT_MAX = {
 const DEFAULT_SUBJ_MAX = { wt: 10, mt: 20, eu: 60, mid: 30, et: 60 };
 
 let GRADING_SCALE = [];
-let SCHOOL_INFO = { 
-    school: 'RUKARA MODEL SCHOOL', 
-    district: 'KAYONZA', 
-    sector: 'GAHINI',
-    code: '541023', 
-    phone: '+250791684429',
-    headteacher: 'DR.BARBANAS MUYENGWA',
-    academic_year: '2025/2026',
-    done_date: new Date().toLocaleDateString('en-GB')
-};
+// SCHOOL_INFO consolidated at top for SaaS multi-tenancy
+
 
 function generateInstitutionalHeader(docTitle, docSubtitle = "") {
     const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
@@ -211,9 +352,9 @@ function generateInstitutionalHeader(docTitle, docSubtitle = "") {
                 <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2;">REPUBLIC OF RWANDA</div>
                 <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2;">MINISTRY OF EDUCATION</div>
                 <div style="font-size:0.7rem; font-weight:900; color:#000; line-height:1.3;">
-                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MARKS MANAGEMENT SYSTEM').toUpperCase()}</span><br>
-                    District: ${(SCHOOL_INFO.district || 'KAYONZA').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || 'N/A').toUpperCase()}<br>
-                    School Code: ${SCHOOL_INFO.code || '00000'} | Phone: ${SCHOOL_INFO.phone || '+250 000 000'}
+                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MMS INSTITUTIONAL PORTAL').toUpperCase()}</span><br>
+                    District: ${(SCHOOL_INFO.district || '----------------').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || '----------------').toUpperCase()}<br>
+                    School Code: ${SCHOOL_INFO.code || '------'} | Phone: ${SCHOOL_INFO.phone || '----------------'}
                 </div>
             </div>
             <img src="${schoolLogo}" style="width:85px; height:85px; object-fit:contain;">
@@ -244,7 +385,8 @@ async function syncConfigs() {
 
 let ASSESSMENTS = [];
 let CURRENT_SESSION = { classId: null, className: null, subjectId: null, subjectName: null };
-let MY_PROFILE = null;
+// MY_PROFILE consolidated at top
+
 
 // ============================================================
 // HELPERS
@@ -330,6 +472,8 @@ async function switchView(viewId, el) {
     const META = {
         'dashboard':        ['Faculty Dashboard',           'Academic → Overview'],
         'marks-entry':      ['Marks Recording — Assessment',   'Instruction → Data Entry'],
+        'marks-pivot':      ['Institutional Marks Grid',       'Assessment → Multi-Entry'],
+        'students':         ['Student Registry — Enrollment',  'Instruction → Management'],
         'class-monitor':    ['Class Performance Monitor',      'Audit → Jurisdiction Tracking'],
         'verification':     ['Curriculum Verification',        'Academic → Subjects'],
         'approval-status':  ['Submission Registry',            'Governance → Status'],
@@ -377,24 +521,45 @@ async function switchView(viewId, el) {
 async function renderVerificationView() {
     const container = document.getElementById('view-verification');
     if (!container) return;
-    const assignments = await DB.getTeacherAssignments(MY_PROFILE?.id);
-    const subjects = assignments.filter(a => a.type === 'subject');
+    
+    const [assignments, allAssignments] = await Promise.all([
+        DB.getTeacherAssignments(MY_PROFILE?.id),
+        DB.getTeacherAssignments() // Institutional View
+    ]);
+
+    const mySubjects = assignments.filter(a => a.type === 'subject');
+    const myLeadClasses = assignments.filter(a => a.type === 'class').map(a => a.class_id);
+    
+    // Find all subjects in classes I lead (even if I don't teach them)
+    const classSubjects = allAssignments.filter(a => myLeadClasses.includes(a.class_id) && a.type === 'subject');
+    
+    // Merge for verification view
+    const displaySubjects = [...mySubjects];
+    classSubjects.forEach(s => {
+        if (!displaySubjects.some(x => x.class_id === s.class_id && x.subject_id === s.subject_id)) {
+            displaySubjects.push({ ...s, institutional: true });
+        }
+    });
     
     container.innerHTML = `
         <div class="table-card" style="padding:2.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-                <h2 style="font-size:1.25rem; font-weight:900; color:#1e293b;">📚 Verified Academic Courses</h2>
+                <div>
+                   <h2 style="font-size:1.25rem; font-weight:900; color:#1e293b;">📚 Verified Academic Courses</h2>
+                   <p style="font-size:0.8rem; color:#64748b;">Review subjects and classes assigned to your pedagogical profile.</p>
+                </div>
                 <div class="badge badge-green">SYNCED WITH ADMIN</div>
             </div>
             <div class="resp-grid resp-grid-3">
-                ${subjects.length ? subjects.map(s => `
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:20px; padding:2rem;">
-                        <div style="font-size:0.65rem; font-weight:900; color:#3b82f6; text-transform:uppercase; margin-bottom:0.5rem;">Allocated Subject</div>
-                        <div style="font-size:1.15rem; font-weight:900; color:#1e293b; margin-bottom:1.5rem;">${s.subjects?.name}</div>
+                ${displaySubjects.length ? displaySubjects.map(s => `
+                    <div style="background:#f8fafc; border:1px solid ${s.institutional ? '#e2e8f0' : '#3b82f6'}; border-radius:20px; padding:2rem; position:relative;">
+                        ${s.institutional ? '<div style="position:absolute; top:1rem; right:1rem; font-size:0.55rem; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:4px; font-weight:900;">CLASS LEAD VIEW</div>' : ''}
+                        <div style="font-size:0.65rem; font-weight:900; color:#3b82f6; text-transform:uppercase; margin-bottom:0.5rem;">${s.institutional ? 'Class Curriculum' : 'Allocated Subject'}</div>
+                        <div style="font-size:1.15rem; font-weight:900; color:#1e293b; margin-bottom:1.5rem;">${s.subjects?.name || 'Unknown Subject'}</div>
                         <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                            <div>
                               <div style="font-size:0.6rem; font-weight:900; color:#94a3b8; text-transform:uppercase;">Class Level</div>
-                              <div style="font-weight:800; color:#475569;">${s.classes?.name}</div>
+                              <div style="font-weight:800; color:#475569;">${s.classes?.name || 'Unknown Class'}</div>
                            </div>
                            <div style="font-size:0.65rem; font-weight:900; color:#10b981; background:#f0fdf4; border-radius:8px; padding:4px 12px; border:1px solid #bbf7d0;">VERIFIED</div>
                         </div>
@@ -564,6 +729,14 @@ async function renderDashboard() {
     const el = id => document.getElementById(id);
     if (!MY_PROFILE?.id) return;
 
+    // --- 0. IMMEDIATE IDENTITY POPULATION (Prevent "Loading" flash) ---
+    if (el('dash-teacher-name')) el('dash-teacher-name').textContent = `Welcome, ${MY_PROFILE.full_name || 'Faculty Member'}`;
+    if (el('dash-profile-name')) el('dash-profile-name').textContent = MY_PROFILE.full_name || 'Teacher';
+    if (el('dash-profile-email')) el('dash-profile-email').textContent = MY_PROFILE.email || '';
+    
+    const fullId = MY_PROFILE.custom_id || (SCHOOL_INFO.code + (MY_PROFILE.sdms_code || ''));
+    if (el('dash-profile-code')) el('dash-profile-code').textContent = `ID: ${fullId}`;
+
     try {
         const assignments = await DB.getTeacherAssignments(MY_PROFILE.id);
         const myClassIds = [...new Set(assignments.map(a => a.class_id).filter(Boolean))];
@@ -571,7 +744,7 @@ async function renderDashboard() {
         const [allAssignments, allStudents, allMarks, assessList] = await Promise.all([
             DB.getTeacherAssignments(),
             DB.getStudents(),
-            DB.getMarks({ classIds: myClassIds }), // Filtered fetch
+            DB.getMarks({ classIds: myClassIds }), 
             DB.getAssessments()
         ]);
         
@@ -584,24 +757,31 @@ async function renderDashboard() {
         const uniqueAssignments = [];
         const seenAssignments = new Set();
 
+        // 1. Add Teacher's own subjects
         assignments.forEach(a => {
-            if (a.type === 'subject') {
+            if (a.type === 'subject' && a.subject_id) {
                 const key = `sub_${a.class_id}_${a.subject_id}`;
                 if (!seenAssignments.has(key)) {
                     seenAssignments.add(key);
-                    uniqueAssignments.push(a);
+                    uniqueAssignments.push({ ...a, role: 'INSTRUCTION' });
                 }
             }
         });
 
+        // 2. Add subjects from Managed Classes (Institutional View)
         assignments.forEach(a => {
             if (a.type === 'class' && a.class_id) {
+                // Find all subjects in the system for this class
                 const classSubs = allAssignments.filter(x => x.class_id === a.class_id && x.type === 'subject');
                 classSubs.forEach(subAss => {
                     const subKey = `sub_${subAss.class_id}_${subAss.subject_id}`;
                     if (!seenAssignments.has(subKey)) {
                         seenAssignments.add(subKey);
-                        uniqueAssignments.push({ ...subAss, type: 'class_subject' });
+                        uniqueAssignments.push({ ...subAss, role: 'CLASS LEAD (AUDIT)', type: 'class_subject' });
+                    } else {
+                        // If already teaching it, upgrade the label to show dual responsibility
+                        const existing = uniqueAssignments.find(x => `sub_${x.class_id}_${x.subject_id}` === subKey);
+                        if (existing) existing.role = 'INSTRUCTION + LEAD';
                     }
                 });
             }
@@ -617,6 +797,18 @@ async function renderDashboard() {
         let recordingTbody = '';
         let rowIdx = 1;
 
+        const getRoleColor = (role) => {
+            if (role?.includes('LEAD')) return '#8b5cf6'; // Purple for lead
+            if (role?.includes('INSTRUCTION')) return '#3b82f6'; // Blue for instruction
+            return '#64748b';
+        };
+
+        const getActionBtn = (s) => `
+            <button class="btn" style="padding: 4px 10px; font-size: 0.65rem; background: var(--primary); color: white; border: none;" 
+                    onclick="goToEntrySubjectClass('${s.subject_id}','${s.subjects?.name || 'Subject'}','${s.class_id}','${s.classes?.name || 'Class'}')">
+                ENTRY
+            </button>`;
+
         uniqueAssignments.forEach(s => {
             const classMarks = allMarks.filter(m => m.class_id === s.class_id && m.subject_id === s.subject_id);
             const classAverage = classMarks.length > 0 
@@ -624,7 +816,7 @@ async function renderDashboard() {
                    classMarks.reduce((sum, m) => sum + (Number(m.max_score) || 1), 0) * 100).toFixed(1)
                 : '0.0';
 
-            // Calculate context status (Submitted/Pending per assessment)
+            // Calculate context status
             activeAssessments.forEach(ass => {
                 totalContexts++;
                 const contextMarks = classMarks.filter(m => m.assessment_id === ass.id);
@@ -639,32 +831,23 @@ async function renderDashboard() {
                 totalMaxSum += classMarks.reduce((sum, m) => sum + (Number(m.max_score) || 1), 0);
             }
 
-            const roleLabel = s.type === 'subject' ? 'Instruction' : 'Class Lead';
-            const roleColor = s.type === 'subject' ? '#3b82f6' : '#8b5cf6';
-            const actionBtn = `
-                <button class="btn" style="padding: 4px 10px; font-size: 0.65rem; background: var(--primary); color: white; border: none;" 
-                        onclick="goToEntrySubjectClass('${s.subject_id}','${s.subjects?.name || 'Subject'}','${s.class_id}','${s.classes?.name || 'Class'}')">
-                    ENTRY
-                </button>`;
-
-            // Table for Dashboard
+            // Table Construction for Overview
             dashboardTbody += `
                 <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 1.5rem; color: #64748b; font-weight: 600;">${rowIdx}</td>
                     <td style="padding: 12px 1rem;">
-                        <div style="font-weight: 800; color: #1e293b;">${s.classes?.name || 'Unknown'}</div>
-                        <div style="font-size: 0.65rem; color: ${roleColor}; font-weight: 900;">${roleLabel.toUpperCase()}</div>
+                        <div style="font-weight: 800; color: #1e293b;">${s.subjects?.name || 'Subject'}</div>
+                        <div style="font-size: 0.65rem; color: ${getRoleColor(s.role)}; font-weight: 900;">${(s.role || 'TEACHER').toUpperCase()}</div>
                     </td>
                     <td style="padding: 12px 1rem;">
-                        <div style="font-weight: 700; color: #475569; font-size: 0.85rem;">${s.subjects?.name || 'Subject'}</div>
+                        <div style="font-weight: 700; color: #475569; font-size: 0.85rem;">${s.classes?.name || 'Unknown'}</div>
                     </td>
-                    <td style="padding: 12px 1rem; text-align: center;">
-                        <div style="font-weight: 900; color: #0f172a;">${classAverage}%</div>
+                    <td style="padding: 12px 1.5rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        ${getActionBtn(s)}
                     </td>
-                    <td style="padding: 12px 1rem; text-align: right;">${actionBtn}</td>
                 </tr>
             `;
 
-            // Table for Recording Page (view-marks-entry)
             recordingTbody += `
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 12px 1.5rem; color: #64748b; font-weight: 600;">${rowIdx++}</td>
@@ -674,28 +857,25 @@ async function renderDashboard() {
                     </td>
                     <td style="padding: 12px 1rem; font-weight: 600; color: #475569;">${s.classes?.name || 'Class'}</td>
                     <td style="padding: 12px 1.5rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
-                        ${actionBtn}
-                        <button class="btn" style="padding: 4px 10px; font-size: 0.65rem; background: white; border: 1px solid var(--border);" 
-                                onclick="generateExcelTemplateForSubject('${s.subject_id}','${s.subjects?.name || 'Subject'}','${s.class_id}','${s.classes?.name || 'Class'}')">
-                            TEMP
-                        </button>
+                        ${getActionBtn(s)}
                     </td>
                 </tr>
             `;
             jurisdictionCount++;
         });
 
-        // DOM Updates - Dashboard
+        // DOM Updates
         const syncTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         if (el('dash-last-synced')) el('dash-last-synced').textContent = `Last Synced: ${syncTime}`;
-        if (el('dash-jurisdictions-tbody')) el('dash-jurisdictions-tbody').innerHTML = dashboardTbody || '<tr><td colspan="4">No assignments.</td></tr>';
+        
+        // Sync both the Main Dashboard and the Marks Entry table
+        if (el('dash-courses-tbody')) el('dash-courses-tbody').innerHTML = dashboardTbody || '<tr><td colspan="4" style="text-align:center;padding:3rem;">No institutional assignments detected.</td></tr>';
+        if (el('marks-entry-courses-tbody')) el('marks-entry-courses-tbody').innerHTML = recordingTbody || '<tr><td colspan="4" style="text-align:center;padding:3rem;">No subjects available for recording.</td></tr>';
+        
         if (el('dash-avg-score')) el('dash-avg-score').textContent = (totalMaxSum > 0 ? (totalScoreSum / totalMaxSum * 100).toFixed(1) : '0.0') + '%';
         if (el('dash-student-count')) el('dash-student-count').textContent = allStudents.filter(s => myClassIds.includes(s.class_id)).length;
         if (el('dash-subject-count')) el('dash-subject-count').textContent = jurisdictionCount;
         if (el('dash-marks-count')) el('dash-marks-count').textContent = allMarks.filter(m => myClassIds.includes(m.class_id)).length;
-
-        // DOM Updates - Recording Page
-        if (el('dash-courses-tbody')) el('dash-courses-tbody').innerHTML = recordingTbody || '<tr><td colspan="4">No assignments.</td></tr>';
         
         const remainingCount = totalContexts - submittedCount - pendingCount;
         const progressPct = totalContexts === 0 ? 0 : Math.round((submittedCount / totalContexts) * 100);
@@ -704,8 +884,8 @@ async function renderDashboard() {
         if (el('dash-completion-label')) el('dash-completion-label').textContent = `${progressPct}% Submitted`;
         if (el('dash-completion-bar')) el('dash-completion-bar').style.width = progressPct + '%';
 
-        // Initialize Specialized Pedagogical Analytics
         renderTeacherDashboardCharts();
+        
         if (el('dash-stat-submitted')) el('dash-stat-submitted').textContent = `${submittedCount}/${totalContexts}`;
         if (el('dash-stat-pending')) el('dash-stat-pending').textContent = pendingCount === 0 ? '--' : pendingCount;
         if (el('dash-stat-remaining')) el('dash-stat-remaining').textContent = remainingCount === 0 ? '--' : remainingCount;
@@ -713,24 +893,57 @@ async function renderDashboard() {
         if (el('dash-stat-courses')) el('dash-stat-courses').textContent = jurisdictionCount;
 
         // Profile & Identity
-        if (el('dash-teacher-name')) el('dash-teacher-name').textContent = `Hello, ${MY_PROFILE.full_name?.split(' ')[0] || 'Teacher'}`;
+        if (el('dash-teacher-name')) el('dash-teacher-name').textContent = `Welcome, ${MY_PROFILE.full_name || 'Teacher'}`;
         if (el('dash-profile-name')) el('dash-profile-name').textContent = MY_PROFILE.full_name || 'Teacher';
-        if (el('dash-profile-code')) el('dash-profile-code').textContent = `SDMS: ${MY_PROFILE.sdms_code || 'N/A'}`;
+        if (el('dash-profile-email')) el('dash-profile-email').textContent = MY_PROFILE.email || '';
+        
+        const fullId = MY_PROFILE.custom_id || (SCHOOL_INFO.code + (MY_PROFILE.sdms_code || ''));
+        if (el('dash-profile-code')) el('dash-profile-code').textContent = `ID: ${fullId}`;
 
-        if (el('teacher-dash-notification')) {
-            el('teacher-dash-notification').textContent = jurisdictionCount > 0 
-                ? `You have ${jurisdictionCount} active class jurisdictions. Keep up the great work!`
-                : "All your marks have been recorded and synced.";
+        // --- DYNAMIC NOTIFICATION ENGINE ---
+        const feedContainer = el('teacher-notification-feed');
+        if (feedContainer) {
+            let notifications = [];
+            const rejectedMarks = allMarks.filter(m => myClassIds.includes(m.class_id) && m.rejection_comment && !m.is_submitted);
+            if (rejectedMarks.length > 0) {
+                notifications.push(`
+                    <div style="background:#fee2e2; border-left:4px solid #ef4444; padding:0.75rem; border-radius:6px;">
+                        <div style="font-weight:800; font-size:0.75rem; color:#991b1b;"><i data-lucide="alert-triangle" style="width:12px; height:12px; margin-right:4px;"></i> Action Required</div>
+                        <div style="font-size:0.7rem; color:#7f1d1d; margin-top:0.25rem;">${rejectedMarks.length} record(s) were rejected. Please review.</div>
+                    </div>
+                `);
+            }
+            if (remainingCount > 0) {
+                notifications.push(`
+                    <div style="background:#eff6ff; border-left:4px solid #3b82f6; padding:0.75rem; border-radius:6px;">
+                        <div style="font-weight:800; font-size:0.75rem; color:#1e40af;"><i data-lucide="clock" style="width:12px; height:12px; margin-right:4px;"></i> Pending Tasks</div>
+                        <div style="font-size:0.7rem; color:#1e3a8a; margin-top:0.25rem;">You have ${remainingCount} assessment(s) left to record.</div>
+                    </div>
+                `);
+            }
+            if (notifications.length === 0) {
+                notifications.push(`<div style="text-align:center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.8rem; font-style: italic;">No pending alerts.</div>`);
+            }
+            feedContainer.innerHTML = notifications.join('');
+            if (el('notification-count')) el('notification-count').textContent = notifications.length;
         }
 
-        const isClassTeacher = assignments.some(a => a.type === 'class');
-        if (el('nav-students')) el('nav-students').style.display = isClassTeacher ? 'block' : 'none';
-        if (el('drop-students')) el('drop-students').style.display = isClassTeacher ? 'flex' : 'none';
-        
-        if (el('nav-class-monitor')) el('nav-class-monitor').style.display = isClassTeacher ? 'block' : 'none';
-        if (el('drop-class-monitor')) el('drop-class-monitor').style.display = isClassTeacher ? 'flex' : 'none';
-        
-        if (el('dash-action-monitor')) el('dash-action-monitor').style.display = isClassTeacher ? 'block' : 'none';
+        // Role-Based visibility restoration
+        const isClassLead = assignments.some(a => a.type === 'class');
+        const classTools = ['side-monitor', 'side-students', 'side-reports', 'side-proclamation'];
+        classTools.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.style.display = isClassLead ? 'flex' : 'none';
+        });
+
+        if (isClassLead) {
+            const myClass = assignments.find(a => a.type === 'class')?.classes;
+            if (myClass && el('s-class-display')) el('s-class-display').value = myClass.name;
+            if (myClass && el('s-class-id')) el('s-class-id').value = myClass.id;
+        }
+
+        // End of structural restoration
+
 
     } catch (e) {
         console.error('[DASHBOARD] Render failed:', e);
@@ -745,7 +958,7 @@ function goToEntrySubjectClass(subjectId, subjectName, classId, className, asses
     loadMarksTable();
 }
 
-function goToEntry(classId, className) { CURRENT_SESSION.classId = classId; CURRENT_SESSION.className = className; switchView('marks-entry', document.getElementById('nav-marks-entry')); }
+function goToEntry(classId, className) { CURRENT_SESSION.classId = classId; CURRENT_SESSION.className = className; switchView('marks-entry', document.getElementById('side-marks-entry')); }
 
 // ============================================================
 // MARKS ENTRY PIVOT (Redesign)
@@ -1039,39 +1252,48 @@ async function initReportSelectors() {
 
 async function populateReportChecklists(classId) {
     const [allSubjects, allAssignments] = await Promise.all([
-        DB.getSubjects(),
-        DB.getTeacherAssignments() // Fetch all assignments to find everything taught in this class
+        DB.getSubjects(), 
+        DB.getTeacherAssignments() 
     ]);
     
-    // Subjects linked to this class either in 'subjects' table or via teacher assignments
-    const classAssignedSubIds = allAssignments
-        .filter(a => a.class_id === classId && a.subject_id)
-        .map(a => a.subject_id);
-
-    const rawSubs = allSubjects.filter(s => 
-        s.class_id === classId || 
-        classAssignedSubIds.includes(s.id) ||
-        (!s.class_id && !s.student_id) // Global institutional subjects (core curriculum)
-    );
+    console.log(`[REPORTS] Populating checklists for class: ${classId}. Found assignments: ${allAssignments.length}`);
     
-    // Deduplicate subjects by NAME or ABBR to prevent visual repeats 
-    // (In case the DB has redundant records for the same subject)
-    const uniqueSubsMap = new Map();
-    rawSubs.forEach(s => {
-        const key = (s.abbr || s.name).toUpperCase().trim();
-        if (!uniqueSubsMap.has(key)) {
-            uniqueSubsMap.set(key, s);
+    // SOURCE OF TRUTH: Use assignments to find subjects mapped to this class
+    const classAssignments = allAssignments.filter(a => String(a.class_id) === String(classId) && a.type === 'subject');
+    
+    // Create a unique list of subjects from assignments
+    const subsMap = new Map();
+    classAssignments.forEach(a => {
+        if (a.subject_id && a.subjects) {
+            const key = String(a.subject_id);
+            if (!subsMap.has(key)) {
+                subsMap.set(key, {
+                    id: a.subject_id,
+                    name: a.subjects.name,
+                    abbr: a.subjects.abbr
+                });
+            }
         }
     });
-    const subs = Array.from(uniqueSubsMap.values()).slice(0, 15); // Increased to 15 for comprehensive institutional reporting
+
+    // 2. MERGE: Always include subjects explicitly mapped to this class in the subjects table
+    allSubjects.filter(s => String(s.class_id) === String(classId)).forEach(s => {
+        const key = String(s.id);
+        if (!subsMap.has(key)) {
+            subsMap.set(key, s);
+        }
+    });
+
+    const subs = Array.from(subsMap.values());
 
     el('report-subject-checklist').innerHTML = subs.length > 0 
         ? subs.map(s => `
-            <label class="check-item active" style="padding:6px 12px; border:1.5px solid #3b82f6; background:#eff6ff; color:#1e40af; border-radius:8px; margin:4px; display:inline-block; font-size:0.8rem; font-weight:800; cursor:pointer; transition: all 0.2s;">
-                <input type="checkbox" checked value="${s.id}" onchange="this.parentElement.classList.toggle('active', this.checked); generateReportCard()" style="margin-right:8px;">
+            <label class="check-item active" style="padding:6px 12px; border:1.5px solid #3b82f6; background:#eff6ff; color:#1e40af; border-radius:8px; margin:4px; display:inline-block; font-size:0.8rem; font-weight:800; cursor:pointer;">
+                <input type="checkbox" checked value="${s.id}" onchange="this.parentElement.style.background = this.checked ? '#eff6ff' : '#f8fafc'; generateReportCard()" style="margin-right:8px;">
                 ${(s.abbr || s.name).toUpperCase()}
             </label>`).join('')
-        : '<div style="color:#ef4444; font-size:0.8rem; font-weight:800; padding:10px;">No curriculum subjects mapped to this class level.</div>';
+        : '<div style="color:#ef4444; font-size:0.8rem; font-weight:800; padding:10px;">Institutional Error: No curricular subjects assigned to this class level in the member registry. Contact Registrar.</div>';
+    
     
     const dbAssessments = await DB.getAssessments();
     const activeAssessments = dbAssessments.length ? dbAssessments : [
@@ -1478,7 +1700,7 @@ async function generateReportCard(forceDownload = false) {
     
     // FETCH FRESH DATA SCOPED TO CLASS
     const [allMarks, allSubjects, schoolData] = await Promise.all([
-        DB.getMarks({ class_id: cid, term }),
+        DB.getMarks({ classId: cid, term }),
         DB.getSubjects(),
         DB.getSchoolInfo()
     ]);
@@ -1876,38 +2098,37 @@ async function renderProfile() {
         }
 
         // Role-Based UI Enforcement
-        const classElements = [
-            'side-class-monitor', 
-            'side-students', 
-            'dash-action-monitor',
-            'side-reports',
-            'side-proclamation',
-            'dash-action-reports',
-            'dash-action-proclamation'
-        ];
-        classElements.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.style.display = MY_PROFILE.is_class_teacher ? (id.includes('side') ? 'flex' : 'block') : 'none';
-            }
+        activateSidebarModules({ 
+            isSubjectTeacher: MY_PROFILE.is_subject_teacher, 
+            isClassTeacher: MY_PROFILE.is_class_teacher 
         });
     }
 }
 
-function handleLogout() { if (confirm('Disconnect from CAMIS Node?')) { SYNC.stop(); if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache(); window.location.href='./Login.html'; } }
+async function handleLogout() {
+    if (confirm('Disconnect from CAMIS Node? All active institutional data will be wiped.')) {
+        try {
+            if (window.SYNC && SYNC.stop) SYNC.stop();
+            if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache();
+            sessionStorage.clear();
+            if (window._supabase) await _supabase.auth.signOut();
+            window.location.replace('./Login.html');
+        } catch (err) {
+            window.location.href = './Login.html';
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await syncConfigs(); 
-    await renderProfile();
+    // 1. Core Initialization Flow (Multi-Strategy Identity + Assignments)
+    await initTeacherPortal(); 
     
-    // Restore Sidebar State
-    const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
-    if (isCollapsed) document.querySelector('.sidebar')?.classList.add('collapsed');
-
-    // Restore View
+    // 2. Restore View Context from session
     const lastView = sessionStorage.getItem('teacher_last_view') || 'dashboard';
-    await switchView(lastView);
+    const sideItem = document.querySelector(`.sidebar-item[data-view="${lastView}"]`);
+    await switchView(lastView, sideItem);
 
+    // 3. Start Real-time Institutional Channel
     SYNC.start();
     
     // Sync Handlers (View-Aware)
@@ -1926,24 +2147,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     SYNC.on('subjects', async () => { if (document.querySelector('.view.active')?.id === 'view-dashboard') await renderDashboard(); });
     SYNC.on('classes', async () => { if (document.querySelector('.view.active')?.id === 'view-dashboard') await renderDashboard(); });
     SYNC.on('students', async () => { if (document.querySelector('.view.active')?.id === 'view-students') await renderClassStudents(); });
+    SYNC.on('school_settings', async () => {
+        console.log('[SYNC] Institutional settings updated. Re-aligning portal...');
+        const schoolCode = await getCurrentSchoolCode();
+        const settings = await fetchSchoolSettings(schoolCode);
+        const officialInfo = await DB.getSchoolInfo();
+        if (officialInfo) SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
+        if (settings && settings.info) {
+            SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+            if (officialInfo && officialInfo.school) SCHOOL_INFO.school = officialInfo.school;
+        }
+        
+        // Update Branding
+        const nameEl = document.getElementById('school-name-hd');
+        if (nameEl) nameEl.textContent = (SCHOOL_INFO.school || 'MMS PORTAL').toUpperCase();
+        toast('🔄 Institutional settings synchronized.', 'info');
+    });
 
     
     console.log('[CAMIS] Faculty Node fully synchronized.');
 });
 
-/**
- * CLASS TEACHER: Student Management Logic
- */
 async function renderStudentRegistry() {
     const classId = document.getElementById('s-class-id')?.value;
     if (!classId) {
-        toast('⚠️ You must have an assigned class to manage students.', 'error');
+        toast('⚠️ Selective access only: You must have an assigned class for registry management.', 'info');
         switchView('dashboard');
         return;
     }
 
+    // Role-Based Jurisdiction Lockdown
+    const isClassLead = MY_ASSIGNMENTS.some(a => a.type === 'class' && a.class_id === classId);
+    if (el('btn-enroll-student')) {
+        el('btn-enroll-student').style.display = isClassLead ? 'flex' : 'none';
+    }
+
     const rawStudents = await DB.getStudents(classId);
-    // Sort A-Z by Full Name (Last + First)
     const students = rawStudents.sort((a, b) => {
         const nameA = `${a.last_name || ''} ${a.first_name || ''}`.trim().toUpperCase();
         const nameB = `${b.last_name || ''} ${b.first_name || ''}`.trim().toUpperCase();
@@ -1954,25 +2193,27 @@ async function renderStudentRegistry() {
     if (!tbody) return;
 
     if (students.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="padding:4rem; text-align:center; color:#94a3b8;">No students enrolled in your class yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:4rem; text-align:center; color:#94a3b8;">No institutional records found for this class node.</td></tr>`;
     } else {
         tbody.innerHTML = students.map((s, index) => {
             const isPending = s.status === 'pending_deletion';
+            const actionButtons = isClassLead ? (isPending ? 
+                `<span class="badge badge-orange" style="font-size:0.6rem;">PENDING DELETION</span>` : 
+                `<button class="btn" style="background:#f1f5f9; color:#1e293b; font-size:0.7rem;" onclick="openEditStudentModal('${s.id}')">EDIT</button>
+                 <button class="btn" style="background:transparent; color:#ef4444; font-weight:800; border:none; font-size:0.7rem;" onclick="requestDeleteStudent('${s.id}')">DELETE</button>`) : 
+                `<span class="badge" style="background:#f1f5f9; color:#94a3b8; font-size:0.6rem;">VIEW ONLY</span>`;
+
             return `
                 <tr style="border-bottom: 1px solid #f1f5f9; ${isPending ? 'opacity:0.6; background:#fff1f2;' : ''}">
                     <td style="padding: 12px 1.5rem; font-weight: 700; color:#64748b;">${index + 1}</td>
                     <td style="padding: 12px 1rem; font-weight: 700;">
-                        <span style="color:#1e293b; cursor:pointer;" onclick="openEditStudentModal('${s.id}')" title="Edit Student Profile">${s.last_name} ${s.first_name}</span>
+                        <span style="color:#1e293b; ${isClassLead ? 'cursor:pointer;' : ''}" ${isClassLead ? `onclick="openEditStudentModal('${s.id}')" title="Edit Student Profile"` : ''}>${s.last_name} ${s.first_name}</span>
                     </td>
                     <td style="padding: 12px 1rem; color:#64748b; font-weight:700;">${s.gender || '—'}</td>
                     <td style="padding: 12px 1rem; color:#64748b;">${s.sid || 'UNSET'}</td>
                     <td style="padding: 12px 1rem; font-weight: 600; color:#2563eb;">${s.classes?.name || 'Class'}</td>
                     <td style="padding: 12px 1.5rem; text-align: right; display:flex; gap:0.5rem; justify-content:flex-end;">
-                        ${isPending ? 
-                            `<span class="badge badge-orange" style="font-size:0.6rem;">PENDING DELETION</span>` : 
-                            `<button class="btn" style="background:#f1f5f9; color:#1e293b; font-size:0.7rem;" onclick="openEditStudentModal('${s.id}')">EDIT</button>
-                             <button class="btn" style="background:transparent; color:#ef4444; font-weight:800; border:none; font-size:0.7rem;" onclick="requestDeleteStudent('${s.id}')">DELETE</button>`
-                        }
+                        ${actionButtons}
                     </td>
                 </tr>
             `;
@@ -2266,10 +2507,37 @@ async function generateExcelTemplateForSubject(sid, sName, cid, cName) {
         XLSX.utils.book_append_sheet(wb, ws, "Marks_Template");
         
         XLSX.writeFile(wb, `Template_${sName.replace(/\s+/g, '_')}_${cName.replace(/\s+/g, '_')}.xlsx`);
-        toast('✅ Excel template is ready for download.', 'success');
+        
+        // 5. Final Step: Render Dashboard & Quick Jump Sidebar
+        await renderDashboard();
+        await renderQuickJump();
+        
+        console.log('[INIT] Faculty Workspace fully operational.');
     } catch (err) {
-        console.error('[EXCEL] Template generation failed:', err);
-        toast('❌ Failed to generate template.', 'error');
+        console.error('[INIT] Crash detected:', err);
+        toast('Institutional Sync Failed. Check Node connection.', 'error');
+    }
+}
+
+async function renderQuickJump() {
+    const qjContainer = document.getElementById('side-quick-jump-container');
+    const qjLabel = document.getElementById('side-quick-jump-label');
+    if (!qjContainer) return;
+
+    const mySubjects = MY_ASSIGNMENTS.filter(a => a.type === 'subject');
+    if (mySubjects.length > 0) {
+        qjLabel.style.display = 'block';
+        qjContainer.innerHTML = mySubjects.map(s => `
+            <div class="sidebar-item" style="font-size: 0.75rem; padding: 10px 1.5rem;" 
+                 onclick="goToEntrySubjectClass('${s.subject_id}','${s.subjects?.name || 'Sub'}','${s.class_id}','${s.classes?.name || 'Class'}')">
+                <i data-lucide="zap" style="width:12px; height:12px; color:#f59e0b;"></i>
+                <span class="sidebar-item-text">${(s.subjects?.abbr || 'SUB').toUpperCase()} — ${s.classes?.name || 'CLASS'}</span>
+            </div>
+        `).join('');
+        if (window.lucide) lucide.createIcons();
+    } else {
+        qjLabel.style.display = 'none';
+        qjContainer.innerHTML = '';
     }
 }
 

@@ -57,18 +57,39 @@ async function initAdminPortal() {
     const schoolCode = await getCurrentSchoolCode();
     console.log(`[ADMIN] Connected to school: ${schoolCode}`);
 
+    // Update LOCAL school info with the actual login code immediately
+    SCHOOL_INFO.code = schoolCode;
+
     // Load school settings from database
     const settings = await fetchSchoolSettings(schoolCode);
+    
+    // FETCH REAL NAME FROM SYSTEM ADMIN REGISTRY (PRIMARY)
+    const officialInfo = await DB.getSchoolInfo();
+    
+    if (officialInfo) {
+      SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
+      console.log('[SCHOOL] Verified Institutional Name:', SCHOOL_INFO.school);
+    }
+    
     if (settings && settings.info) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
-      console.log('[SCHOOL] Loaded info:', SCHOOL_INFO);
+      // Preserve registry name if settings name is missing or generic
+      if (officialInfo && officialInfo.school) SCHOOL_INFO.school = officialInfo.school;
+      SCHOOL_INFO.code = schoolCode;
     }
 
     // Update UI header with school info
     const schoolNameEl = document.getElementById('school-name-hd');
     const schoolCodeEl = document.getElementById('school-code-hd');
-    if (schoolNameEl) schoolNameEl.textContent = SCHOOL_INFO.school || 'MMS Portal';
-    if (schoolCodeEl) schoolCodeEl.textContent = `School ID • ${SCHOOL_INFO.code}`;
+    if (schoolNameEl) {
+        schoolNameEl.textContent = (SCHOOL_INFO.school && SCHOOL_INFO.school !== 'MMS INSTITUTIONAL PORTAL') 
+            ? SCHOOL_INFO.school.toUpperCase() 
+            : 'MMS PORTAL';
+    }
+    if (schoolCodeEl) schoolCodeEl.textContent = `SDMS Code • ${schoolCode}`;
+    
+    // Refresh Lucide icons if any new were added
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 
     // Mark this admin as active
     await updateLastSync();
@@ -144,10 +165,29 @@ function setupUIListeners(schoolCode) {
       fetchSchoolSettings(schoolCode).then(settings => {
         if (settings && settings.info) {
           SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+          // Update header if name changed
+          const schoolNameEl = document.getElementById('school-name-hd');
+          if (schoolNameEl) schoolNameEl.textContent = (SCHOOL_INFO.school || 'MMS Portal').toUpperCase();
         }
       });
     });
+
+    // Universal Sync Feedback
+    const updateSyncTime = () => {
+        const el = document.getElementById('last-sync-time');
+        if (el) el.textContent = `Synced: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
+    };
+    
+    // Trigger feedback on every table refresh
+    window.addEventListener('mms-data-refreshed', updateSyncTime);
   }
+}
+
+/**
+ * Helper to dispatch refresh event
+ */
+function notifyDataRefreshed() {
+    window.dispatchEvent(new CustomEvent('mms-data-refreshed'));
 }
 
 /**
@@ -198,7 +238,7 @@ document.addEventListener('DOMContentLoaded', initAdminPortal);
 // CAMIS Validation Utilities
 function isNonEmpty(value) { return value && value.trim().length > 0; }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-function isValidSDMS(code) { return /^\d{10}$/.test(code); }
+function isValidSDMS(code) { return /^\d{11}$/.test(code); }
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
@@ -253,12 +293,12 @@ const SUBJECT_MAX = {
 const DEFAULT_SUBJ_MAX = { wt: 10, mt: 20, eu: 60, mid: 30, et: 60 };
 
 let SCHOOL_INFO = { 
-    school: 'RUKARA MODEL SCHOOL', 
-    district: 'KAYONZA', 
-    sector: 'GAHINI',
-    code: '541023', 
-    phone: '+250791684429',
-    headteacher: 'DR.BARBANAS MUYENGWA',
+    school: 'MMS INSTITUTIONAL PORTAL', 
+    district: '', 
+    sector: '',
+    code: 'LOADING...', 
+    phone: '',
+    headteacher: '',
     academic_year: '2025/2026',
     done_date: new Date().toLocaleDateString('en-GB')
 };
@@ -296,9 +336,9 @@ function generateInstitutionalHeader(docTitle, docSubtitle = "") {
                 <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2;">REPUBLIC OF RWANDA</div>
                 <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2;">MINISTRY OF EDUCATION</div>
                 <div style="font-size:0.7rem; font-weight:900; color:#000; line-height:1.3;">
-                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MARKS MANAGEMENT SYSTEM').toUpperCase()}</span><br>
-                    District: ${(SCHOOL_INFO.district || 'KAYONZA').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || 'N/A').toUpperCase()}<br>
-                    School Code: ${SCHOOL_INFO.code || '00000'} | Phone: ${SCHOOL_INFO.phone || '+250 000 000'}
+                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MMS INSTITUTIONAL PORTAL').toUpperCase()}</span><br>
+                    District: ${(SCHOOL_INFO.district || '----------------').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || '----------------').toUpperCase()}<br>
+                    School Code: ${SCHOOL_INFO.code || '------'} | Phone: ${SCHOOL_INFO.phone || '----------------'}
                 </div>
             </div>
             <img src="${schoolLogo}" style="width:85px; height:85px; object-fit:contain;">
@@ -1369,12 +1409,16 @@ function openModal(id) {
     if (id === 'add-student-modal') populateClassDropdown();
     if (id === 'add-teacher-modal') {
         populateTeacherSelectors();
+        const badge = document.getElementById('t-secure-node-badge');
+        if (badge) badge.innerHTML = `<i data-lucide="shield-check" style="width:14px; margin-right:5px;"></i> SECURE NODE: ${SCHOOL_INFO.code || '------'}`;
+        
         const rc = document.getElementById('role-class-teacher');
         const rs = document.getElementById('role-subject-teacher');
         const ar = document.getElementById('assignment-rows');
         if (rc) rc.checked = false;
         if (rs) rs.checked = false;
         if (ar) ar.innerHTML = '';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         toggleAssignmentUI();
     }
 }
@@ -1606,22 +1650,21 @@ async function renderTermsList() {
 }
 
 async function renderClassesGrid() {
-    const [classes, students] = await Promise.all([DB.getClasses(), DB.getStudents()]);
     const container = document.getElementById('classes-list-container');
     if (!container) return;
-
-    if (classes.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 2rem; color: #94a3b8;">No classes configured.</div>';
-        return;
-    }
-
+    const [classes, students] = await Promise.all([DB.getClasses(), DB.getStudents()]);
+    
     container.innerHTML = classes.map(c => {
         const count = students.filter(s => s.class_id === c.id).length;
         return `
         <div class="stat-card" style="margin: 0; text-align: center; justify-content: center; flex-direction: column; gap: 0.75rem; padding: 2rem;">
             <div style="font-size: 2rem;">🏫</div>
             <div style="font-weight: 900; font-size: 1rem; color: #1e293b;">${c.name}</div>
-            <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; background: #f1f5f9; padding: 2px 8px; border-radius: 99px;">${count} Students</div>
+            <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; background: #f1f5f9; padding: 2px 8px; border-radius: 99px; margin-bottom: 0.5rem;">${count} Students</div>
+            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.65rem;" onclick="openEditClassModal('${c.id}', '${c.name}')">EDIT</button>
+                <button class="btn" style="padding: 4px 10px; font-size: 0.65rem; background: #fee2e2; color: #dc2626; border: none;" onclick="deleteClass('${c.id}')">DEL</button>
+            </div>
         </div>`;
     }).join('');
 }
@@ -1633,7 +1676,41 @@ async function addClass() {
     toast('Class initialized. Teacher portal updated automatically.', 'success');
     closeModal('add-class-modal');
     document.getElementById('c-name').value = '';
-    await renderSetup();
+    await renderClassesGrid();
+}
+
+function openEditClassModal(id, name) {
+    document.getElementById('edit-c-id').value = id;
+    document.getElementById('edit-c-name').value = name;
+    openModal('edit-class-modal');
+}
+
+async function saveClassUpdate() {
+    const id = document.getElementById('edit-c-id').value;
+    const name = document.getElementById('edit-c-name').value.trim();
+    if (!name) return toast('Class name is required.', 'error');
+    
+    try {
+        const { error } = await _supabase.from('classes').update({ name }).eq('id', id);
+        if (error) throw error;
+        toast('Class updated successfully!', 'success');
+        closeModal('edit-class-modal');
+        await renderClassesGrid();
+    } catch (e) {
+        toast('Failed to update class.', 'error');
+    }
+}
+
+async function deleteClass(id) {
+    if (!confirm('Are you sure? This will remove the class group. Students will need to be reassigned.')) return;
+    try {
+        const { error } = await _supabase.from('classes').delete().eq('id', id);
+        if (error) throw error;
+        toast('Class deleted.', 'success');
+        await renderClassesGrid();
+    } catch (e) {
+        toast('Failed to delete class. It may have students assigned.', 'error');
+    }
 }
 
 async function batchInitializePrimaryClasses() {
@@ -1672,8 +1749,9 @@ async function renderSubjectsTable() {
             <td><code style="background:#f1f5f9; color:#3b82f6; padding: 2px 6px; border-radius: 4px; font-weight: 800;">${s.abbr || s.code || 'CORE'}</code></td>
             <td><span class="badge" style="background: #f1f5f9; color: #64748b; border:none; font-weight: 800;">PRIMARY LEVEL</span></td>
             <td><span class="badge badge-green">ACTIVE</span></td>
-            <td>
-               <button class="btn" style="padding: 4px 8px; font-size: 0.7rem;" onclick="toast('Subject config locked.', 'info')">DETAILS</button>
+            <td style="display: flex; gap: 0.5rem;">
+               <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.7rem;" onclick="openEditSubjectModal('${s.id}', '${s.name}', '${s.abbr || s.code}')">EDIT</button>
+               <button class="btn" style="padding: 4px 8px; font-size: 0.7rem; background: #fee2e2; color: #dc2626; border: none;" onclick="deleteSubject('${s.id}')">DELETE</button>
             </td>
         </tr>
     `).join('') || '<tr><td colspan="5" style="text-align:center; padding: 3rem; color: #94a3b8;">No subjects defined.</td></tr>';
@@ -1689,6 +1767,42 @@ async function addSubject() {
     document.getElementById('sub-name').value = '';
     document.getElementById('sub-abbr').value = '';
     await renderSubjectsTable();
+}
+
+function openEditSubjectModal(id, name, abbr) {
+    document.getElementById('edit-sub-id').value = id;
+    document.getElementById('edit-sub-name').value = name;
+    document.getElementById('edit-sub-abbr').value = abbr;
+    openModal('edit-subject-modal');
+}
+
+async function saveSubjectUpdate() {
+    const id = document.getElementById('edit-sub-id').value;
+    const name = document.getElementById('edit-sub-name').value.trim();
+    const abbr = document.getElementById('edit-sub-abbr').value.trim().toUpperCase();
+    if (!name || !abbr) return toast('Name and abbr are required.', 'error');
+    
+    try {
+        const { error } = await _supabase.from('subjects').update({ name, code: abbr, abbr }).eq('id', id);
+        if (error) throw error;
+        toast('Subject updated!', 'success');
+        closeModal('edit-subject-modal');
+        await renderSubjectsTable();
+    } catch (e) {
+        toast('Failed to update subject.', 'error');
+    }
+}
+
+async function deleteSubject(id) {
+    if (!confirm('Are you sure? This will remove the subject from the curriculum.')) return;
+    try {
+        const { error } = await _supabase.from('subjects').delete().eq('id', id);
+        if (error) throw error;
+        toast('Subject removed.', 'success');
+        await renderSubjectsTable();
+    } catch (e) {
+        toast('Failed to remove subject. It may have marks assigned.', 'error');
+    }
 }
 
 async function autoAddRwandaSubjects() {
@@ -1937,7 +2051,10 @@ async function processAddTeacher() {
         const fname = document.getElementById('t-fname').value.trim();
         const lname = document.getElementById('t-lname').value.trim();
         const sdms  = document.getElementById('t-sdms').value.trim();
-        const schoolCode = document.getElementById('t-school-code').value.trim();
+        
+        // AUTO-INHERIT school code from admin session
+        const schoolCode = SCHOOL_INFO.code;
+        
         const email = document.getElementById('t-email').value.trim();
         const phone = document.getElementById('t-phone').value.trim();
         const isClassTeacher = document.getElementById('role-class-teacher').checked;
@@ -1948,11 +2065,11 @@ async function processAddTeacher() {
         }
         
         if (sdms && !isValidSDMS(sdms)) {
-            return toast('⚠️ Invalid SDMS Code format. Must be exactly 10 digits.', 'error');
+            return toast('⚠️ Invalid SDMS Code format. Must be exactly 11 digits.', 'error');
         }
         
         if (!/^\d{6}$/.test(schoolCode)) {
-            return toast('⚠️ Invalid School SDMS Code: It must be exactly a 6-digit number (e.g., 541023).', 'warning');
+            return toast('⚠️ Invalid School SDMS Code: It must be exactly a 6-digit number (e.g., 541010).', 'warning');
         }
         
         toast('🚀 Initializing institutional enrollment...', 'info');
@@ -1975,14 +2092,12 @@ async function processAddTeacher() {
             email, 
             sdms_code: sdms,
             school_code: schoolCode,
-            role: teacherRole, 
-            is_class_teacher: teacherRole === 'admin' ? false : isClassTeacher, 
-            is_subject_teacher: teacherRole === 'admin' ? false : isSubjTeacher
+            role: teacherRole
         };
 
 
-        // Add phone only if provided to prevent potential schema issues
-        if (phone) teacherPayload.phone = phone;
+        // Phone is used for notifications but skipped for DB insert
+
 
         const { data, error } = await DB.addTeacher(teacherPayload);
         if (error) throw error;
@@ -1993,7 +2108,8 @@ async function processAddTeacher() {
         // 1. Process Class Assignment
         if (isClassTeacher) {
             const classId = document.getElementById('t-assign-class').value;
-            await DB.saveTeacherAssignment({ teacher_id: teacherId, class_id: classId, type: 'class' });
+            const { error: asErr } = await DB.saveTeacherAssignment({ teacher_id: teacherId, class_id: classId, type: 'class' });
+            if (asErr) throw asErr;
         }
         
         // 2. Process Subject Jurisdictions
@@ -2003,17 +2119,18 @@ async function processAddTeacher() {
                 const classId = row.querySelector('.assign-class').value;
                 const subId = row.querySelector('.assign-subject').value;
                 if (classId && subId) {
-                    await DB.saveTeacherAssignment({ 
+                    const { error: sAsErr } = await DB.saveTeacherAssignment({ 
                         teacher_id: teacherId, 
                         class_id: classId, 
                         subject_id: subId, 
                         type: 'subject' 
                     });
+                    if (sAsErr) throw sAsErr;
                 }
             }
         }
 
-        const defaultP = (teacherRole === 'admin') ? 'Admin@2024' : 'Teacher@2024';
+        const defaultP = 'Teacher@2026';
         toast(`✅ Enrollment Complete! Temporary Password: ${defaultP}`, 'success');
 
         // 3. Dispatch Onboarding Notification
@@ -2053,6 +2170,9 @@ async function processAddTeacher() {
     } catch (err) {
         console.error('[REGISTRY] Severe failure:', err);
         let errorMsg = err.message || 'Check network connection.';
+        if (err.hint) errorMsg += ' Hint: ' + err.hint;
+        if (err.details) errorMsg += ' Details: ' + err.details;
+        
         if (err.code === '23505' || err.status === 409) {
             errorMsg = 'This Email, Phone Number, or SDMS Code is already assigned to another user in the system.';
         }
@@ -2076,10 +2196,13 @@ async function sendFacultyOnboardingInvite(data) {
     // Prepare Template Parameters for EmailJS
     const templateParams = {
         school_name: schoolName,
+        school_code: SCHOOL_INFO.code,
         teacher_name: data.fullName,
         receiver_email: data.email,
         to_email: data.email,
-        email: data.email, // Added for universal compatibility
+        email: data.email,
+        login_email: data.email,
+        temporary_password: 'Teacher@2026',
         class_teacher: data.className || 'None assigned',
         subjects: data.subjects.length > 0 ? data.subjects.join(', ') : 'None assigned',
         school_phone: info.phone || '+250 000 000',
@@ -2106,8 +2229,7 @@ async function sendFacultyOnboardingInvite(data) {
 
     // --- CHANNEL 2: REAL SMS via Twilio ---
     if (data.phone) {
-        const roleStr = `${data.className || 'Teacher'}; Subs: ${data.subjects.join(', ') || 'None'}`;
-        const smsMsg = `[${schoolName}] Dear ${data.fullName}, you're registered! Roles: ${roleStr}. ACTION: Please check your email (${data.email}) to CONFIRM. Contact: ${info.phone || '+250791684429'}. Admin.`;
+        const smsMsg = `[${schoolName}] Welcome ${data.fullName}! LOGIN: ${data.email} | PSWD: Teacher@2026 | SDMS: ${SCHOOL_INFO.code}. Plz change pswd on login. Admin.`;
         
         await dispatchTwilioSMS(data.phone, smsMsg);
     } else {
@@ -2538,11 +2660,27 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
 // ============================================================
 // INITIALIZATION
 // ============================================================
-function handleLogout() {
+async function handleLogout() {
     if (confirm('Disconnect from institutional node? All unsaved active sessions will be terminated.')) {
-        SYNC.stop();
-        if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache();
-        window.location.href = './Login.html';
+        try {
+            // 1. Stop real-time sync
+            if (window.SYNC && SYNC.stop) SYNC.stop();
+            
+            // 2. Wipe institutional memory
+            if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache();
+            
+            // 3. Clear session storage specifically
+            sessionStorage.clear();
+            
+            // 4. Force Server-side Signout
+            if (window._supabase) await _supabase.auth.signOut();
+            
+            // 5. Hard Redirect
+            window.location.replace('./Login.html');
+        } catch (err) {
+            console.error('[AUTH] Logout error:', err);
+            window.location.href = './Login.html';
+        }
     }
 }
 
@@ -2586,7 +2724,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     SYNC.start();
 
-    // Sync Handlers
+    SYNC.on('assignments', async () => {
+        await updateInstitutionalStats();
+        const active = document.querySelector('.view.active')?.id;
+        if (active === 'view-dashboard') await renderFacultyMonitor();
+        if (active === 'view-teachers') await renderFacultyRegistry();
+    });
     SYNC.on('marks', async () => {
         await updateInstitutionalStats();
         const active = document.querySelector('.view.active')?.id;

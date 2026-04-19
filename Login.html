@@ -249,6 +249,7 @@
       .support-footer { font-size: 0.75rem; }
     }
   </style>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -295,7 +296,7 @@
           <label class="input-label">Identification</label>
           <div class="input-wrapper">
             <i data-lucide="user" class="input-icon" style="color: #94a3b8; width: 18px; height: 18px;"></i>
-            <input type="text" id="email" class="form-input" placeholder="SDMS Code or Email" required>
+            <input type="text" id="email" class="form-input" placeholder="SDMS Code or Email" required autocomplete="username">
           </div>
         </div>
 
@@ -324,10 +325,6 @@
 
         <div class="role-hint">Automatic Role Detection Enabled</div>
       </form>
-
-      <div class="support-footer">
-        Need technical assistance? <a href="#">Visit Support Center</a>
-      </div>
     </div>
   </div>
 
@@ -380,9 +377,15 @@
 
       toast(`Access Granted: Welcome, ${profile.full_name || 'User'}`, 'success');
       
-      // Auto-redirect based on detected role
+      // Auto-redirect based on detected institutional role
       setTimeout(() => {
-        const target = profile.role === 'admin' ? 'admin-portal.html' : 'teacher-portal.html';
+        const userRole = profile.role || 'teacher';
+        console.log('[AUTH] Redirecting user with role:', userRole);
+        
+        let target = 'teacher-portal.html';
+        if (userRole === 'system_admin') target = 'system-admin-portal.html';
+        else if (userRole === 'admin') target = 'admin-portal.html';
+        
         window.location.href = target;
       }, 1000);
 
@@ -407,5 +410,6 @@
 <script src="js/font-switcher.js"></script>
 <script src="js/ai-assistant.js"></script>
 
+<script src="js/fullscreen.js"></script>
 </body>
 </html>
