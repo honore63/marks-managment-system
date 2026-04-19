@@ -148,6 +148,26 @@
     .view.active { display: block; animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
+  <style id="mms-visibility-engine">
+    /* GLOBAL HIGH-CONTRAST & RESPONSIVE REINFORCEMENT */
+    :root { --text-main: #000; --text-dark: #000; --primary: #6366f1; }
+    body { color: #000 !important; font-weight: 650 !important; }
+    h1, h2, h3, h4, .logo-main, .logo-text, .nav-item { color: #000 !important; font-weight: 1000 !important; }
+    .val { color: #4f46e5 !important; font-weight: 1000 !important; }
+    .lbl, .nav-label { color: #000 !important; font-weight: 950 !important; text-transform: uppercase; }
+    
+    @media (max-width: 768px) {
+      .dashboard-container { grid-template-columns: 1fr; }
+      .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; transition: left 0.3s; z-index: 2000; }
+      .sidebar.open { left: 0; }
+      .main-content { padding: 1.5rem !important; }
+      .stats-grid { grid-template-columns: 1fr !important; }
+      .stat-card, .card { border: 2.5px solid #000 !important; }
+      th { background: #000 !important; color: #fff !important; font-weight: 1000 !important; }
+      td { color: #000 !important; font-weight: 850 !important; border-bottom: 1.5px solid #000 !important; }
+      .btn { border: 2.5px solid #000 !important; font-weight: 1000 !important; }
+    }
+  </style>
 </head>
 <body>
 

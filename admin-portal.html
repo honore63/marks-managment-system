@@ -58,6 +58,28 @@
     @media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
     .edit-row { margin-bottom: 0.5rem; }
   </style>
+  <style id="mms-visibility-engine">
+    /* GLOBAL HIGH-CONTRAST & RESPONSIVE REINFORCEMENT */
+    :root { --text-main: #000; --text-dark: #000; --primary: #1e3a8a; }
+    body { color: #000 !important; font-weight: 650 !important; }
+    h1, h2, h3, h4, .logo-main, .logo-text, .sidebar-item-text { color: #000 !important; font-weight: 1000 !important; }
+    .stat-val, .kpi-info .val { color: #1e3a8a !important; font-weight: 1000 !important; }
+    .stat-lbl, .kpi-info h4 { color: #000 !important; font-weight: 950 !important; text-transform: uppercase; }
+    
+    @media (max-width: 768px) {
+      .main-content { padding: 1rem !important; }
+      .kpi-grid, .stats-grid, .charts-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+      .table-card, .card { border: 2px solid #000 !important; border-radius: 12px !important; }
+      .table-card th, th { background: #000 !important; color: #fff !important; font-weight: 1000 !important; text-transform: uppercase; font-size: 0.65rem !important; }
+      .table-card td, td { color: #000 !important; font-weight: 850 !important; border-bottom: 1.5px solid #e2e8f0 !important; }
+      .badge { border: 2px solid #000 !important; font-weight: 1000 !important; color: #000 !important; background: #fff !important; }
+      .btn { border: 2.5px solid #000 !important; font-weight: 1000 !important; color: #000 !important; }
+      .btn-primary { background: #000 !important; color: #fff !important; border-color: #000 !important; }
+      input, select, textarea { border: 2px solid #000 !important; color: #000 !important; font-weight: 900 !important; background: #fff !important; opacity: 1 !important; }
+      .sidebar-brand { border-bottom: 2px solid #000 !important; }
+      #sync-badge { background: #0f172a !important; color: #fff !important; border: 2px solid #fff !important; font-weight: 1000 !important; }
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="manifest" href="manifest.json">
 </head>
