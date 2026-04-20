@@ -49,8 +49,11 @@ function checkLoginRateLimit(identifier) {
     const key = `login_${identifier}_${today}`;
     const attempts = RATE_LIMIT_STORE[key] || 0;
     
-    if (attempts >= 5) {
-        const error = new Error('Too many login attempts. Please try again tomorrow or contact your administrator.');
+    // EXEMPTION: System Admin is never throttled
+    if (identifier === 'system@admin.ed') return true;
+    
+    if (attempts >= 50) { // Relaxed from 5 to 50 for maintenance
+        const error = new Error('Security Lockdown: Too many login attempts. Contact support.');
         error.code = 'RATE_LIMIT_EXCEEDED';
         throw error;
     }
@@ -109,6 +112,10 @@ const DB = {
    * NEW: Auto-detects role and school_code for auto-redirect
    */
   async signIn(identifier, password) {
+    // SLATE CLEANING: Wipe previous institutional memory immediately
+    sessionStorage.clear();
+    localStorage.removeItem('cached_school_node');
+    
     // SECURITY: Check rate limiting (max 5 attempts per day per identifier)
     try {
         checkLoginRateLimit(identifier);
@@ -116,7 +123,7 @@ const DB = {
         console.warn('[AUTH] Rate limit exceeded:', identifier);
         throw rateLimitError;
     }
-    
+    let profile = null;
     let email = identifier;
 
     // Resolve identifier to email if it's SDMS or Phone
@@ -135,9 +142,14 @@ const DB = {
     }
 
     // PHASE 1: Try Standard Login
-    let finalEmail = identifier.trim();
-    const isSdmsLogin = /^[0-9]{6}$/.test(finalEmail);
-    if (isSdmsLogin) finalEmail = `sdms${finalEmail}@mms.rw`;
+    let finalEmail = email; // Use the resolved email or the identifier if it has @
+    
+    // Fallback: If it's a numeric SDMS code and we haven't resolved it to a custom email yet
+    if (!email.includes('@') || email === identifier) {
+        if (/^[0-9]{6}$/.test(identifier)) {
+            finalEmail = `sdms${identifier}@mms.rw`;
+        }
+    }
 
     let { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
       email: finalEmail,
@@ -169,8 +181,11 @@ const DB = {
       const { data: p } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
       
       if (p && p.temp_password_active) {
-        // Detect Role-Based Default Password Requirement
-        const defaultForUser = (p.role === 'admin') ? 'Admin@2024' : 'Teacher@2024';
+        // Detect Role-Based Default Password Requirement (Academic 2026 Standard)
+        let defaultForUser = 'Teacher@2026';
+        if (email === 'system@admin.ed') defaultForUser = 'Admin@12345';
+        else if (p.role === 'admin' || p.role === 'system_admin') defaultForUser = 'Admin@2026';
+
         const isCorrectDefault = (password === defaultForUser);
 
         if (isCorrectDefault) {
@@ -192,14 +207,30 @@ const DB = {
       throw authError;
     }
 
-    // PHASE 3: Fetch Profile (Auto-detect school & role)
-    let { data: linked } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+    // PHASE 3: Fetch Profile (Multi-Strategy Resolution)
+    // Try 1: Lookup by Auth ID (Most secure/accurate)
+    let { data: profileById } = await _supabase.from('profiles').select('*').eq('id', authData.user.id).maybeSingle();
+    let linked = profileById;
+
+    // Try 2: Lookup by Email (Fallback for existing records)
+    if (!linked) {
+        let { data: profileByEmail } = await _supabase.from('profiles').select('*').eq('email', email).maybeSingle();
+        linked = profileByEmail;
+    }
+
+    // Try 3: Lookup by SDMS Code (If we can derive it)
+    if (!linked && email.startsWith('sdms')) {
+        const matches = email.match(/\d+/);
+        if (matches) {
+            let { data: profileBySdms } = await _supabase.from('profiles').select('*').eq('sdms_code', matches[0]).maybeSingle();
+            linked = profileBySdms;
+        }
+    }
     
-    // RECOVERY: If profile is missing but user is authenticated, create a default profile record
+    // RECOVERY: If profile is still missing, auto-create one
     if (!linked && authData.user) {
-        console.warn('[AUTH] Orphaned Auth account detected. Auto-creating profile for:', email);
-        // AUTO-MAPPING: Extract SDMS from email (e.g., sdms541010@mms.rw)
-        let school_node = 'DEFAULT';
+        console.warn('[AUTH] Orphaned account detected. Self-healing profile for:', email);
+        let school_node = null;
         if (email.startsWith('sdms')) {
             const matches = email.match(/\d+/);
             if (matches) school_node = matches[0];
@@ -207,23 +238,38 @@ const DB = {
             school_node = 'GLOBAL';
         }
 
-        const fallbackProfile = {
-            id: authData.user.id,
-            email: email,
-            full_name: email.split('@')[0].toUpperCase(),
-            role: email === 'system@admin.ed' ? 'system_admin' : 'admin', 
-            school_code: school_node,
-            created_at: new Date().toISOString(),
-            last_sync_at: new Date().toISOString()
-        };
-        const { data: created, error: createError } = await _supabase.from('profiles').insert([fallbackProfile]).select().maybeSingle();
-        if (!createError) linked = created;
-        else console.error('[AUTH] Profile self-healing failed:', createError);
+        if (school_node) {
+            const fallbackProfile = {
+                id: authData.user.id,
+                email: email,
+                full_name: email.split('@')[0].toUpperCase(),
+                role: email === 'system@admin.ed' ? 'system_admin' : 'admin', 
+                school_code: school_node,
+                created_at: new Date().toISOString()
+            };
+            const { data: created, error: createError } = await _supabase.from('profiles').insert([fallbackProfile]).select().maybeSingle();
+            if (!createError) linked = created;
+        }
     }
 
     if (linked) {
       const oldId = linked.id;
       const newId = authData.user.id;
+
+      // --- AUTO-UPGRADE: Legacy 'DEFAULT' Profiles ---
+      // If the user has a legacy 'DEFAULT' code but we can derive their real SDMS from the login
+      if (linked.school_code === 'DEFAULT' || !linked.school_code) {
+          let derived = null;
+          if (email.startsWith('sdms')) {
+              const matches = email.match(/\d+/);
+              if (matches) derived = matches[0];
+          }
+          if (derived) {
+              console.log(`[AUTH] Upgrading legacy profile ${email} to school node: ${derived}`);
+              await _supabase.from('profiles').update({ school_code: derived }).eq('email', email);
+              linked.school_code = derived;
+          }
+      }
 
       // Only attempt to migrate if they differ
       if (oldId !== newId) {
@@ -242,19 +288,23 @@ const DB = {
       }
     }
 
+    // PHASE 4: Profile Consistency & System Admin Enforcement
+    if (!profile && linked) profile = linked;
+
+    if (!profile) {
+      throw new Error('Authenticated, but no institutional profile exists. Contact Admin to register your SDMS/Email.');
+    }
+
     // FORCE ROLE OVERRIDE for master administrator
     if (finalEmail === 'system@admin.ed') {
         profile.role = 'system_admin';
         profile.school_code = 'GLOBAL';
     }
-
-    if (!profile && !linked) {
-      throw new Error('Authenticated, but no institutional profile exists. Contact Admin to register your SDMS/Email.');
-    } else if (!profile) {
-      profile = linked;
-    }
     
-    // PHASE 4: Session Management (Isolation)
+    // PHASE 5: Session Management (Isolation)
+    // CRITICAL: Reset internal memory cache to prevent node-bleeding
+    if (typeof DB_CACHE !== 'undefined') DB_CACHE._sc = null;
+    
     if (profile.role === 'system_admin') {
       sessionStorage.clear(); // Crucial: Remove any old admin/teacher school cache
       sessionStorage.setItem('current_role', 'system_admin');
@@ -264,8 +314,8 @@ const DB = {
       if (profile.role) sessionStorage.setItem('current_role', profile.role);
     }
     
-    // PHASE 5: Log multi-admin access
-    console.log(`[AUTH] ✅ ${profile.role.toUpperCase()} logged in for school ${profile.school_code}`);
+    // PHASE 6: Log access
+    console.log(`[AUTH] ✅ ${profile.role.toUpperCase()} access granted`);
     
     // PHASE 6: Initialize session timeout (30 minutes of inactivity)
     setTimeout(() => {
@@ -337,7 +387,7 @@ const DB = {
   },
 
   // --- HELPERS ---
-  async _getSchoolCode() {
+   async _getSchoolCode() {
     if (DB_CACHE._sc) return DB_CACHE._sc;
     const user = await this._getUser();
     if (!user) return 'UNAUTHORIZED';
@@ -348,10 +398,26 @@ const DB = {
     this._scPromise = (async () => {
         try {
             const { data: p } = await _supabase.from('profiles').select('role, school_code').eq('id', user.id).maybeSingle();
-            let finalCode = p?.school_code || 'DENIED';
-            if (p?.role === 'system_admin') finalCode = 'GLOBAL';
+            
+            // SECURITY: Handle missing or invalid school assignment
+            if (!p || !p.school_code) {
+                console.warn('[SECURITY] Partial block: No school assignment found for user.');
+                return 'DENIED';
+            }
+
+            let finalCode = p.school_code;
+            if (p.role === 'system_admin') finalCode = 'GLOBAL';
+            
+            // Note: 'DEFAULT' is still discouraged but allowed for read-only legacy view
+            if (finalCode === 'DEFAULT') {
+                console.warn('[SECURITY] User is operating on legacy DEFAULT node.');
+            }
+
             DB_CACHE._sc = finalCode;
             return finalCode;
+        } catch (err) {
+            console.error('[DB] _getSchoolCode error:', err);
+            return 'DENIED';
         } finally {
             this._scPromise = null;
         }
@@ -854,11 +920,8 @@ const DB = {
     return await _supabase.from('settings').upsert({ key: 'grading_scale', value: scale }, { onConflict: 'key' }).select();
   },
   async getSchoolInfo() {
-    const user = await this._getUser();
-    if (!user) return null;
-    
-    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
-    const sc = profile?.school_code || 'DEFAULT';
+    const sc = await this._getSchoolCode();
+    if (sc === 'DENIED' || sc === 'UNAUTHORIZED') return null;
 
     // 1. PRIMARY SOURCE: Official registry from System Administrator
     const { data: schoolRecord } = await _supabase
@@ -874,25 +937,28 @@ const DB = {
       .eq('school_code', sc)
       .maybeSingle();
 
-    // Merge: Prioritize Registry data as fallback, but allow settings to fill/override everything
+    // Merge: Prioritize Registry data, enrich with settings
     const info = {
-      school: schoolRecord?.name || 'MMS PORTAL',
-      district: schoolRecord?.district || '',
-      sector: schoolRecord?.sector || '',
-      province: schoolRecord?.province || '', 
+      school: schoolRecord?.name || schoolSettings?.info?.school || 'MMS PORTAL',
+      district: schoolRecord?.district || schoolSettings?.info?.district || '',
+      sector: schoolRecord?.sector || schoolSettings?.info?.sector || '',
+      province: schoolRecord?.province || schoolSettings?.info?.province || '',
       code: sc,
-      ...(schoolSettings?.info || {})
+      headteacher: schoolSettings?.info?.headteacher || '',
+      phone: schoolSettings?.info?.phone || '',
+      academic_year: schoolSettings?.info?.academic_year || '2025/2026',
+      done_date: new Date().toLocaleDateString('en-GB')
     };
 
     return info;
   },
   async saveSchoolInfo(info) {
-    const user = await this._getUser();
-    if (!user) return null;
-    const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
-    const sc = profile?.school_code || 'DEFAULT';
-
-    return await _supabase.from('school_settings').upsert({ school_code: sc, info: info }, { onConflict: 'school_code' }).select();
+    const sc = await this._getSchoolCode();
+    if (sc === 'DENIED' || sc === 'UNAUTHORIZED' || sc === 'DEFAULT' || sc === 'GLOBAL') return { error: 'Not authorized' };
+    
+    return await _supabase
+      .from('school_settings')
+      .upsert({ school_code: sc, info: info }, { onConflict: 'school_code' });
   },
 
   /**
@@ -931,22 +997,14 @@ const DB = {
  * Critical: All queries MUST filter by this
  */
 async function getCurrentSchoolCode() {
-  try {
+    if (typeof DB !== 'undefined' && DB._getSchoolCode) {
+        return await DB._getSchoolCode();
+    }
+    // Fallback if DB not fully loaded
     const { data: { user } } = await _supabase.auth.getUser();
-    if (!user) return 'DEFAULT';
-    
-    // FETCH DIRECTLY FROM DB - NO CACHE ALLOWED
-    const { data: profile } = await _supabase
-      .from('profiles')
-      .select('school_code')
-      .eq('id', user.id)
-      .maybeSingle();
-    
-    return profile?.school_code || 'DEFAULT';
-  } catch (error) {
-    console.error('[DB] Error getting school code:', error);
-    return 'DEFAULT';
-  }
+    if (!user) return 'UNAUTHORIZED';
+    const { data: p } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
+    return p?.school_code || 'MISSING_LINK';
 }
 
 /**
@@ -1415,23 +1473,29 @@ const SYNC = {
   /**
    * Start listening on ALL tables. Call once per page load.
    */
-  start() {
+  async start() {
     if (this._channel) return;
+    
+    // FETCH SCHOOL CODE for isolated channel
+    const sc = await DB._getSchoolCode();
+    const chanName = (sc === 'GLOBAL') ? 'mms-global-sync' : `mms-sync-${sc}`;
+
+    console.log(`[SYNC] Initializing isolated channel: ${chanName}`);
 
     this._channel = _supabase
-      .channel('mms-realtime-sync')
+      .channel(chanName)
 
       // MARKS — Teacher saves/edits, Admin approves/rejects/locks
       .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'marks' },
+          { event: '*', schema: 'public', table: 'marks', filter: sc !== 'GLOBAL' ? `school_code=eq.${sc}` : undefined },
           payload => {
-            console.log('[SYNC] marks →', payload.eventType, payload);
+            console.log('[SYNC] marks →', payload.eventType);
             this._emit('marks', payload);
           }
       )
       // STUDENTS — Admin enrolls/removes
       .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'students' },
+          { event: '*', schema: 'public', table: 'students', filter: sc !== 'GLOBAL' ? `school_code=eq.${sc}` : undefined },
           payload => {
             console.log('[SYNC] students →', payload.eventType);
             this._emit('students', payload);
@@ -1439,7 +1503,7 @@ const SYNC = {
       )
       // PROFILES (Teachers) — Admin adds/modifies/removes faculty
       .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'profiles' },
+          { event: '*', schema: 'public', table: 'profiles', filter: sc !== 'GLOBAL' ? `school_code=eq.${sc}` : undefined },
           payload => {
             console.log('[SYNC] profiles →', payload.eventType);
             this._emit('teachers', payload);

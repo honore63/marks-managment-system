@@ -65,25 +65,28 @@ async function initAdminPortal() {
     // Update LOCAL school info with the actual login code immediately
     SCHOOL_INFO.code = schoolCode;
 
-    // FETCH COMPREHENSIVE INSTITUTIONAL IDENTITY (Registry + Overrides)
+    // FETCH REAL INSTITUTIONAL REGISTRY
     const officialInfo = await DB.getSchoolInfo();
-    
+    const sc = (officialInfo?.code) || schoolCode;
+
     if (officialInfo) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
       console.log('[SCHOOL] Verified Institutional Hub:', SCHOOL_INFO.school);
     }
-
-    // Update UI header with school info
+ 
+    // PREMIUM IDENTITY INJECTOR
     const schoolNameEl = document.getElementById('school-name-hd');
     const schoolCodeEl = document.getElementById('school-code-hd');
+    
+    if (schoolCodeEl) schoolCodeEl.textContent = `SDMS NODE • ${sc}`;
     if (schoolNameEl) {
-        schoolNameEl.textContent = (SCHOOL_INFO.school && SCHOOL_INFO.school !== 'MMS INSTITUTIONAL PORTAL') 
+        schoolNameEl.style.color = 'var(--indigo)'; 
+        schoolNameEl.textContent = (SCHOOL_INFO.school && SCHOOL_INFO.school !== 'MMS PORTAL') 
             ? SCHOOL_INFO.school.toUpperCase() 
             : 'MMS PORTAL';
     }
-    if (schoolCodeEl) schoolCodeEl.textContent = `SDMS Code • ${schoolCode}`;
     
-    // ELITE IDENTITY INJECTOR
+    // HEADER PROFILE INJECTION
     if (el('header-user-name')) el('header-user-name').textContent = 'ADMIN';
     if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'INSTITUTION';
     if (el('header-user-avatar')) el('header-user-avatar').textContent = 'A';
@@ -127,6 +130,12 @@ async function initAdminPortal() {
             header.classList.remove('scrolled');
         }
     });
+
+    // 6. INITIALIZE REAL-TIME INSTITUTIONAL BRIDGE
+    if (typeof SYNC !== 'undefined' && SYNC.start) {
+        await SYNC.start();
+        console.log('[SYNC] Live Institutional Node Online');
+    }
 
     console.log('[INIT] Admin portal ready!');
 
@@ -1012,7 +1021,7 @@ async function renderTeachersRegistry() {
                             <div style="width:34px; height:34px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#1e293b;">${t.full_name?.charAt(0) || 'T'}</div>
                             <div>
                                 <div style="font-weight:900; color:#000; font-size:0.9rem;">${t.full_name}</div>
-                                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase; font-weight:700;">SDMS: ${t.sdms_code || '---'}</div>
+                                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase; font-weight:700;">SDMS: ${t.sdms_code || '---'} | TEL: ${t.phone || '---'}</div>
                             </div>
                         </div>
                     </td>
@@ -1912,7 +1921,7 @@ async function renderFacultyMonitor() {
 
 async function updateInstitutionalStats() {
     try {
-        const activeYear = SCHOOL_INFO.academic_year || '2024/2025';
+        const activeYear = SCHOOL_INFO.academic_year || '2025/2026';
         const [students, teachers, classes, allMarks, allAssignments] = await Promise.all([
             DB.getStudents(),
             DB.getTeachers(),

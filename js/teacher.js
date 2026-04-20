@@ -205,7 +205,8 @@ async function initTeacherPortal() {
     if (dashTeacherName) dashTeacherName.textContent = `Welcome, ${teacherName}`;
     if (dashSchoolName) dashSchoolName.textContent = SCHOOL_INFO.school || 'MMS Portal';
     if (dashProfileName) dashProfileName.textContent = teacherName;
-    if (dashProfileCode) dashProfileCode.textContent = `SDMS: ${teacherSdms}`;
+    if (dashProfileEmail) dashProfileEmail.textContent = MY_PROFILE?.email || 'N/A';
+    if (dashProfileCode) dashProfileCode.textContent = `ID: ${teacherSdms}`;
     
     // Sidebar Footer Identity
     if (sidebarUserName) sidebarUserName.textContent = teacherName;
@@ -233,6 +234,12 @@ async function initTeacherPortal() {
 
     // Start regular sync tracking (every 30 seconds)
     setInterval(() => updateLastSync().catch(()=>{}), 30 * 1000);
+
+    // INITIALIZE REAL-TIME INSTITUTIONAL BRIDGE
+    if (typeof SYNC !== 'undefined' && SYNC.start) {
+        await SYNC.start();
+        console.log('[SYNC] Faculty Node Online');
+    }
 
     console.log('[INIT] ✅ Teacher portal ready!');
 
@@ -2100,7 +2107,7 @@ async function generateReportCard(forceDownload = false) {
             <div style="text-align:center; padding: 5rem 2rem; background: #fff; border: 2px dashed #e2e8f0; border-radius: 20px; color: #64748b;">
                 <div style="font-size: 3rem; margin-bottom: 1rem;">📂</div>
                 <h3 style="font-weight: 1000; color: #1e293b; margin-bottom: 0.5rem;">No Active Records Identified</h3>
-                <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto;">Ensure your school node (541010) is synchronized and that marks have been recorded for the selected term.</p>
+                <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto;">Ensure your school node (${SCHOOL_INFO.code || 'N/A'}) is synchronized and that marks have been recorded for the selected term.</p>
             </div>
         `;
     } else {

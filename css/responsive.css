@@ -129,16 +129,49 @@ body {
   }
 }
 
-/* 4. ACCESSIBILITY & TOUCH */
-button, .nav-item, .sidebar-item {
+/* 4. PREMIUM MOBILE POLISH (Max 480px) */
+@media (max-width: 480px) {
+  .sub-header {
+    height: auto !important;
+    padding: 0.75rem 1rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  
+  .user-pill-elite {
+    padding: 2px 4px 2px 10px !important;
+  }
+  
+  #header-user-name {
+    display: none !important; /* Hide name on tiny screens to save space */
+  }
+
+  .kpi-info .val {
+    font-size: 1.8rem !important;
+  }
+
+  /* Identity hub cards */
+  .school-identity-bar, .school-identity {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+}
+
+/* 5. ACCESSIBILITY & TOUCH */
+button, .nav-item, .sidebar-item, .btn {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   outline: none;
+  touch-action: manipulation; /* Faster taps */
 }
 
-::focus-visible {
-  outline: 3px solid var(--primary);
-  outline-offset: 3px;
+/* 6. MODAL RESPONSIVITY */
+.modal-card {
+  width: 95% !important;
+  margin: 1rem !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  padding: 1.5rem !important;
 }
 
 /* 5. PRINT ARCHITECTURE */

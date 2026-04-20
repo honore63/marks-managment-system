@@ -257,7 +257,8 @@ async function registerTeacherIndividual(firstName, lastName, email, sdmsCode) {
     const schoolCode = await getCurrentSchoolCode();
 
     // Create auth user
-    const password = `Teacher@${sdmsCode.slice(-4)}`; // Temporary password
+    // Institutional Password Standard (Final Edit)
+    const password = `Teacher@2026`; 
     const { data: authData, error: authError } = await _supabase.auth.signUp({
       email,
       password

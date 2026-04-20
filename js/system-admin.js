@@ -56,8 +56,23 @@ async function initSystemAdmin() {
         // 60-second Automated Intelligence Refresh
         setInterval(() => {
             updateStats();
-            calculatePerformanceAnalytics();
         }, 60000);
+
+        // REAL-TIME GLOBAL COMMAND SYNC
+        _supabase.channel('mms-global-sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'schools' }, () => {
+                console.log('[SYNC] Global Institutions Registry Updated');
+                renderSchools();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+                console.log('[SYNC] Global Profile Membership Updated');
+                updateStats();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'marks' }, () => {
+                console.log('[SYNC] Global Academic Records Updated');
+                updateStats();
+            })
+            .subscribe();
 
         if (window.lucide) lucide.createIcons();
     } catch (e) {
