@@ -203,7 +203,11 @@ function toast(msg, type = 'info') {
 
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
-    if (sb) sb.classList.toggle('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sb) {
+        sb.classList.toggle('open');
+        if (overlay) overlay.style.display = sb.classList.contains('open') ? 'block' : 'none';
+    }
 }
 
 function switchView(viewId, el) {
@@ -225,6 +229,14 @@ function switchView(viewId, el) {
         const breadViewEl = document.getElementById('breadcrumb-view');
         if (titleEl) titleEl.textContent = meta[viewId][0];
         if (breadViewEl) breadViewEl.textContent = meta[viewId][1];
+    }
+    
+    // Auto-close sidebar on mobile
+    if (window.innerWidth <= 1024) {
+        const sb = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sb) sb.classList.remove('open');
+        if (overlay) overlay.style.display = 'none';
     }
     
     if (window.lucide) lucide.createIcons();
