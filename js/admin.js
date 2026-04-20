@@ -32,6 +32,11 @@ function isTwilioConfigured() {
     return TWILIO_ENABLED && TWILIO_SID && TWILIO_TOKEN && TWILIO_NUMBER;
 }
 
+// GLOBAL UI HELPERS
+if (typeof window.el === 'undefined') {
+    window.el = id => document.getElementById(id);
+}
+
 // ============================================================
 // MULTI-ADMIN PORTAL INITIALIZATION
 // Step 4: Initialize portal with real-time sync
@@ -49,7 +54,7 @@ async function initAdminPortal() {
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) {
       console.warn('[AUTH] No user found, redirecting to login');
-      window.location.href = '/index.html';
+      window.location.href = 'index.html';
       return;
     }
 
@@ -60,22 +65,12 @@ async function initAdminPortal() {
     // Update LOCAL school info with the actual login code immediately
     SCHOOL_INFO.code = schoolCode;
 
-    // Load school settings from database
-    const settings = await fetchSchoolSettings(schoolCode);
-    
-    // FETCH REAL NAME FROM SYSTEM ADMIN REGISTRY (PRIMARY)
+    // FETCH COMPREHENSIVE INSTITUTIONAL IDENTITY (Registry + Overrides)
     const officialInfo = await DB.getSchoolInfo();
     
     if (officialInfo) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
-      console.log('[SCHOOL] Verified Institutional Name:', SCHOOL_INFO.school);
-    }
-    
-    if (settings && settings.info) {
-      SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
-      // Preserve registry name if settings name is missing or generic
-      if (officialInfo && officialInfo.school) SCHOOL_INFO.school = officialInfo.school;
-      SCHOOL_INFO.code = schoolCode;
+      console.log('[SCHOOL] Verified Institutional Hub:', SCHOOL_INFO.school);
     }
 
     // Update UI header with school info
@@ -88,33 +83,192 @@ async function initAdminPortal() {
     }
     if (schoolCodeEl) schoolCodeEl.textContent = `SDMS Code • ${schoolCode}`;
     
+    // ELITE IDENTITY INJECTOR
+    if (el('header-user-name')) el('header-user-name').textContent = 'ADMIN';
+    if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'INSTITUTION';
+    if (el('header-user-avatar')) el('header-user-avatar').textContent = 'A';
+
     // Refresh Lucide icons if any new were added
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Mark this admin as active
-    await updateLastSync();
+    // Mark this admin as active (non-critical)
+    try { await updateLastSync(); } catch(e) { console.warn('[INIT] updateLastSync:', e.message); }
 
-    // Show active admins count
-    const activeAdmins = await getAdminsInSchool(schoolCode);
-    console.log(`[TEAM] ${activeAdmins.length} admin(s) active`);
-    updateAdminActivityPanel(activeAdmins);
+    // Show active admins count (non-critical)
+    try {
+      const activeAdmins = await getAdminsInSchool(schoolCode);
+      console.log(`[TEAM] ${activeAdmins.length} admin(s) active`);
+      updateAdminActivityPanel(activeAdmins);
+    } catch(e) { console.warn('[INIT] Admin panel:', e.message); }
 
-    // Enable real-time sync for this school
-    const channel = subscribeToSchoolChanges(schoolCode);
-    console.log('[SYNC] Subscribed to school changes');
+    // Enable real-time sync for this school (non-critical)
+    try { subscribeToSchoolChanges(schoolCode); } catch(e) { console.warn('[SYNC]', e.message); }
 
-    // Setup listeners for UI updates
-    setupUIListeners(schoolCode);
+    // SETUP REAL-TIME NOTIFICATIONS & MESSAGING (non-critical)
+    try { await initNotificationSystem(schoolCode, user.id); } catch(e) { console.warn('[NOTIF]', e.message); }
+
+    // Setup listeners for UI updates (non-critical)
+    try { setupUIListeners(schoolCode); } catch(e) { console.warn('[UI]', e.message); }
 
     // Start regular sync tracking (every 30 seconds)
-    setInterval(() => updateLastSync(), 30 * 1000);
+    setInterval(() => updateLastSync().catch(()=>{}), 30 * 1000);
+
+    // ELITE DYNAMIC HEADER CONTROLLER
+    const SCROLL_TARGET = document.querySelector('.main-wrapper') || document.querySelector('.main-content') || window;
+    
+    SCROLL_TARGET.addEventListener('scroll', () => {
+        const header = document.querySelector('.sub-header');
+        if (!header) return;
+        
+        const scrollValue = (SCROLL_TARGET === window) ? window.scrollY : SCROLL_TARGET.scrollTop;
+        if (scrollValue > 50) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    });
 
     console.log('[INIT] Admin portal ready!');
 
   } catch (error) {
-    console.error('[INIT] Error:', error);
-    alert('Failed to initialize portal. Please refresh and try again.');
+    console.error('[INIT] Portal init error:', error.message, error);
+    // Non-blocking notification — portal remains usable
+    const tc = document.getElementById('toast-container');
+    if (tc) {
+      const t = document.createElement('div');
+      t.className = 'toast error';
+      t.style.cssText = 'padding:1rem 1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;border:2px solid #fecaca;font-weight:800;font-size:0.85rem;margin-bottom:0.5rem;';
+      t.textContent = `⚠️ ${error.message || 'Startup issue'}. Check console or refresh.`;
+      tc.appendChild(t);
+      setTimeout(() => t.remove(), 7000);
+    }
   }
+}
+
+async function initNotificationSystem(schoolCode, userId) {
+    try {
+        // Initial Fetch
+        const { data: notifs } = await _supabase.from('notifications')
+            .select('*')
+            .or(`school_code.eq."${schoolCode}",school_code.is.null,admin_id.eq."${userId}"`)
+            .order('created_at', { ascending: false })
+            .limit(10);
+            
+        renderNotificationsList(notifs || []);
+
+        // Real-time listener
+        _supabase.channel('mms-hq-notifications')
+            .on('postgres_changes', { 
+                event: 'INSERT', 
+                schema: 'public', 
+                table: 'notifications' 
+            }, (payload) => {
+                const n = payload.new;
+                if (!n.school_code || n.school_code === schoolCode || n.admin_id === userId) {
+                    toast(`🔔 Intelligence: ${n.message.substring(0, 50)}${n.message.length > 50 ? '...' : ''}`, n.urgency || 'info');
+                    refreshNotifications();
+                }
+            })
+            .subscribe();
+
+    } catch (e) {
+        console.warn('[NOTIF] Init skipped:', e);
+    }
+}
+
+async function refreshNotifications() {
+    try {
+        const { data: { user } } = await _supabase.auth.getUser();
+        const schoolCode = await getCurrentSchoolCode();
+        const { data: notifs } = await _supabase.from('notifications')
+            .select('*')
+            .or(`school_code.eq."${schoolCode}",school_code.is.null,admin_id.eq."${user.id}"`)
+            .order('created_at', { ascending: false })
+            .limit(10);
+            
+        renderNotificationsList(notifs || []);
+    } catch (e) {}
+}
+
+function renderNotificationsList(notifs) {
+    const unread = notifs.filter(n => !n.is_read).length;
+    const countEl = document.getElementById('notif-count');
+    if (countEl) {
+        countEl.textContent = unread;
+        countEl.style.display = unread > 0 ? 'block' : 'none';
+    }
+    
+    window._last_notifs = notifs; // Global cache for dropdown
+}
+
+function toggleNotifPanel() {
+    const panelId = 'notif-dropdown-panel';
+    let panel = document.getElementById(panelId);
+    
+    if (panel) {
+        panel.remove();
+        return;
+    }
+    
+    panel = document.createElement('div');
+    panel.id = panelId;
+    panel.style = `
+        position: absolute; top: 100%; right: 0; width: 320px; 
+        background: #fff; border: 2.5px solid #000; border-radius: 16px; 
+        margin-top: 10px; z-index: 2000; box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+        overflow: hidden; animation: slideIn 0.2s ease-out;
+    `;
+    
+    const list = window._last_notifs || [];
+    const html = `
+        <div style="background: #000; color: #fff; padding: 1rem; font-weight: 1000; font-size: 0.75rem; text-transform: uppercase;">MMS HQ Intelligence Center</div>
+        <div style="max-height: 350px; overflow-y: auto; padding: 0.5rem;">
+            ${list.map(n => `
+                <div style="padding: 1rem; border-bottom: 1px solid #eee; position: relative;">
+                    <div style="display: flex; gap: 8px; margin-bottom: 4px;">
+                        <span class="badge" style="font-size: 0.55rem; background: ${n.urgency === 'warning' ? '#fef2f2' : '#f0f9ff'}; color: ${n.urgency === 'warning' ? '#ef4444' : '#3b82f6'}; border-color: ${n.urgency === 'warning' ? '#ef4444' : '#3b82f6'}">${n.urgency.toUpperCase()}</span>
+                        <span style="font-size: 0.6rem; color: #94a3b8; font-weight: 800;">${new Date(n.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p style="font-size: 0.8rem; font-weight: 850; color: #000; line-height: 1.4;">${n.message}</p>
+                </div>
+            `).join('') || '<div style="padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.8rem; font-weight: 800;">No institutional notices.</div>'}
+        </div>
+        <a href="#" onclick="switchView('support'); document.getElementById('${panelId}').remove();" style="display: block; text-align: center; padding: 1rem; background: #fafafa; border-top: 1px solid #eee; font-size: 0.7rem; font-weight: 1000; color: #000; text-decoration: none;">View Connectivity Hub</a>
+    `;
+    
+    panel.innerHTML = html;
+    document.getElementById('notif-bell').appendChild(panel);
+}
+
+async function handleSupportMessage(e) {
+    e.preventDefault();
+    const msg = document.getElementById('support-msg-content').value;
+    const btn = e.target.querySelector('button');
+
+    try {
+        btn.disabled = true;
+        btn.textContent = 'En route to MMS HQ...';
+        
+        const { data: { user } } = await _supabase.auth.getUser();
+        const schoolCode = await getCurrentSchoolCode();
+
+        const { error } = await _supabase.from('support_messages').insert({
+            sender_id: user.id,
+            sdms_code: schoolCode,
+            content: msg,
+            created_at: new Date().toISOString()
+        });
+
+        if (error) throw error;
+
+        toast('Message successfully dispatched to System Admin!', 'success');
+        document.getElementById('support-msg-content').value = '';
+    } catch (e) {
+        toast('Message failed to route.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Dispatch to Headquarters';
+    }
 }
 
 /**
@@ -245,12 +399,10 @@ function toggleSidebar() {
     const overlay = document.getElementById('sidebar-overlay');
     if (!sb) return;
     
-    if (window.innerWidth <= 1024) {
-        sb.classList.toggle('mobile-open');
-        if (overlay) overlay.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
-    } else {
-        sb.classList.toggle('collapsed');
-        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+    sb.classList.toggle('open');
+    if (overlay) {
+        overlay.classList.toggle('active');
+        overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
     }
 }
 
@@ -258,10 +410,11 @@ function toggleSidebar() {
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 1024) {
         if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item') || e.target.classList.contains('sidebar-item') || e.target.closest('.sidebar-item')) {
-            const sb = document.querySelector('.sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (sb) sb.classList.remove('mobile-open');
-            if (overlay) overlay.style.display = 'none';
+            // MOBILE UX: Auto-close sidebar on navigation
+            if (window.innerWidth <= 1024) {
+                const sb = document.querySelector('.sidebar');
+                if (sb && sb.classList.contains('open')) toggleSidebar();
+            }
         }
     }
 });
@@ -325,26 +478,51 @@ function getComment(pct) {
     return 'Unsatisfactory! Intensive support and revision needed.';
 }
 
-function generateInstitutionalHeader(docTitle, docSubtitle = "") {
+function generateInstitutionalHeader(reportTitle, subtitle = "") {
+    const info = SCHOOL_INFO;
     const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
-    const schoolLogo = SCHOOL_INFO.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png"; 
-    
+    const schoolLogo = info.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png";
+
     return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #000; padding-bottom:5px;">
-            <img src="${rwandaLogo}" style="width:85px; height:auto; object-fit:contain;">
-            <div style="text-align:center; padding: 0 5px;">
-                <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2;">REPUBLIC OF RWANDA</div>
-                <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2;">MINISTRY OF EDUCATION</div>
-                <div style="font-size:0.7rem; font-weight:900; color:#000; line-height:1.3;">
-                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MMS INSTITUTIONAL PORTAL').toUpperCase()}</span><br>
-                    District: ${(SCHOOL_INFO.district || '----------------').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || '----------------').toUpperCase()}<br>
-                    School Code: ${SCHOOL_INFO.code || '------'} | Phone: ${SCHOOL_INFO.phone || '----------------'}
+        <div style="display:flex; flex-direction:column; align-items:center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 20px; position:relative; font-family: 'Inter', sans-serif; color:#000;">
+            
+            <!-- Standard Rwanda/MINEDUC Branding (Left) -->
+            <div style="position:absolute; left:0; top:0; width:120px; text-align:center;">
+                <img src="${rwandaLogo}" style="width:85px; height:auto; margin-bottom:2px;">
+                <div style="font-size:0.55rem; font-weight:800; color:#000; line-height:1.1;">
+                    REPUBLIC OF RWANDA<br>MINISTRY OF EDUCATION
                 </div>
             </div>
-            <img src="${schoolLogo}" style="width:85px; height:85px; object-fit:contain;">
+
+            <!-- Central School Details -->
+            <div style="text-align:center; padding: 0 130px; width:100%; box-sizing:border-box;">
+                <div style="font-size:0.8rem; font-weight:900; color:#000; letter-spacing:1px;">${(info.republic || 'REPUBLIC OF RWANDA').toUpperCase()}</div>
+                <div style="font-size:2.2rem; font-weight:1000; color:#000; text-transform:uppercase; margin: 4px 0; letter-spacing:-1px; line-height:1.1;">${(info.school || 'MMS PORTAL').toUpperCase()}</div>
+                
+                <div style="font-size:0.85rem; font-weight:900; color:#000; margin: 6px 0; text-transform:uppercase;">
+                    ${info.province ? info.province + ' PROVINCE | ' : ''}
+                    DISTRICT: ${info.district || '...'} | SECTOR: ${info.sector || '...'} | LEVEL: ${info.level || 'PRIMARY'}
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 45px; border:3px solid #000; display:inline-block; letter-spacing:3px;">${reportTitle.toUpperCase()}</span>
+                </div>
+
+                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px;">
+                    Email: ${info.email || '...'} | Phone: ${info.phone || '...'}
+                </div>
+
+                ${subtitle ? `<div style="font-size:1rem; font-weight:950; margin-top:8px; font-style:italic;">${subtitle}</div>` : ''}
+            </div>
+
+            <!-- School Logo/Stamp Placeholder (Right) -->
+            <div style="position:absolute; right:0; top:0; width:120px; text-align:center;">
+                ${info.logo ? 
+                    `<img src="${info.logo}" style="width:100px; height:100px; object-fit:contain;">` : 
+                    `<div style="width:100px; height:100px; border:2.5px dashed #000; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:900; text-align:center; color:#000;">OFFICIAL<br>STAMP / LOGO</div>`
+                }
+            </div>
         </div>
-        <div style="text-align:center; font-weight:900; font-size:1.3rem; letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; background:#f1f5f9; border:2px solid #000; padding:6px;">${docTitle}</div>
-        ${docSubtitle ? `<div style="text-align:center; font-size:0.8rem; font-weight:800; margin-bottom:8px;">${docSubtitle}</div>` : ''}
     `;
 }
 
@@ -461,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 // NAVIGATION (CAMIS STYLE)
 // ============================================================
-async function switchView(viewId, el) {
+async function switchView(viewId, triggerEl) {
     // 1. Clear active states
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item, .sidebar-item').forEach(n => n.classList.remove('active'));
@@ -477,8 +655,7 @@ async function switchView(viewId, el) {
     viewContainer.classList.add('active');
 
     // 4. Update Sidebar Active State
-    // If 'el' is passed, it's a direct click. If not, we find the sidebar item by data-view attribute.
-    const sidebarItem = el || document.querySelector(`.nav-item[data-view="${viewId}"], .sidebar-item[data-view="${viewId}"]`);
+    const sidebarItem = triggerEl || document.querySelector(`.nav-item[data-view="${viewId}"], .sidebar-item[data-view="${viewId}"]`);
     if (sidebarItem) {
         sidebarItem.classList.add('active');
     }
@@ -499,19 +676,69 @@ async function switchView(viewId, el) {
       'reports':        ['Reports & Analytics', 'Executive', 'Strategic Intelligence'],
       'settings':       ['Command Configuration','Command Center', 'Global Settings'],
       'roles':          ['Access Control',      'Command Center', 'Permission Matrix'],
-      'profile':        ['Security Profile',    'Account', 'Admin Credentials']
+      'profile':        ['Security Profile',    'Account', 'Admin Credentials'],
+      'support':        ['HQ Communications Hub', 'Institutional Elite', 'Direct Support']
     };
 
     if (headers[viewId]) {
       const hd = headers[viewId];
-      const titleEl = document.getElementById('page-title');
-      const breadEl = document.getElementById('page-breadcrumb');
-      
-      if (titleEl) titleEl.textContent = hd[0];
-      const breadViewEl = document.getElementById('breadcrumb-view');
-      if (breadViewEl) {
-          breadViewEl.textContent = hd[0];
-      }
+      if (el('page-title')) el('page-title').textContent = hd[0];
+      if (el('breadcrumb-view')) el('breadcrumb-view').textContent = hd[1];
+    }
+    
+    // VIEW-SPECIFIC INITIALIZATIONS
+    if (viewId === 'profile') renderProfile();
+    if (viewId === 'students') renderCohortRegistry();
+    if (viewId === 'teachers') renderTeachersRegistry();
+    if (viewId === 'subjects') renderSubjectsTable();
+    if (viewId === 'dashboard') {
+        renderDashboardStats();
+        renderFacultyMonitor();
+    }
+
+    // Support View Special Content
+    if (viewId === 'support') {
+        const supportView = document.getElementById('view-support');
+        if (supportView) {
+            supportView.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="card">
+                        <div class="card-header"><h3>Secure Message to MMS Headquarters</h3></div>
+                        <div style="padding: 2rem;">
+                            <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem; font-weight: 800;">Communicate directly with the System Administrator for troubleshooting, institutional upgrades, or strategic assistance.</p>
+                            <form onsubmit="handleSupportMessage(event)">
+                                <div class="form-group">
+                                    <label>Message Intelligence</label>
+                                    <textarea id="support-msg-content" class="input-field" style="height: 150px; border: 2px solid #000; border-radius: 12px; padding: 1rem; width: 100%;" placeholder="Describe your request or issue in detail..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 1.25rem;">Dispatch to Headquarters</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>Strategic HQ Communications</h3></div>
+                        <div style="padding: 2rem; max-height: 500px; overflow-y: auto;" id="hq-notif-list">
+                            <!-- JS Populated -->
+                            <p style="text-align: center; color: #94a3b8; padding: 2rem;">Loading HQ Strategic Bulletins...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Populate notifs
+            const list = window._last_notifs || [];
+            const container = document.getElementById('hq-notif-list');
+            if (container) {
+                container.innerHTML = list.map(n => `
+                    <div style="padding: 1.5rem; background: #f8fafc; border: 2.5px solid #000; border-radius: 16px; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span class="badge" style="background: ${n.urgency === 'warning' ? '#ef4444' : '#3b82f6'}; color: #fff; border: none;">${n.urgency.toUpperCase()}</span>
+                            <span style="font-size: 0.7rem; color: #64748b; font-weight: 900;">${new Date(n.created_at).toLocaleString()}</span>
+                        </div>
+                        <p style="font-weight: 1000; font-size: 0.9rem; line-height: 1.5;">${n.message}</p>
+                    </div>
+                `).join('') || '<p style="text-align: center; color: #94a3b8; padding: 2rem;">No strategic bulletins received.</p>';
+            }
+        }
     }
 
     // 7. Dispatch Rendering Logic
@@ -619,27 +846,37 @@ async function renderProfile() {
         if (el('prof-responsibility'))    el('prof-responsibility').value  = profile.responsibility || '';
 
         // Media Previews
-        if (info.logo && el('prof-logo-preview')) {
-            el('prof-logo-base64').value = info.logo;
-            el('prof-logo-preview').innerHTML = `<img src="${info.logo}" style="width:100%; height:100%; object-fit:contain;">`;
+        if (info.logo) {
+            if (el('prof-logo-base64')) el('prof-logo-base64').value = info.logo;
+            if (el('prof-logo-preview')) {
+                el('prof-logo-preview').style.display = 'block';
+                el('prof-logo-preview').innerHTML = `<img src="${info.logo}" style="width:100%; height:100%; object-fit:contain;">`;
+            }
         }
-        if (info.stamp && el('prof-stamp-preview')) {
-            el('prof-stamp-base64').value = info.stamp;
-            el('prof-stamp-preview').innerHTML = `<img src="${info.stamp}" style="width:100%; height:100%; object-fit:contain;">`;
+        if (info.stamp) {
+            if (el('prof-stamp-base64')) el('prof-stamp-base64').value = info.stamp;
+            if (el('prof-stamp-preview')) {
+                el('prof-stamp-preview').style.display = 'block';
+                el('prof-stamp-preview').innerHTML = `<img src="${info.stamp}" style="width:100%; height:100%; object-fit:contain;">`;
+            }
         }
-        if (info.headteacher_sig && el('prof-ht-sig-preview')) {
-            el('prof-ht-sig-base64').value = info.headteacher_sig;
-            el('prof-ht-sig-preview').innerHTML = `<img src="${info.headteacher_sig}" style="width:100%; height:100%; object-fit:contain;">`;
+        if (info.headteacher_sig) {
+            if (el('prof-ht-sig-base64')) el('prof-ht-sig-base64').value = info.headteacher_sig;
+            if (el('prof-ht-sig-preview')) {
+                el('prof-ht-sig-preview').innerHTML = `<img src="${info.headteacher_sig}" style="width:100%; height:100%; object-fit:contain;">`;
+            }
         }
-        if (info.dos_sig && el('prof-dos-sig-preview')) {
-            el('prof-dos-sig-base64').value = info.dos_sig;
-            el('prof-dos-sig-preview').innerHTML = `<img src="${info.dos_sig}" style="width:100%; height:100%; object-fit:contain;">`;
+        if (info.dos_sig) {
+            if (el('prof-dos-sig-base64')) el('prof-dos-sig-base64').value = info.dos_sig;
+            if (el('prof-dos-sig-preview')) {
+                el('prof-dos-sig-preview').innerHTML = `<img src="${info.dos_sig}" style="width:100%; height:100%; object-fit:contain;">`;
+            }
         }
+
     }
 }
 
 async function saveAdminProfileUpdates() {
-    const el = id => document.getElementById(id);
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) return toast('Security: Session expired.', 'error');
 
@@ -675,6 +912,129 @@ async function saveAdminProfileUpdates() {
         toast('✅ Institutional Registry Hub updated successfully.', 'success');
         await renderProfile();
         await syncInstitutionalNodes();
+    }
+}
+
+// --- DASHBOARD REAL-TIME INTELLIGENCE ---
+async function renderDashboardStats() {
+    try {
+        const stats = await DB.getInstitutionalStats();
+        if (el('stat-students')) el('stat-students').textContent = stats.students.toLocaleString();
+        if (el('stat-teachers')) el('stat-teachers').textContent = stats.teachers.toLocaleString();
+        if (el('stat-classes'))  el('stat-classes').textContent  = stats.classes.toLocaleString();
+        if (el('stat-pending'))  el('stat-pending').textContent  = stats.pending.toLocaleString();
+    } catch (err) {
+        console.error('[STATS] dashboard error:', err);
+    }
+}
+
+async function renderFacultyMonitor() {
+    const tbody = el('faculty-activity-tbody');
+    if (!tbody) return;
+
+    try {
+        const teachers = await DB.getTeachers(); // Changed from DB.getTeachers() to DB.getTeachers()
+        const assignments = await DB.getTeacherAssignments(); // Fetches all assignments for school
+
+        const teacherData = teachers.map(t => {
+            const myAssignments = assignments.filter(a => a.teacher_id === t.id);
+            const classCount = [...new Set(myAssignments.map(a => a.class_id))].length;
+            const subjectCount = [...new Set(myAssignments.filter(a => a.type === 'subject').map(a => a.subject_id))].length;
+            return { 
+                ...t, 
+                displayAssignments: `${classCount} Class(es) | ${subjectCount} Subject(s)`,
+                score: Math.min(100, (myAssignments.length * 20)) // Dummy progress for now but real teachers
+            };
+        });
+
+        if (teacherData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 3rem; color: #94a3b8;">No faculty registered in this node.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = teacherData.map(t => `
+            <tr>
+                <td>
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div style="width:32px; height:32px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:900;">${t.full_name?.charAt(0) || 'T'}</div>
+                        <div>
+                            <div style="font-weight:800; color:#0f172a; font-size:0.85rem;">${t.full_name}</div>
+                            <div style="font-size:0.65rem; color:#64748b;">${t.email}</div>
+                        </div>
+                    </div>
+                </td>
+                <td style="font-size:0.7rem; color:#1e293b; font-weight:600;">${t.displayAssignments}</td>
+                <td>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="flex:1; height:6px; background:#f1f5f9; border-radius:10px; overflow:hidden;">
+                            <div style="width:${t.score}%; height:100%; background:var(--primary); box-shadow: 0 0 5px var(--primary-glow);"></div>
+                        </div>
+                        <span style="font-size:0.65rem; font-weight:800; min-width:25px;">${t.score}%</span>
+                    </div>
+                </td>
+                <td><span class="badge ${t.score > 0 ? 'badge-success' : 'badge-warning'}">${t.score > 0 ? 'ACTIVE' : 'IDLE'}</span></td>
+            </tr>
+        `).join('');
+
+        if (el('admin-last-synced')) el('admin-last-synced').textContent = `Sync: ${new Date().toLocaleTimeString()}`;
+
+    } catch (err) {
+        console.error('[FACULTY] Monitor failed:', err);
+    }
+}
+
+async function renderTeachersRegistry() {
+    const tbody = el('teachers-tbody');
+    if (!tbody) return;
+
+    try {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem;">
+            <div class="loader-linear"></div><br>Synchronizing Faculty Registry...
+        </td></tr>`;
+
+        const teachers = await DB.getTeachers();
+        const assignments = await DB.getTeacherAssignments();
+
+        if (teachers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 3rem; color: #94a3b8;">No faculty registered. Click 'Register New Teacher' to begin.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = teachers.map(t => {
+            const myAssignments = assignments.filter(a => a.teacher_id === t.id);
+            const classesServed = [...new Set(myAssignments.map(a => a.classes?.name || 'Unknown'))].join(', ') || 'Global';
+            const subjectsServed = [...new Set(myAssignments.map(a => a.subjects?.name || 'General'))].join(', ') || '--';
+
+            return `
+                <tr>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <div style="width:34px; height:34px; background:#f8fafc; border:2px solid #e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#1e293b;">${t.full_name?.charAt(0) || 'T'}</div>
+                            <div>
+                                <div style="font-weight:900; color:#000; font-size:0.9rem;">${t.full_name}</div>
+                                <div style="font-size:0.65rem; color:#64748b; text-transform:uppercase; font-weight:700;">SDMS: ${t.sdms_code || '---'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-size:0.75rem; color:#475569; font-weight:600;">${t.email}</td>
+                    <td><span class="badge" style="background:#f1f5f9; color:#1e293b; border:1px solid #e2e8f0; font-weight:800;">${t.role?.toUpperCase() || 'TEACHER'}</span></td>
+                    <td style="font-size:0.7rem; color:#0f172a; max-width:200px;">
+                        <div style="font-weight:800;">${subjectsServed}</div>
+                        <div style="color:#64748b; font-size:0.6rem;">${classesServed}</div>
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:0.5rem;">
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="openAssignmentModal('${t.id}')">ASSIGN</button>
+                            <button class="btn" style="padding: 4px 10px; font-size: 0.7rem; color:#dc2626;" onclick="deleteTeacher('${t.id}')">WIPE</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('[TEACHERS] Registry load failed:', err);
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 2rem; color:#ef4444;">Registry Synchronisation Error. Check database connection.</td></tr>`;
     }
 }
 
@@ -1178,12 +1538,7 @@ async function handleStudentExcelUpload(event) {
     reader.readAsArrayBuffer(file);
 }
 
-function nuclearIdSync() {
-    toast('🚀 Initiating Nuclear ID Enforcement...', 'info');
-    setTimeout(() => {
-        toast('✅ Structural integrity verified. All identifiers are unique.', 'success');
-    }, 1500);
-}
+
 
 function filterCohortTable() {
     const query = document.getElementById('student-search-input').value.toLowerCase();
@@ -1718,21 +2073,23 @@ async function batchInitializePrimaryClasses() {
     if (!confirm('This will automatically generate P1-P6 (A & B) classes for your school. Continue?')) return;
     
     toast('🚀 Initializing institutional structure...', 'info');
-    const names = [];
+    const classNames = [];
     for (let i = 1; i <= 6; i++) {
-        names.push(`P${i} A`);
-        names.push(`P${i} B`);
+        classNames.push(`P${i} A`);
+        classNames.push(`P${i} B`);
     }
 
     try {
-        const { error } = await DB.addClassesBatch(names);
+        const sc = await DB._getSchoolCode();
+        const payload = classNames.map(name => ({ name, school_code: sc }));
+        const { error } = await _supabase.from('classes').upsert(payload, { onConflict: 'name,school_code' });
         if (error) throw error;
-        toast('🎉 Standard Primary structure initialized successfully!', 'success');
-        await renderSetup();
-        await updateInstitutionalStats();
+        toast('Primary Classes synchronized successfully.', 'success');
+        if (typeof renderManagement === 'function') await renderManagement();
+        if (typeof renderDashboardStats === 'function') await renderDashboardStats();
     } catch (err) {
         console.error('[SETUP] Batch initialization failed:', err);
-        toast('Failed to initialize classes. Check database constraints.', 'error');
+        toast('Initialization failed. Check database logs.', 'error');
     }
 }
 
@@ -2424,22 +2781,102 @@ async function renderReports() {
 // OFFICIAL REPORT CARD GENERATION (CAMIS STANDARD)
 // ============================================================
 window.openReportCardConfig = async function() {
-    const [subs, assessments, classes] = await Promise.all([DB.getSubjects(), DB.getAssessments(), DB.getClasses()]);
+    const [dbSubs, dbAssessments, classes] = await Promise.all([DB.getSubjects(), DB.getAssessments(), DB.getClasses()]);
 
     const clsSelect = document.getElementById('rc-target-class');
-    clsSelect.innerHTML = `<option value="all">Entire Institution Dataset</option>` + classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    
-    document.getElementById('rc-subject-checklist').innerHTML = subs.map(s => `
-        <label style="display:flex; align-items:center; background:white; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; cursor:pointer;" class="active">
-            <input type="checkbox" checked value="${s.id}" class="rc-sub-cb" style="margin-right:8px;" onchange="this.parentElement.classList.toggle('active', this.checked)"> ${s.name.substring(0,25)}
-        </label>
-    `).join('');
+    clsSelect.innerHTML = `<option value="all">Entire Institution Dataset</option>` +
+        classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
-    document.getElementById('rc-assess-checklist').innerHTML = assessments.map(a => `
-        <label style="display:flex; align-items:center; background:white; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; cursor:pointer;" class="active">
-            <input type="checkbox" checked value="${a.id}" class="rc-ass-cb" style="margin-right:8px;" onchange="this.parentElement.classList.toggle('active', this.checked)"> ${a.name}
-        </label>
-    `).join('');
+    // STANDARD MINEDUC SUBJECTS — always shown
+    const STD_SUBJECTS = [
+        { key: 'MATH', label: 'Mathematics' },
+        { key: 'ENG',  label: 'English' },
+        { key: 'KINY', label: 'Kinyarwanda' },
+        { key: 'FRE',  label: 'French' },
+        { key: 'SET',  label: 'SET' },
+        { key: 'SRS',  label: 'SRS' },
+        { key: 'CA',   label: 'Creative Arts' },
+        { key: 'PE',   label: 'Sport/PES' },
+    ];
+    const renderedSubIds = new Set();
+    const subItems = [];
+    STD_SUBJECTS.forEach(std => {
+        const match = dbSubs.find(s =>
+            (s.abbr || '').toUpperCase().startsWith(std.key.substring(0,3)) ||
+            (s.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedSubIds.add(String(match.id));
+            subItems.push({ id: match.id, abbr: std.key, checked: true });
+        } else {
+            subItems.push({ id: 'std_' + std.key, abbr: std.key, checked: false });
+        }
+    });
+    dbSubs.forEach(s => {
+        if (!renderedSubIds.has(String(s.id))) {
+            subItems.push({ id: s.id, abbr: s.abbr || s.name.substring(0,5), checked: true });
+        }
+    });
+
+    // STANDARD ASSESSMENT TYPES — always shown
+    const STD_ASSESS = [
+        { key: 'EU',  label: 'End of Unit' },
+        { key: 'ET',  label: 'End of Term' },
+        { key: 'MT',  label: 'Mid-Term Test' },
+        { key: 'MID', label: 'MID Test' },
+        { key: 'WK',  label: 'Weekly Test' },
+        { key: 'BT',  label: 'Beginning Test' },
+    ];
+    const renderedAssIds = new Set();
+    const assessItems = [];
+    STD_ASSESS.forEach(std => {
+        const match = dbAssessments.find(a =>
+            (a.abbr || '').toUpperCase() === std.key ||
+            (a.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedAssIds.add(String(match.id));
+            assessItems.push({ id: match.id, abbr: std.key, label: std.label, checked: true });
+        } else {
+            assessItems.push({ id: 'std_' + std.key, abbr: std.key, label: std.label, checked: false });
+        }
+    });
+    dbAssessments.forEach(a => {
+        if (!renderedAssIds.has(String(a.id))) {
+            assessItems.push({ id: a.id, abbr: a.abbr || a.name.substring(0,3), label: a.name, checked: true });
+        }
+    });
+
+    function pillStyle(on, color) {
+        return `display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+            border-radius:999px;margin:4px;cursor:pointer;font-size:0.78rem;font-weight:800;
+            user-select:none;transition:all 0.15s;border:2px solid ${on ? color : '#cbd5e1'};
+            background:${on ? color : '#fff'};color:${on ? '#fff' : '#64748b'};`;
+    }
+
+    document.getElementById('rc-subject-checklist').innerHTML = subItems.map(s => {
+        const on = s.checked; const color = '#0f172a';
+        return `<label style="${pillStyle(on, color)}" class="rc-sub-pill"
+            onclick="var cb=this.querySelector('input'),v=cb.checked;
+                this.style.background=v?'${color}':'#fff';
+                this.style.borderColor=v?'${color}':'#cbd5e1';
+                this.style.color=v?'#fff':'#64748b';">
+            <input type="checkbox" ${on ? 'checked' : ''} value="${s.id}" class="rc-sub-cb" style="display:none" onchange="this.parentElement.classList.toggle('active',this.checked)">
+            ${s.abbr}
+        </label>`;
+    }).join('');
+
+    document.getElementById('rc-assess-checklist').innerHTML = assessItems.map(a => {
+        const on = a.checked; const color = '#1d4ed8';
+        return `<label style="${pillStyle(on, color)}" class="rc-ass-pill" title="${a.label}"
+            onclick="var cb=this.querySelector('input'),v=cb.checked;
+                this.style.background=v?'${color}':'#fff';
+                this.style.borderColor=v?'${color}':'#cbd5e1';
+                this.style.color=v?'#fff':'#64748b';">
+            <input type="checkbox" ${on ? 'checked' : ''} value="${a.id}" class="rc-ass-cb" style="display:none" onchange="this.parentElement.classList.toggle('active',this.checked)">
+            ${a.abbr}
+        </label>`;
+    }).join('');
 
     openModal('generate-reportcard-modal');
 };
@@ -2451,108 +2888,162 @@ window.executeReportCardGeneration = function() {
     
     if (!subContainer || !assContainer) return toast('Registry Error: Configuration Hub not found.', 'error');
     
-    const selectedSubs = Array.from(subContainer.querySelectorAll('input:checked')).map(cb => cb.value);
-    const selectedAsses = Array.from(assContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    // Capture ALL selected items (including std_ placeholders)
+    const rawSelSubs = Array.from(subContainer.querySelectorAll('input:checked')).map(cb => ({
+        id: cb.value,
+        label: cb.parentElement.innerText.trim()
+    }));
+    const rawSelAsses = Array.from(assContainer.querySelectorAll('input:checked')).map(cb => ({
+        id: cb.value,
+        label: cb.parentElement.innerText.trim()
+    }));
 
-    if (selectedSubs.length === 0) return toast('⚠️ Please select at least one subject for the report.', 'warning');
-    if (selectedAsses.length === 0) return toast('⚠️ Please select at least one assessment marker.', 'warning');
+    if (rawSelSubs.length === 0) return toast('⚠️ Please select at least one curriculum subject.', 'warning');
+    if (rawSelAsses.length === 0) return toast('⚠️ Please select at least one assessment marker.', 'warning');
 
     closeModal('generate-reportcard-modal');
-    window.generateAllReportsPdf(cid, selectedSubs, selectedAsses); 
+    window.generateAllReportsPdf(cid, rawSelSubs, rawSelAsses); 
 };
 
 window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs = [], targetAsses = []) {
     toast('Synthesizing Customized Institutional Report Cards...', 'info');
-    const [allMarks, students, subjects, classes] = await Promise.all([
+    const [allMarks, students, allDBSubjects, classes] = await Promise.all([
         DB.getMarks(), DB.getStudents(), DB.getSubjects(), DB.getClasses()
     ]);
+
+    const selSubIds = targetSubs.map(s => s.id).filter(id => !id.startsWith('std_'));
+    const selAssIds = targetAsses.map(a => a.id).filter(id => !id.startsWith('std_'));
+
+    // Merge DB subjects with Virtual (std_) subjects
+    const subjects = targetSubs.map(sel => {
+        const dbMatch = allDBSubjects.find(s => s.id === sel.id);
+        if (dbMatch) return dbMatch;
+        const cleanName = sel.label.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+        return { 
+            id: sel.id, 
+            name: cleanName.toUpperCase(), 
+            abbr: cleanName.toUpperCase().substring(0,5) 
+        };
+    });
 
     const filteredMarks = allMarks.filter(m => 
         m.is_approved &&
         (targetClassId === 'all' || m.class_id === targetClassId) &&
-        (targetSubs.length === 0 || targetSubs.includes(m.subject_id)) &&
-        (targetAsses.length === 0 || targetAsses.includes(m.assessment_id))
+        (selSubIds.length === 0 || selSubIds.includes(m.subject_id)) &&
+        (selAssIds.length === 0 || selAssIds.includes(m.assessment_id))
     );
 
-    if (!filteredMarks.length) return toast('No approved marks available matching these precise configurations.', 'warning');
+    if (!filteredMarks.length && selSubIds.length > 0) {
+        // Continue even if no marks, maybe they want empty shells
+        console.warn('No approved marks found, but continuing with virtual subjects.');
+    }
 
     let html = '';
-    const studentIds = [...new Set(filteredMarks.map(m => m.student_id))];
-    
-    for (const sId of studentIds) {
-        const student = students.find(s => s.id === sId);
-        if (!student) continue;
+    const targetStudents = targetClassId === 'all' 
+        ? students 
+        : students.filter(s => s.class_id === targetClassId);
 
+    if (!targetStudents.length) return toast('No students found in the selected target group.', 'warning');
+
+    for (const student of targetStudents) {
         const stName = `${student.last_name} ${student.first_name}`.toUpperCase();
         const stClass = classes.find(c => c.id === student.class_id)?.name || 'GENERAL';
-        const stMarks = filteredMarks.filter(m => m.student_id === sId);
+        const stMarks = filteredMarks.filter(m => m.student_id === student.id);
         
         let marksRows = ''; let totalScore = 0; let totalMax = 0;
         
-        // Multi-assessment aggregation per subject
-        const studentSubjects = subjects.filter(s => 
-            (targetSubs.length === 0 || targetSubs.includes(s.id)) && 
-            stMarks.some(m => m.subject_id === s.id)
-        );
+        // Show ALL selected subjects (not just those with marks)
+        const studentSubjects = subjects;
 
         studentSubjects.forEach(sub => {
             const sm = stMarks.filter(m => m.subject_id === sub.id);
-            if(!sm.length) return;
             
-            const allowedMax = ['ART','PES','SRS'].includes(sub.abbr) ? 20 : 40;
+            const baseMax = ['ART','PES','SRS'].includes(sub.abbr) ? 20 : 40;
+            // Sum up scores if they exist
             const sumS = sm.reduce((acc, m) => {
                 const raw = m.score === -1 ? 0 : Number(m.score);
-                return acc + Math.min(raw, allowedMax);
+                return acc + Math.min(raw, Number(m.max_score || baseMax));
             }, 0);
-            const sumM = sm.reduce((acc, m) => acc + Number(m.max_score || allowedMax), 0);
+            
+            // Sum up max scores (use baseMax if virtual or no marks)
+            let sumM = sm.reduce((acc, m) => acc + Number(m.max_score || baseMax), 0);
+            if (sumM === 0) sumM = baseMax; // Show at least base max for virtual
             
             const perc = sumM > 0 ? ((sumS / sumM) * 100).toFixed(1) : 0;
             
-            marksRows += `<tr><td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: 700; color: #1e293b;">${sub.name}</td><td style="padding: 12px; border: 1px solid #e2e8f0; text-align: center; font-weight: 800;">${sumS.toFixed(1)} <span style="color:#94a3b8; font-weight:400;">/ ${sumM}</span></td><td style="padding: 12px; border: 1px solid #e2e8f0; text-align: center; color: #3b82f6; font-weight: 900;">${perc}%</td></tr>`;
+            marksRows += `<tr><td style="padding: 12px; border: 1px solid #000; font-weight: 700; color: #000;">${sub.name}</td><td style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 800; color: #000;">${sumS > 0 ? sumS.toFixed(1) : '—'} <span style="color:#000; font-weight:400;">/ ${sumM}</span></td><td style="padding: 12px; border: 1px solid #000; text-align: center; color: #000; font-weight: 900;">${perc}%</td></tr>`;
             totalScore += sumS; totalMax += sumM;
         });
 
         const percentage = totalMax > 0 ? ((totalScore / totalMax) * 100).toFixed(1) : 0;
-        const getGrade = p => p >= 80 ? {l:'A', c:'#10b981', d:'EXCELLENT'} : p >= 70 ? {l:'B', c:'#3b82f6', d:'VERY GOOD'} : p >= 60 ? {l:'C', c:'#8b5cf6', d:'GOOD'} : p >= 40 ? {l:'D', c:'#f59e0b', d:'SATISFACTORY'} : {l:'F', c:'#ef4444', d:'FAIL'};
+        const getGrade = p => p >= 80 ? {l:'A', c:'#000', d:'EXCELLENT'} : p >= 70 ? {l:'B', c:'#000', d:'VERY GOOD'} : p >= 60 ? {l:'C', c:'#000', d:'GOOD'} : p >= 40 ? {l:'D', c:'#000', d:'SATISFACTORY'} : {l:'F', c:'#000', d:'FAIL'};
         const gi = getGrade(percentage);
 
+        const instHeader = generateInstitutionalHeader('OFFICIAL ACADEMIC REPORT', `TERM ${SCHOOL_INFO.active_term || 1} — 2025/2026`);
+        const finalDate = new Date().toLocaleDateString('en-GB');
+
         html += `
-        <div class="report-page">
-            <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0B0E14; padding-bottom: 20px;">
-                <h1 style="font-size: 1.1rem; font-weight: 900; margin: 0;">${SCHOOL_INFO.republic || 'REPUBLIC OF RWANDA'}</h1>
-                <h3 style="font-size: 0.8rem; font-weight: 700; margin: 5px 0;">${SCHOOL_INFO.ministry || 'MINISTRY OF EDUCATION'}</h3>
-                <h2 style="font-size: 1.4rem; font-weight: 900; margin: 15px 0; color: #0B0E14;">${SCHOOL_INFO.school || 'MARKS MANAGEMENT SYSTEM'}</h2>
-                <div style="display:inline-block; padding: 8px 25px; background: #0B0E14; color: white; border-radius: 4px; font-weight: 900; font-size: 0.9rem;">OFFICIAL ACADEMIC REPORT</div>
-            </div>
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0;">
+        <div class="report-page" style="color: #000; border: none; padding: 12mm; font-family: 'Inter', sans-serif;">
+            ${instHeader}
+
+            <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 15px; margin-bottom: 20px; background: #fff; padding: 15px; border: 2.5px solid #000;">
                 <div>
-                   <div style="font-size: 0.6rem; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Student Name</div>
-                   <div style="font-size: 1.1rem; font-weight: 900;">${stName}</div>
-                   <div style="margin-top: 10px; font-size: 0.8rem;">Class: <strong>${stClass}</strong> | Student ID: <strong>${student?.student_id || sId}</strong></div>
+                   <div style="font-size: 0.65rem; font-weight: 1000; color: #000; text-transform: uppercase;">Student Full Name</div>
+                   <div style="font-size: 1.3rem; font-weight: 1000; color: #000; margin-top:2px;">${stName}</div>
+                   <div style="margin-top: 10px; font-size: 0.85rem; color: #000; font-weight:700;">Class: <strong>${stClass}</strong> | Reg ID: <strong>${student?.student_id || sId}</strong></div>
                 </div>
-                <div style="text-align: right; border-left: 1px solid #e2e8f0; padding-left: 20px;">
-                   <div style="font-size: 0.8rem; font-weight: 800;">Academic Year: 2025/2026</div>
-                   <div style="font-size: 0.8rem; font-weight: 800;">Term: ${SCHOOL_INFO.active_term || 1}</div>
+                <div style="text-align: right; border-left: 2px solid #000; padding-left: 15px; color: #000; font-weight:800;">
+                   <div style="font-size: 0.85rem;">Academic Year: 2025/2026</div>
+                   <div style="font-size: 0.85rem;">Term: ${SCHOOL_INFO.active_term || 1}</div>
+                   <div style="font-size: 0.85rem; margin-top:5px;">Level: PRIMARY</div>
                 </div>
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-                <thead><tr style="background: #f1f5f9;"><th style="padding: 12px; border: 1px solid #e2e8f0; text-align: left; font-size: 0.7rem; font-weight: 900;">SUBJECT</th><th style="padding: 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 0.7rem; font-weight: 900;">SCORE</th><th style="padding: 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 0.7rem; font-weight: 900;">PERCENT</th></tr></thead>
-                <tbody>${marksRows}<tr style="background: #f8fafc; font-weight: 900;"><td style="padding: 12px; border: 1px solid #e2e8f0; text-align: right;">OVERALL TOTAL:</td><td style="padding: 12px; border: 1px solid #e2e8f0; text-align: center;">${totalScore.toFixed(1)} / ${totalMax}</td><td style="padding: 12px; border: 1px solid #e2e8f0; text-align: center; color: #10b981;">${percentage}%</td></tr></tbody>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 3px solid #000;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 12px; border: 2.5px solid #000; text-align: left; font-size: 0.75rem; font-weight: 1000; color: #000; width:60%;">SUBJECT</th>
+                        <th style="padding: 12px; border: 2.5px solid #000; text-align: center; font-size: 0.75rem; font-weight: 1000; color: #000;">SCORE</th>
+                        <th style="padding: 12px; border: 2.5px solid #000; text-align: center; font-size: 0.75rem; font-weight: 1000; color: #000;">PERCENT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${marksRows}
+                    <tr style="background: #fff; font-weight: 1000; color: #000; font-size:1.1rem; border-top:3px solid #000;">
+                        <td style="padding: 12px; border: 2.5px solid #000; text-align: right;">INSTITUTIONAL TOTAL:</td>
+                        <td style="padding: 12px; border: 2.5px solid #000; text-align: center;">${totalScore.toFixed(1)} / ${totalMax}</td>
+                        <td style="padding: 12px; border: 2.5px solid #000; text-align: center;">${percentage}%</td>
+                    </tr>
+                </tbody>
             </table>
-            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
-               <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; text-align: center; border-radius: 8px;">
-                  <div style="font-size: 0.6rem; font-weight: 900; color: #64748b; margin-bottom: 5px;">INSTITUTIONAL GRADE</div>
-                  <div style="font-size: 3rem; font-weight: 900; color: ${gi.c}; line-height: 1;">${gi.l}</div>
-                  <div style="font-size: 0.8rem; font-weight: 800; color: ${gi.c};">${gi.d}</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; align-items: stretch;">
+               <div style="background: #fff; border: 2.5px solid #000; padding: 25px; text-align: center; color: #000; display:flex; flex-direction:column; justify-content:center;">
+                  <div style="font-size: 0.7rem; font-weight: 1000; color: #000; margin-bottom: 8px; text-transform:uppercase;">Overall Grade</div>
+                  <div style="font-size: 4.5rem; font-weight: 1000; color: #000; line-height: 0.9; margin-bottom:10px;">${gi.l}</div>
+                  <div style="font-size: 1rem; font-weight: 1000; color: #000; text-transform:uppercase; letter-spacing:1px;">${gi.d}</div>
                </div>
-               <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; position: relative;">
-                  <div style="border-bottom: 1px dashed #cbd5e1; height: 30px; margin-bottom: 40px;"></div>
-                  <div style="display:flex; justify-content: space-between;">
-                     <div style="text-align: center; width: 120px; font-size: 0.6rem; font-weight: 900; color: #64748b; border-top: 1px solid #0f172a;">Class Teacher</div>
-                     <div style="text-align: center; width: 120px; font-size: 0.6rem; font-weight: 900; color: #64748b; border-top: 1px solid #0f172a;">Head Teacher</div>
-                  </div>
-               </div>
-            <div style="margin-top: 40px; font-size: 0.55rem; color: #94a3b8; text-align: center;">Verified by CAMIS Institutional Node 2.0 • Generated on ${new Date().toLocaleDateString('en-GB')}</div>
+               
+                <div style="border:2.5px solid #000; padding:15px; font-size:0.6rem; display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative; color:#000; min-height:180px;">
+                    <div style="font-size:0.55rem; font-weight:1000; color:#000; text-transform:uppercase; margin-bottom:8px; border-bottom:1.5px solid #000; padding-bottom:5px;">
+                        DONE AT ${(SCHOOL_INFO.district || '...').toUpperCase()}, ON ${finalDate}
+                    </div>
+                    <div style="font-weight:1000; font-size:0.8rem; margin-bottom:15px; color:#000; letter-spacing:1.5px;">HEADTEACHER / PRINCIPAL</div>
+                    
+                    <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:12px;">
+                        ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:85px; max-width:220px; object-fit:contain; mix-blend-mode:multiply; position:absolute; z-index:2;">` : ''}
+                        ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:125px; height:125px; opacity:0.85; mix-blend-mode:multiply; position:absolute; z-index:1; transform: translate(35px, -15px) rotate(-10deg);">` : ''}
+                    </div>
+
+                    <div style="font-weight:1000; font-size:1.05rem; border-top: 2.5px solid #000; padding-top:10px; color:#000; text-transform:uppercase; letter-spacing:0.5px;">
+                        ${(SCHOOL_INFO.headteacher || '...').toUpperCase()}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 35px; font-size: 0.6rem; color: #000; text-align: right; font-weight: 800; border-top: 1px dashed #000; padding-top: 8px;">
+                Verified Institutional Document • Ref ID: ${student?.student_id || sId}
+            </div>
         </div>`;
     }
 
@@ -2766,23 +3257,67 @@ window.openProclamationConfig = async function(classId) {
     document.getElementById('proc-target-class').value = classId;
     
     // Fetch and populate all Curricular Subjects
-    const [subs, marks] = await Promise.all([DB.getSubjects(), DB.getMarks()]);
+    const [dbSubs, dbAssessments] = await Promise.all([DB.getSubjects(), DB.getAssessments()]);
     
-    const subContainer = document.getElementById('proc-subject-checklist');
-    subContainer.innerHTML = subs.map(s => `
-        <label style="display:flex; align-items:center; background:white; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; cursor:pointer;" class="active">
-            <input type="checkbox" checked value="${s.id}" class="proc-sub-cb" style="margin-right:8px;" onchange="this.parentElement.classList.toggle('active', this.checked)"> ${s.name.substring(0,25)}
-        </label>
-    `).join('');
+    // STANDARD MINEDUC subjects
+    const STD_SUBJECTS = [
+        { key: 'MATH', label: 'Mathematics' },
+        { key: 'ENG',  label: 'English' },
+        { key: 'KINY', label: 'Kinyarwanda' },
+        { key: 'FRE',  label: 'French' },
+        { key: 'SET',  label: 'SET' },
+        { key: 'SRS',  label: 'SRS' },
+        { key: 'CA',   label: 'Creative Arts' },
+        { key: 'PE',   label: 'Sport/PES' },
+    ];
+    const renderedSubIds = new Set();
+    const subItems = [];
+    STD_SUBJECTS.forEach(std => {
+        const match = dbSubs.find(s =>
+            (s.abbr || '').toUpperCase().startsWith(std.key.substring(0,3)) ||
+            (s.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedSubIds.add(String(match.id));
+            subItems.push({ id: match.id, abbr: std.key, icon: std.icon, checked: true });
+        } else {
+            subItems.push({ id: 'std_' + std.key, abbr: std.key, icon: std.icon, checked: false });
+        }
+    });
 
-    // Fetch and populate Assessments
-    const assessments = await DB.getAssessments();
-    const assContainer = document.getElementById('proc-assess-checklist');
-    assContainer.innerHTML = assessments.map(a => `
-        <label style="display:flex; align-items:center; background:white; padding:0.4rem 0.8rem; border-radius:8px; border:1px solid #cbd5e1; font-size:0.75rem; font-weight:700; cursor:pointer;" class="active">
-            <input type="checkbox" checked value="${a.id}" class="proc-ass-cb" style="margin-right:8px;" onchange="this.parentElement.classList.toggle('active', this.checked)"> ${a.name}
-        </label>
-    `).join('');
+    // STANDARD ASSESSMENT TYPES
+    const STD_ASSESS = [
+        { key: 'EU',  label: 'End of Unit' },
+        { key: 'ET',  label: 'End of Term' },
+        { key: 'MT',  label: 'Mid-Term Test' },
+        { key: 'MID', label: 'MID Test' },
+        { key: 'WK',  label: 'Weekly Test' },
+        { key: 'BT',  label: 'Beginning Test' },
+    ];
+    const renderedAssIds = new Set();
+    const assessItems = [];
+    STD_ASSESS.forEach(std => {
+        const match = dbAssessments.find(a =>
+            (a.abbr || '').toUpperCase() === std.key ||
+            (a.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedAssIds.add(String(match.id));
+            assessItems.push({ id: match.id, abbr: std.key, label: std.label, icon: std.icon, checked: true });
+        } else {
+            assessItems.push({ id: 'std_' + std.key, abbr: std.key, label: std.label, icon: std.icon, checked: false });
+        }
+    });
+
+    function pill(id, abbr, on, color) {
+        const style = `display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;margin:4px;cursor:pointer;font-size:0.75rem;font-weight:800;border:2px solid ${on?color:'#cbd5e1'};background:${on?color:'#fff'};color:${on?'#fff':'#64748b'};`;
+        return `<label style="${style}" onclick="var cb=this.querySelector('input'),v=cb.checked;this.style.background=v?'${color}':'#fff';this.style.borderColor=v?'${color}':'#cbd5e1';this.style.color=v?'#fff':'#64748b';">
+            <input type="checkbox" ${on?'checked':''} value="${id}" style="display:none"> ${abbr}
+        </label>`;
+    }
+
+    document.getElementById('proc-subject-checklist').innerHTML = subItems.map(s => pill(s.id, s.abbr, s.checked, '#0f172a')).join('');
+    document.getElementById('proc-assess-checklist').innerHTML = assessItems.map(a => pill(a.id, a.abbr, a.checked, '#1d4ed8')).join('');
 
     openModal('generate-proclamation-modal');
 };
@@ -2796,11 +3331,15 @@ window.executeProclamationGeneration = async function() {
     
     if (!subContainer || !assContainer) return toast('Registry Error: Configuration Hub not found.', 'error');
     
-    const selectedSubs = Array.from(subContainer.querySelectorAll('input:checked')).map(cb => cb.value);
-    const selectedAsses = Array.from(assContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+    const selectedSubs = Array.from(subContainer.querySelectorAll('input:checked'))
+        .map(cb => cb.value)
+        .filter(v => !String(v).startsWith('std_'));
+    const selectedAsses = Array.from(assContainer.querySelectorAll('input:checked'))
+        .map(cb => cb.value)
+        .filter(v => !String(v).startsWith('std_'));
     
-    if (selectedSubs.length === 0) return toast('⚠️ Please select at least one subject for the proclamation.', 'warning');
-    if (selectedAsses.length === 0) return toast('⚠️ Please select at least one assessment marker.', 'warning');
+    if (selectedSubs.length === 0) return toast('⚠️ Please select at least one active subject.', 'warning');
+    if (selectedAsses.length === 0) return toast('⚠️ Please select at least one evaluation marker.', 'warning');
     
     closeModal('generate-proclamation-modal');
     window.exportClassProclamation(classId, selectedSubs, selectedAsses);

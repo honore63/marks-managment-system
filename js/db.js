@@ -290,7 +290,7 @@ const DB = {
     if (error) throw error;
     
     // Also clear the temporary password flag in profile
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     if (user) {
       await _supabase.from('profiles').update({ temp_password_active: false }).eq('id', user.id);
     }
@@ -323,21 +323,41 @@ const DB = {
     return true;
   },
 
+  async _getUser() {
+    if (this._userPromise) return this._userPromise;
+    this._userPromise = (async () => {
+        try {
+            const { data: { user } } = await _supabase.auth.getUser();
+            return user;
+        } finally {
+            this._userPromise = null;
+        }
+    })();
+    return this._userPromise;
+  },
+
   // --- HELPERS ---
   async _getSchoolCode() {
     if (DB_CACHE._sc) return DB_CACHE._sc;
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     if (!user) return 'UNAUTHORIZED';
-    const { data: p } = await _supabase.from('profiles').select('role, school_code').eq('id', user.id).maybeSingle();
     
-    // System Admins are global
-    if (p?.role === 'system_admin') {
-      DB_CACHE._sc = 'GLOBAL';
-      return 'GLOBAL';
-    }
-    
-    DB_CACHE._sc = p?.school_code || 'DENIED';
-    return DB_CACHE._sc;
+    // Concurrency Lock for Profile Fetch
+    if (this._scPromise) return this._scPromise;
+
+    this._scPromise = (async () => {
+        try {
+            const { data: p } = await _supabase.from('profiles').select('role, school_code').eq('id', user.id).maybeSingle();
+            let finalCode = p?.school_code || 'DENIED';
+            if (p?.role === 'system_admin') finalCode = 'GLOBAL';
+            DB_CACHE._sc = finalCode;
+            return finalCode;
+        } finally {
+            this._scPromise = null;
+        }
+    })();
+
+    return this._scPromise;
   },
 
   // --- TEACHERS ---
@@ -514,7 +534,7 @@ const DB = {
   // --- STUDENTS ---
   async getStudents(classId = null) {
     const sc = await this._getSchoolCode();
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     
     // FETCH ROLE FOR JURISDICTION FILTERING
     const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
@@ -621,7 +641,7 @@ const DB = {
   // --- SUBJECTS ---
   async getSubjects(classId = null) {
     const sc = await this._getSchoolCode();
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
 
     let query = _supabase.from('subjects').select('*, classes(name)');
@@ -658,7 +678,7 @@ const DB = {
   // --- MARKS ---
   async getMarks(filters = {}) {
     const sc = await this._getSchoolCode();
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
 
     let query = _supabase.from('marks').select('*').eq('school_code', sc);
@@ -834,7 +854,7 @@ const DB = {
     return await _supabase.from('settings').upsert({ key: 'grading_scale', value: scale }, { onConflict: 'key' }).select();
   },
   async getSchoolInfo() {
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     if (!user) return null;
     
     const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
@@ -854,11 +874,12 @@ const DB = {
       .eq('school_code', sc)
       .maybeSingle();
 
-    // Merge: Prioritize Registry Name, but allow settings to fill in phone/email
+    // Merge: Prioritize Registry data as fallback, but allow settings to fill/override everything
     const info = {
       school: schoolRecord?.name || 'MMS PORTAL',
       district: schoolRecord?.district || '',
       sector: schoolRecord?.sector || '',
+      province: schoolRecord?.province || '', 
       code: sc,
       ...(schoolSettings?.info || {})
     };
@@ -866,12 +887,34 @@ const DB = {
     return info;
   },
   async saveSchoolInfo(info) {
-    const { data: { user } } = await _supabase.auth.getUser();
+    const user = await this._getUser();
     if (!user) return null;
     const { data: profile } = await _supabase.from('profiles').select('school_code').eq('id', user.id).maybeSingle();
     const sc = profile?.school_code || 'DEFAULT';
 
-    return await _supabase.from('settings').upsert({ key: `school_info_${sc}`, value: info }, { onConflict: 'key' }).select();
+    return await _supabase.from('school_settings').upsert({ school_code: sc, info: info }, { onConflict: 'school_code' }).select();
+  },
+
+  /**
+   * Real-Time Institutional Intelligence
+   * Fetches counts for Dashboard KPIs
+   */
+  async getInstitutionalStats() {
+    const sc = await this._getSchoolCode();
+    
+    const [students, teachers, classes, pending] = await Promise.all([
+      _supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_code', sc),
+      _supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('role', 'teacher'),
+      _supabase.from('classes').select('*', { count: 'exact', head: true }).eq('school_code', sc),
+      _supabase.from('marks').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('is_submitted', true).eq('is_approved', false)
+    ]);
+
+    return {
+      students: students.count || 0,
+      teachers: teachers.count || 0,
+      classes:  classes.count || 0,
+      pending:  pending.count || 0
+    };
   },
   clearCache() {
     DB_CACHE.clear();

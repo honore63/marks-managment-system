@@ -16,91 +16,318 @@
   <link rel="stylesheet" href="css/ai-assistant.css">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    /* Specific overrides for Teacher interaction */
+    /* ══════════════════════════════════════════════════════════
+       MMS TEACHER PORTAL — EXECUTIVE GOVERNANCE DESIGN SYSTEM
+       (Unified layout with System Admin. Accent: Emerald)
+       ══════════════════════════════════════════════════════════ */
+    :root {
+      --midnight: #0f0e2a;
+      --navy: #1e1b4b;
+      --indigo: #4338ca;
+      --indigo-light: #6366f1;
+      --primary: #059669;
+      --primary-hover: #047857;
+      --emerald: #10b981;
+      --gold: #f59e0b;
+      --gold-light: #fbbf24;
+      --gold-glow: rgba(245, 158, 11, 0.12);
+      --rose: #f43f5e;
+      --violet: #8b5cf6;
+      --sidebar-w: 280px;
+      --header-h: 72px;
+      --radius-xl: 24px;
+      --radius-2xl: 32px;
+      --shadow-card: 0 4px 24px rgba(15, 14, 42, 0.08);
+      --transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      color: #1e1b4b;
+      font-weight: 600;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+
+    /* ── SIDEBAR ───────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: #ffffff;
+      border-right: 1.5px solid #e8ecf0;
+      display: flex; flex-direction: column; flex-shrink: 0;
+      z-index: 200; overflow: hidden;
+      transition: var(--transition);
+      position: relative;
+      box-shadow: 4px 0 24px rgba(15, 14, 42, 0.04);
+    }
+    .sidebar::before { display: none; }
+    .sidebar::after {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 100%; height: 4px;
+      background: linear-gradient(90deg, var(--emerald), var(--gold), var(--indigo-light));
+    }
+
+    .sidebar-brand {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 1.25rem 1.25rem;
+      border-bottom: 1.5px solid #f1f5f9;
+      margin-bottom: 0.5rem; margin-top: 0.5rem;
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-toggle {
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      background: #f8fafc; border: 1.5px solid #e8ecf0; border-radius: 10px;
+      cursor: pointer; color: #64748b; font-size: 1.1rem; transition: var(--transition);
+    }
+    .sidebar-toggle:hover { background: var(--midnight); color: var(--gold); border-color: var(--midnight); }
+    .logo-main { font-size: 1.5rem !important; font-weight: 900 !important; color: var(--midnight) !important; letter-spacing: -1px; line-height: 1; }
+    .logo-main span { color: var(--gold) !important; }
+    .logo-sub { font-size: 0.6rem !important; font-weight: 800 !important; color: #94a3b8 !important; text-transform: uppercase !important; letter-spacing: 2px !important; margin-top: 3px; }
+
+    .sidebar-nav { padding: 0 1.25rem 1.25rem; overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+
+    .sidebar-group-label {
+      font-size: 0.62rem !important; font-weight: 900 !important;
+      color: #94a3b8 !important; text-transform: uppercase !important;
+      letter-spacing: 2.5px !important; padding: 0 0.75rem;
+      margin: 1.25rem 0 0.4rem !important;
+    }
+    .sidebar-item {
+      display: flex !important; align-items: center !important; gap: 0.875rem !important;
+      padding: 0.8rem 0.875rem !important;
+      border-radius: 14px !important; font-weight: 700 !important; font-size: 0.875rem !important;
+      color: #475569 !important; cursor: pointer;
+      transition: var(--transition) !important; position: relative;
+      border: 1px solid transparent !important; margin-bottom: 2px !important;
+    }
+    .sidebar-item i { width: 18px; height: 18px; flex-shrink: 0; color: #94a3b8; transition: all 0.3s; }
+    .sidebar-item-text { color: inherit !important; font-weight: 700 !important; }
+    .sidebar-item:hover { background: #f8fafc !important; color: var(--midnight) !important; border-color: #e8ecf0 !important; transform: none !important; }
+    .sidebar-item:hover i { transform: translateX(3px); color: var(--emerald); }
+    .sidebar-item.active {
+      background: linear-gradient(135deg, rgba(5,150,105,0.1), rgba(5,150,105,0.05)) !important;
+      color: var(--midnight) !important; border-color: rgba(5,150,105,0.3) !important;
+      font-weight: 800 !important; box-shadow: none !important;
+    }
+    .sidebar-item.active::before {
+      content: ''; position: absolute; left: -5px; top: 20%; bottom: 20%;
+      width: 4px; border-radius: 4px; background: var(--emerald);
+    }
+    .sidebar-item.active i { color: var(--emerald); }
+    .sidebar-item.danger { color: #ef4444 !important; }
+    .sidebar-item.danger i { color: #fca5a5; }
+    .sidebar-item.danger:hover { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+
+    /* ── MAIN WRAPPER ─────────────────────────────── */
+    .layout-sidebar { display: flex; height: 100vh; overflow: hidden; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f1f5f9; }
+
+    /* ── TOPBAR ───────────────────────────────────── */
+    .sub-header {
+      height: var(--header-h) !important;
+      background: rgba(255,255,255,0.92) !important;
+      backdrop-filter: blur(20px) saturate(1.8) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+      border-bottom: 1px solid rgba(30,27,75,0.06) !important;
+      padding: 0 2rem !important;
+      display: flex !important; justify-content: space-between !important; align-items: center !important;
+      top: 0; z-index: 1500; position: sticky !important;
+      transition: var(--transition) !important; flex-shrink: 0;
+    }
+    .sub-header.scrolled {
+      box-shadow: 0 4px 30px rgba(15,14,42,0.08) !important;
+      border-bottom-color: rgba(5,150,105,0.25) !important;
+    }
+
+    /* ── CONTENT ──────────────────────────────────── */
+    .main-content { flex: 1; overflow-y: auto; padding: 2rem; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* ── STAT CARDS ───────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      padding: 1.75rem 2rem !important; display: flex !important; align-items: center !important; gap: 1.5rem !important;
+      border: 1.5px solid #e2e8f0 !important; box-shadow: var(--shadow-card) !important;
+      transition: var(--transition) !important; position: relative !important; overflow: hidden !important;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px;
+      border-radius: 0 4px 4px 0; background: var(--card-accent, var(--emerald));
+    }
+    .stat-card::after {
+      content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px;
+      background: radial-gradient(circle, var(--card-glow, rgba(5,150,105,0.07)), transparent 70%);
+      pointer-events: none;
+    }
+    .stat-card:hover { transform: translateY(-6px) !important; box-shadow: 0 20px 40px rgba(15,14,42,0.1) !important; border-color: rgba(5,150,105,0.25) !important; }
+    .stat-icon { width: 60px !important; height: 60px !important; border-radius: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .stat-card:hover .stat-icon { transform: scale(1.08) rotate(-5deg) !important; }
+    .stat-val { font-size: 2.25rem !important; font-weight: 900 !important; color: var(--midnight) !important; line-height: 1; letter-spacing: -1.5px; }
+    .stat-lbl { font-size: 0.7rem !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; color: #94a3b8 !important; margin-top: 0.4rem; }
+
+    /* ── KPI CARDS (admin-style used in teacher) ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .kpi-card {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      padding: 1.75rem 2rem !important; display: flex !important; align-items: center !important; gap: 1.5rem !important;
+      border: 1.5px solid #e2e8f0 !important; box-shadow: var(--shadow-card) !important;
+      transition: var(--transition) !important; position: relative !important; overflow: hidden !important;
+    }
+    .kpi-card::before { content: ''; position: absolute; left: 0; top: 10%; bottom: 10%; width: 4px; border-radius: 0 4px 4px 0; background: var(--emerald); }
+    .kpi-card:hover { transform: translateY(-6px) !important; box-shadow: 0 20px 40px rgba(15,14,42,0.1) !important; }
+    .kpi-icon { width: 60px !important; height: 60px !important; border-radius: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .kpi-card:hover .kpi-icon { transform: scale(1.08) rotate(-5deg) !important; }
+    .kpi-info h4 { font-size: 0.7rem !important; font-weight: 800 !important; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8 !important; }
+    .kpi-info .val { font-size: 2.25rem !important; font-weight: 900 !important; color: var(--midnight) !important; line-height: 1; letter-spacing: -1.5px; }
+
+    /* ── CARDS / PANELS ───────────────────────────── */
+    .card, .table-card, .chart-box {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      border: 1.5px solid #e2e8f0 !important; box-shadow: var(--shadow-card) !important;
+      overflow: hidden !important; margin-bottom: 2rem; transition: var(--transition) !important;
+    }
+    .card-header, .table-card-header {
+      padding: 1.5rem 2rem !important;
+      display: flex !important; align-items: center !important; justify-content: space-between !important;
+      border-bottom: 1.5px solid #f1f5f9 !important;
+      background: linear-gradient(135deg, #fafafa, #fff) !important; flex-wrap: wrap; gap: 1rem;
+    }
+    .card-header h3, .card-header h2 { font-size: 1.1rem !important; font-weight: 800 !important; color: var(--midnight) !important; }
+    .card-body { padding: 1.75rem 2rem !important; }
+
+    /* Report checklist */
+    .checklist-group {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      background: #fff; padding: 1.5rem 2rem;
+      border-radius: var(--radius-xl); border: 1.5px solid #e2e8f0;
+      margin-bottom: 2rem; box-shadow: var(--shadow-card);
+    }
+    .check-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: #f8fafc; padding: 10px 20px;
+      border-radius: 12px; border: 1.5px solid transparent;
+      cursor: pointer; transition: var(--transition);
+      font-size: 0.85rem; font-weight: 700; color: #475569;
+    }
+    .check-item:hover { background: #fff; border-color: var(--emerald); color: var(--emerald); transform: translateY(-2px); }
+    .check-item.active { background: var(--emerald); color: #fff; border-color: var(--emerald); box-shadow: 0 8px 16px rgba(5,150,105,0.25); }
+
+    /* ── TABLES ───────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    thead tr { background: #fafafa; border-bottom: 2px solid #f1f5f9; }
+    th {
+      padding: 1rem 1.5rem; font-size: 0.68rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: #94a3b8 !important; white-space: nowrap; text-align: left;
+      background: #fafafa !important;
+    }
+    td {
+      padding: 1.25rem 1.5rem; font-size: 0.88rem; font-weight: 700;
+      color: var(--midnight) !important; border-bottom: 1px solid #f8fafc;
+      transition: background 0.2s; background: transparent !important;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f0fdf4 !important; }
+
+    /* Mark inputs */
     .mark-input {
-      width: 60px; padding: 8px; border: 1.5px solid var(--border); border-radius: 8px;
-      font-size: 0.9rem; text-align: center; font-weight: 800; color: var(--text-dark);
+      width: 60px; padding: 8px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.9rem; text-align: center; font-weight: 800; color: var(--midnight);
       transition: all 0.2s; background: #f8fafc;
     }
-    .mark-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); background: #fff; }
-    .mark-input.saved { border-color: var(--success); background: #f0fdf4; color: var(--success); }
-    
-    .mobile-menu-btn { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-dark); margin-right: 1rem; }
-    @media (max-width: 1024px) { .mobile-menu-btn { display: block; } }
+    .mark-input:focus { outline: none; border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(5,150,105,0.1); background: #fff; }
+    .mark-input.saved { border-color: var(--emerald); background: #f0fdf4; color: var(--emerald); }
 
-    /* Report Selector Specifics - Professional MMS Revision */
-    .checklist-group { 
-      display: flex; flex-wrap: wrap; gap: 1rem; 
-      background: white; padding: 2rem; 
-      border-radius: 24px; border: 1px solid rgba(226, 232, 240, 0.8); 
-      margin-bottom: 2.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    /* ── BUTTONS ──────────────────────────────────── */
+    .btn {
+      display: inline-flex !important; align-items: center !important; gap: 0.5rem !important;
+      padding: 0.75rem 1.5rem !important; border-radius: 14px !important;
+      font-family: 'Inter', sans-serif !important; font-size: 0.82rem !important; font-weight: 800 !important;
+      cursor: pointer !important; border: 2px solid transparent !important;
+      transition: var(--transition) !important; white-space: nowrap !important; width: auto !important;
     }
-    .check-item { 
-      display: flex; align-items: center; gap: 0.75rem; 
-      background: #f8fafc; padding: 10px 20px; 
-      border-radius: 14px; border: 1.5px solid transparent; 
-      cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-      font-size: 0.85rem; font-weight: 800; color: #475569;
+    .btn-primary, .btn-emerald {
+      background: var(--emerald) !important; color: #fff !important;
+      box-shadow: 0 6px 20px rgba(5,150,105,0.25) !important;
     }
-    .check-item:hover { background: white; border-color: var(--primary); color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1); }
-    .check-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 8px 16px rgba(37, 99, 235, 0.25); }
-  </style>
-  <style id="mms-visibility-engine">
-    /* GLOBAL HIGH-CONTRAST & RESPONSIVE REINFORCEMENT */
-    :root { --text-main: #000; --text-dark: #000; --primary: #6366f1; }
-    body { color: #000 !important; font-weight: 650 !important; }
-    h1, h2, h3, h4, .logo-main, .logo-text, .nav-item { color: #000 !important; font-weight: 1000 !important; }
-    .val { color: #4f46e5 !important; font-weight: 1000 !important; }
-    .lbl, .nav-label { color: #000 !important; font-weight: 950 !important; text-transform: uppercase; }
-    
-    @media (max-width: 768px) {
-      .dashboard-container { grid-template-columns: 1fr; }
-      .sidebar { position: fixed; left: -280px; top: 0; height: 100vh; transition: left 0.3s; z-index: 2000; }
-      .sidebar.open { left: 0; }
-      .main-content { padding: 1.5rem !important; }
-      .stats-grid { grid-template-columns: 1fr !important; }
-      .stat-card, .card { border: 2.5px solid #000 !important; }
-      th { background: #000 !important; color: #fff !important; font-weight: 1000 !important; }
-      td { color: #000 !important; font-weight: 850 !important; border-bottom: 1.5px solid #000 !important; }
-      .btn { border: 2.5px solid #000 !important; font-weight: 1000 !important; }
+    .btn-primary:hover, .btn-emerald:hover { background: var(--primary-hover) !important; transform: translateY(-2px) !important; }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light)) !important;
+      color: var(--midnight) !important; box-shadow: 0 6px 20px rgba(245,158,11,0.3) !important;
     }
-  </style>
-  <style id="mms-mobile-high-contrast">
-    /* NUCLEAR CONTRAST OVERHAUL — UNIFIED ENGINE */
-    :root { --text-main: #000; --text-dark: #000; }
-    body { color: #111827 !important; font-weight: 650 !important; }
-    h1, h2, h3, h4, .logo-main, .logo-text, .sidebar-item-text { color: #000 !important; font-weight: 1000 !important; }
-    .stat-val { color: #1e3a8a !important; font-weight: 1000 !important; }
-    .stat-lbl { color: #000 !important; font-weight: 950 !important; text-transform: uppercase; }
+    .btn-gold:hover { transform: translateY(-3px) !important; }
+    .btn-dark, .btn-secondary {
+      background: var(--midnight) !important; color: #fff !important;
+      box-shadow: 0 4px 12px rgba(15,14,42,0.15) !important;
+    }
+    .btn-dark:hover, .btn-secondary:hover { background: var(--navy) !important; transform: translateY(-2px) !important; }
+    .btn-ghost, .btn-outline {
+      background: transparent !important; color: var(--midnight) !important; border-color: #e2e8f0 !important;
+    }
+    .btn-ghost:hover, .btn-outline:hover { border-color: var(--emerald) !important; color: var(--emerald) !important; background: rgba(5,150,105,0.06) !important; }
+    .btn-sm { padding: 0.5rem 1rem !important; font-size: 0.75rem !important; border-radius: 10px !important; }
 
+    /* ── BADGES ───────────────────────────────────── */
+    .badge-status { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.875rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+    .badge-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-active { background: #ecfdf5; color: #059669; }
+    .badge-active .dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .badge-inactive { background: #f1f5f9; color: #64748b; }
+    .badge-inactive .dot { background: #94a3b8; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-pending .dot { background: var(--gold); }
+    .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; border: none !important; }
+    .badge-success { background: #ecfdf5; color: #059669; }
+    .badge-info { background: #eff6ff; color: #3b82f6; }
+    .badge-danger { background: #fef2f2; color: #ef4444; }
+    .badge-warning { background: #fffbeb; color: #d97706; }
+
+    /* ── MODALS ───────────────────────────────────── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,14,42,0.75); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; }
+    .modal-overlay.open { display: flex; }
+
+    /* ── FORMS ────────────────────────────────────── */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label, .form-label { display: block; font-size: 0.72rem; font-weight: 900; color: var(--navy); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; }
+    .form-control, .input-field, select.form-control {
+      width: 100%; padding: 0.875rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 14px;
+      font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 700;
+      color: var(--midnight); background: #fafafa; transition: var(--transition); outline: none;
+    }
+    .form-control:focus, .input-field:focus { border-color: var(--emerald); background: #fff; box-shadow: 0 0 0 4px rgba(5,150,105,0.1); }
+
+    /* ── TOAST ────────────────────────────────────── */
+    #toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 20000; display: flex; flex-direction: column; gap: 0.75rem; }
+    .toast {
+      padding: 1rem 1.5rem; background: var(--midnight); color: #fff;
+      border-radius: 16px; font-size: 0.9rem; font-weight: 800;
+      box-shadow: 0 20px 40px rgba(15,14,42,0.25); border-left: 4px solid var(--emerald); min-width: 280px;
+      animation: toastIn 0.4s ease both;
+    }
+    .toast.success { border-left-color: var(--emerald); }
+    .toast.error { border-left-color: var(--rose); }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 1200px) { .stats-grid, .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1024px) {
+      .layout-sidebar { display: block; }
+      .sidebar { position: fixed; left: -290px; top: 0; height: 100vh; transition: left 0.4s cubic-bezier(0.19,1,0.22,1); box-shadow: none; }
+      .sidebar.open { left: 0; box-shadow: 20px 0 60px rgba(15,14,42,0.25); }
+      .main-wrapper { margin-left: 0 !important; width: 100% !important; }
+      .mobile-menu-btn { display: flex !important; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--midnight); color: var(--gold); border-radius: 14px; border: none; font-size: 1.3rem; cursor: pointer; flex-shrink: 0; }
+    }
     @media (max-width: 768px) {
-      body { color: #000000 !important; font-weight: 700 !important; }
-      .sub-header { 
-        position: sticky !important; top: 0; z-index: 10001; 
-        padding: 0.85rem 1rem !important; background: #fff !important;
-        border-bottom: 3px solid #000 !important;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
-      }
-      .mobile-menu-btn { 
-        display: flex !important; align-items: center; justify-content: center;
-        width: 44px; height: 44px; background: #000 !important; color: #fff !important;
-        border-radius: 12px; font-size: 1.6rem !important;
-      }
-      .breadcrumb { display: none !important; }
-      #page-title { font-size: 1.2rem !important; letter-spacing: -0.5px !important; }
-      .sidebar-item-text { font-weight: 1000 !important; color: #000000 !important; }
-      .stat-val { color: #1e3a8a !important; font-weight: 1000 !important; font-size: 2.2rem !important; }
-      .stat-lbl { color: #000000 !important; font-weight: 1000 !important; text-transform: uppercase; border-bottom: 1.5px solid #000; display: inline-block; margin-bottom: 5px; }
-      .badge { border: 2px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; background: #ffffff !important; padding: 4px 10px !important; font-size: 0.55rem !important; }
-      #sync-indicator { padding: 4px 10px !important; font-size: 0.55rem !important; border: 2px solid #000 !important; }
-      .table-card th { background: #000000 !important; color: #ffffff !important; font-weight: 1000 !important; padding: 12px 8px !important; }
-      .table-card td { color: #000000 !important; font-weight: 900 !important; border-bottom: 2px solid #000000 !important; padding: 15px 8px !important; }
-      .btn { border: 3px solid #000000 !important; font-weight: 1000 !important; color: #000000 !important; }
-      .btn-primary { background: #000000 !important; color: #ffffff !important; border-color: #000000 !important; }
-      input, select, textarea { border: 2.5px solid #000000 !important; color: #000000 !important; font-weight: 1000 !important; background: #fff !important; }
-      .checklist-group { border: 2px solid #000 !important; }
-      #sync-badge { background: #000 !important; color: #fff !important; font-weight: 1000 !important; padding: 5px 15px !important; border-radius: 4px !important; }
+      .main-content { padding: 1.25rem !important; }
+      .stats-grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      #page-title { font-size: 1.3rem !important; }
+      .sub-header { padding: 0 1.25rem !important; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -112,13 +339,13 @@
   <!-- INSTITUTIONAL SIDEBAR (Vertical) -->
   <aside class="sidebar" id="institutional-sidebar">
     <div class="sidebar-brand">
-       <div class="navbar-brand">
-          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 48px; width: auto; object-fit: contain;" alt="MMS Logo">
-          <div class="logo-text-group">
-            <div class="logo-main" style="color: #1e293b; font-size: 1.6rem;">MMS</div>
-            <div class="logo-sub" style="color: #64748b;">Teacher Portal</div>
+        <div class="navbar-brand">
+          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 58px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));" alt="MMS Logo">
+          <div class="logo-text-group" style="padding-left: 5px;">
+            <div class="logo-main" style="color: var(--primary); font-size: 1.8rem; letter-spacing: -1.5px; line-height: 1;">MMS<span style="color: #64748b;">SYS</span></div>
+            <div class="logo-sub" style="color: #64748b; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;">Faculty Portal</div>
           </div>
-       </div>
+        </div>
        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
           <span style="font-size: 1.2rem;">≡</span>
        </button>
@@ -192,35 +419,36 @@
 
   <!-- MAIN WRAPPER -->
   <div class="main-wrapper">
-    <!-- TOPBAR -->
-    <!-- SUB-HEADER (Institutional Context Refined) -->
-    <div class="sub-header" style="background: #fff; border-bottom: 1.5px solid #e2e8f0; padding: 1.25rem 2.5rem; display: flex; justify-content: space-between; align-items: center;">
-      <div style="display:flex; align-items:center; gap:1.5rem;">
-         <button class="mobile-menu-btn" onclick="toggleSidebar()" style="display:none; border:none; background:none; color:#000; font-size:1.5rem; cursor:pointer;">≡</button>
-         <div class="page-title-group">
-            <div class="breadcrumb" style="font-size: 0.65rem; font-weight: 950; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
-               <span>Academic Governance</span> 
-               <span style="opacity: 0.2; font-weight: 400;">/</span> 
-               <span id="breadcrumb-view" style="color: #000;">Dashboard</span>
+    <!-- MOBILE OVERLAY -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,14,42,0.45); z-index:9998; backdrop-filter:blur(4px);"></div>
+
+    <!-- TOPBAR (sticky, outside scroll) -->
+    <div class="sub-header" id="main-sub-header">
+      <div style="display:flex; align-items:center; gap:1.25rem;">
+        <button class="mobile-menu-btn" id="mobile-toggle-btn" onclick="toggleSidebar()">☰</button>
+        <div class="page-title-group">
+            <div class="breadcrumb" style="font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 2px;">
+               Academic Governance / <span id="breadcrumb-view" style="color: var(--emerald);">Dashboard</span>
             </div>
-            <h1 id="page-title" style="margin:0; font-size: 1.85rem; font-weight: 1000; color: #000; letter-spacing: -1.25px;">Faculty Dashboard</h1>
-         </div>
+            <h1 id="page-title" style="margin:0;">Faculty Dashboard</h1>
+        </div>
       </div>
-      <div style="display:flex; gap: 0.75rem; align-items: center;">
-         <div id="sync-indicator" style="background: #000; color: #fff; padding: 8px 16px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000; display: flex; align-items: center; gap: 8px; border: 1.5px solid #000;">
-            <div style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e;"></div> 
-            LIVE NODE SYNC
-         </div>
-         <div class="badge" style="background: #fff; color: #000; border: 2px solid #000; padding: 6px 14px; border-radius: 100px; font-size: 0.65rem; font-weight: 1000;">
-            ● INSTANCE ACTIVE
-         </div>
+      <div style="display:flex; gap:0.875rem; align-items:center;">
+        <div id="sync-indicator" class="sync-indicator-elite" style="background:#f8fafc; color:var(--midnight); padding:8px 16px; border-radius:100px; font-size:0.65rem; font-weight:800; display:flex; align-items:center; gap:8px; border:1.5px solid #e8ecf0;">
+          <div style="width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 8px #10b981;"></div> 
+          LIVE NODE SYNC
+        </div>
+        <div class="user-pill-elite" style="background:#fff; border-radius:100px; display:flex; align-items:center; gap:10px; padding:4px 6px 4px 14px; border:1.5px solid #e8ecf0; cursor:pointer; transition:all 0.3s;">
+          <div class="user-info" style="text-align:right;">
+            <span id="header-user-name" style="font-size:0.75rem; font-weight:800; color:var(--midnight); display:block;">FACULTY</span>
+            <span id="header-school-name" style="font-size:0.55rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">INSTITUTION</span>
+          </div>
+          <div id="header-user-avatar" style="width:36px; height:36px; background:linear-gradient(135deg,var(--midnight),var(--emerald)); color:#fff; border:2px solid var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.8rem;">T</div>
+        </div>
       </div>
     </div>
 
-    <!-- MOBILE OVERLAY -->
-    <div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9998; backdrop-filter:blur(2px);"></div>
-
-    <!-- CONTENT AREA -->
+    <!-- SCROLLABLE CONTENT -->
     <main class="main-content">
       
       <!-- VIEW: DASHBOARD -->
@@ -245,34 +473,38 @@
             </div>
         </div>
 
-        <div class="stats-grid resp-grid-4">
-          <div class="stat-card">
-            <div class="stat-info">
-              <div class="stat-lbl">My Students</div>
-              <div class="stat-val" id="dash-student-count">0</div>
-            </div>
-            <div class="stat-icon" style="background: #eff6ff; color: #3b82f6;"><i data-lucide="backpack"></i></div>
+        <div class="stats-grid resp-grid-4" style="gap: 1.5rem; margin-bottom: 2rem;">
+          <div class="stat-card" style="border-left: 8px solid #3b82f6 !important;">
+             <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: #3b82f6 !important;"><i data-lucide="backpack"></i></div>
+             <div class="stat-info">
+               <div class="stat-lbl">Class Registry</div>
+               <div class="stat-val" id="dash-student-count" style="color: #3b82f6 !important;">0</div>
+               <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Students Monitored</p>
+             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-info">
-              <div class="stat-lbl">Jurisdictions</div>
-              <div class="stat-val" id="dash-subject-count">0</div>
-            </div>
-            <div class="stat-icon" style="background: #f0fdf4; color: #10b981;"><i data-lucide="book"></i></div>
+          <div class="stat-card" style="border-left: 8px solid #10b981 !important;">
+             <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;"><i data-lucide="book"></i></div>
+             <div class="stat-info">
+               <div class="stat-lbl">Jurisdictions</div>
+               <div class="stat-val" id="dash-subject-count">0</div>
+               <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Active Courses</p>
+             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-info">
-              <div class="stat-lbl">Records Saved</div>
-              <div class="stat-val" id="dash-marks-count">0</div>
-            </div>
-            <div class="stat-icon" style="background: #fffbeb; color: #f59e0b;"><i data-lucide="edit-3"></i></div>
+          <div class="stat-card" style="border-left: 8px solid #f59e0b !important;">
+             <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-color: #f59e0b !important;"><i data-lucide="edit-3"></i></div>
+             <div class="stat-info">
+               <div class="stat-lbl">Academic Records</div>
+               <div class="stat-val" id="dash-marks-count" style="color: #f59e0b !important;">0</div>
+               <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Marks Secured</p>
+             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-info">
-              <div class="stat-lbl">Status</div>
-              <div class="stat-val" id="dash-marks-status" style="font-size: 1rem; color: #3b82f6;">ACTIVE</div>
-            </div>
-            <div class="stat-icon" style="background: #fdf4ff; color: #d946ef;"><i data-lucide="lock"></i></div>
+          <div class="stat-card" style="border-left: 8px solid #d946ef !important;">
+             <div class="stat-icon" style="background: rgba(217, 70, 239, 0.1); color: #d946ef; border-color: #d946ef !important;"><i data-lucide="shield-check"></i></div>
+             <div class="stat-info">
+               <div class="stat-lbl">Portal Status</div>
+               <div class="stat-val" id="dash-marks-status" style="font-size: 1.5rem !important; color: #d946ef !important;">MASTERED</div>
+               <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Encryption Active</p>
+             </div>
           </div>
         </div>
 
@@ -671,12 +903,12 @@
             <!-- Subject/Assessment Checklists -->
             <div class="resp-grid" style="gap: 1.5rem; margin-bottom: 2rem;">
                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
-                  <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="book" style="width:14px; height:14px; margin-right:4px;"></i> Curricular Subjects</label>
-                  <div id="report-subject-checklist" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+                  <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="book" style="width:14px; height:14px; margin-right:4px;"></i> Curricular Subjects</label>
+                  <div id="report-subject-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
                </div>
                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
-                  <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="clipboard-check" style="width:14px; height:14px; margin-right:4px;"></i> Evaluation Markers</label>
-                  <div id="report-assess-checklist" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+                  <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="clipboard-check" style="width:14px; height:14px; margin-right:4px;"></i> Evaluation Markers</label>
+                  <div id="report-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
                </div>
             </div>
 

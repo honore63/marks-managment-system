@@ -11,7 +11,9 @@
 
 'use strict';
 
-const el = id => document.getElementById(id);
+if (typeof window.el === 'undefined') {
+    window.el = id => document.getElementById(id);
+}
 if (typeof SYNC === 'undefined') window.SYNC = DB; // Institutional Synchronization Bridge
 
 let MY_PROFILE = null;
@@ -46,9 +48,24 @@ async function initTeacherPortal() {
     const { data: { user } } = await _supabase.auth.getUser();
     if (!user) {
       console.warn('[AUTH] No user found, redirecting to login');
-      window.location.href = '/index.html';
+      window.location.href = 'index.html';
       return;
     }
+
+    // ELITE DYNAMIC HEADER CONTROLLER
+    const SCROLL_TARGET = document.querySelector('.main-wrapper') || document.querySelector('.main-content') || window;
+    
+    SCROLL_TARGET.addEventListener('scroll', () => {
+        const header = document.querySelector('.sub-header');
+        if (!header) return;
+        
+        const scrollValue = (SCROLL_TARGET === window) ? window.scrollY : SCROLL_TARGET.scrollTop;
+        if (scrollValue > 50) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    });
 
     // Get current user's school code
     const schoolCode = await getCurrentSchoolCode();
@@ -86,12 +103,26 @@ async function initTeacherPortal() {
     
     if (!profile) {
         console.error('[PROFILE] Member registry record missing for:', user.email, user.id);
-        alert('Institutional Error: Your profile was not found in the member registry. Contact your school administrator.');
+        const tc = document.getElementById('toast-container');
+        if (tc) {
+          const t = document.createElement('div'); t.className = 'toast error';
+          t.style.cssText = 'padding:1rem 1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;border:2px solid #fecaca;font-weight:800;font-size:0.85rem;';
+          t.textContent = '⚠️ Profile not found. Contact your school administrator.';
+          tc.appendChild(t); setTimeout(() => t.remove(), 7000);
+        }
         return;
     }
     
     MY_PROFILE = profile;
     MY_ASSIGNMENTS = await DB.getTeacherAssignments(profile.id);
+    
+    // ELITE IDENTITY INJECTOR
+    if (el('header-user-name')) el('header-user-name').textContent = profile.full_name || 'TEACHER';
+    if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'MMS NODE';
+    if (el('header-user-avatar') && profile.full_name) {
+        el('header-user-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
+    }
+
     console.log(`[TEACHER] ${profile.full_name || 'Teacher'} authenticated for school: ${schoolCode}`);
     
     // === DIAGNOSTIC LOGGING (Check browser console for these) ===
@@ -101,22 +132,12 @@ async function initTeacherPortal() {
     console.log('[DEBUG] Assignment types:', MY_ASSIGNMENTS.map(a => a.type));
     console.log('[DEBUG] Full assignments data:', JSON.stringify(MY_ASSIGNMENTS, null, 2));
 
-    // Load school settings from database
-    const settings = await fetchSchoolSettings(schoolCode);
-    
-    // FETCH REAL NAME FROM SYSTEM ADMIN REGISTRY (PRIMARY)
+    // FETCH COMPREHENSIVE INSTITUTIONAL IDENTITY (Registry + Overrides)
     const officialInfo = await DB.getSchoolInfo();
     
     if (officialInfo) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
-    }
-    
-    if (settings && settings.info) {
-      SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
-      // Preserve registry name if settings name is missing or generic
-      if (officialInfo && officialInfo.school) SCHOOL_INFO.school = officialInfo.school;
-      SCHOOL_INFO.code = schoolCode;
-      console.log('[SCHOOL] Verified Institutional Name:', SCHOOL_INFO.school);
+      console.log('[SCHOOL] Institutional Identity Verified:', SCHOOL_INFO.school);
     }
 
     // Update UI header with school info
@@ -204,21 +225,27 @@ async function initTeacherPortal() {
     // Mark this teacher as active
     await updateLastSync();
 
-    // Enable real-time sync for this school
-    const channel = subscribeToSchoolChanges(schoolCode);
-    console.log('[SYNC] Teacher subscribed to school changes');
+    // Enable real-time sync for this school (non-critical)
+    try { subscribeToSchoolChanges(schoolCode); } catch(e) { console.warn('[SYNC]', e.message); }
 
-    // Setup listeners for UI updates (mark approvals, etc)
-    setupTeacherUIListeners(schoolCode);
+    // Setup listeners for UI updates (non-critical)
+    try { setupTeacherUIListeners(schoolCode); } catch(e) { console.warn('[UI]', e.message); }
 
     // Start regular sync tracking (every 30 seconds)
-    setInterval(() => updateLastSync(), 30 * 1000);
+    setInterval(() => updateLastSync().catch(()=>{}), 30 * 1000);
 
-    console.log('[INIT] Teacher portal ready!');
+    console.log('[INIT] ✅ Teacher portal ready!');
 
   } catch (error) {
-    console.error('[INIT] Error:', error);
-    alert('Failed to initialize teacher portal. Please refresh and try again.');
+    console.error('[INIT] Teacher portal error:', error.message, error);
+    const tc = document.getElementById('toast-container');
+    if (tc) {
+      const t = document.createElement('div');
+      t.className = 'toast error';
+      t.style.cssText = 'padding:1rem 1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;border:2px solid #fecaca;font-weight:800;font-size:0.85rem;';
+      t.textContent = `⚠️ ${error.message || 'Startup issue'}. Please refresh if data is missing.`;
+      tc.appendChild(t); setTimeout(() => t.remove(), 7000);
+    }
   }
 }
 
@@ -269,12 +296,10 @@ function toggleSidebar() {
     const overlay = document.getElementById('sidebar-overlay');
     if (!sb) return;
     
-    if (window.innerWidth <= 1024) {
-        sb.classList.toggle('mobile-open');
-        if (overlay) overlay.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
-    } else {
-        sb.classList.toggle('collapsed');
-        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+    sb.classList.toggle('open');
+    if (overlay) {
+        overlay.classList.toggle('active');
+        overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
     }
 }
 
@@ -317,8 +342,7 @@ document.addEventListener('click', (e) => {
         if (e.target.classList.contains('nav-item') || e.target.closest('.nav-item') || e.target.classList.contains('sidebar-item') || e.target.closest('.sidebar-item')) {
             const sb = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            if (sb) sb.classList.remove('mobile-open');
-            if (overlay) overlay.style.display = 'none';
+            if (sb && sb.classList.contains('open')) toggleSidebar();
         }
     }
 });
@@ -346,11 +370,11 @@ function generateInstitutionalHeader(docTitle, docSubtitle = "") {
     const schoolLogo = SCHOOL_INFO.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png"; 
     
     return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:2px solid #000; padding-bottom:5px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:3px solid #000; padding-bottom:5px; color:#000;">
             <img src="${rwandaLogo}" style="width:85px; height:auto; object-fit:contain;">
             <div style="text-align:center; padding: 0 5px;">
-                <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2;">REPUBLIC OF RWANDA</div>
-                <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2;">MINISTRY OF EDUCATION</div>
+                <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2; color:#000;">REPUBLIC OF RWANDA</div>
+                <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2; color:#000;">MINISTRY OF EDUCATION</div>
                 <div style="font-size:0.7rem; font-weight:900; color:#000; line-height:1.3;">
                     <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MMS INSTITUTIONAL PORTAL').toUpperCase()}</span><br>
                     District: ${(SCHOOL_INFO.district || '----------------').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || '----------------').toUpperCase()}<br>
@@ -359,8 +383,8 @@ function generateInstitutionalHeader(docTitle, docSubtitle = "") {
             </div>
             <img src="${schoolLogo}" style="width:85px; height:85px; object-fit:contain;">
         </div>
-        <div style="text-align:center; font-weight:900; font-size:1.3rem; letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; background:#f1f5f9; border:2px solid #000; padding:6px;">${docTitle}</div>
-        ${docSubtitle ? `<div style="text-align:center; font-size:0.8rem; font-weight:800; margin-bottom:8px;">${docSubtitle}</div>` : ''}
+        <div style="text-align:center; font-weight:1000; font-size:1.3rem; letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; background:#fff; border:3px solid #000; padding:8px; color:#000;">${docTitle}</div>
+        ${docSubtitle ? `<div style="text-align:center; font-size:0.8rem; font-weight:900; margin-bottom:8px; color:#000;">${docSubtitle}</div>` : ''}
     `;
 }
 
@@ -1251,63 +1275,125 @@ async function initReportSelectors() {
 
 async function populateReportChecklists(classId) {
     const [allSubjects, allAssignments] = await Promise.all([
-        DB.getSubjects(), 
-        DB.getTeacherAssignments() 
+        DB.getSubjects(),
+        DB.getTeacherAssignments()
     ]);
-    
-    console.log(`[REPORTS] Populating checklists for class: ${classId}. Found assignments: ${allAssignments.length}`);
-    
-    // SOURCE OF TRUTH: Use assignments to find subjects mapped to this class
-    const classAssignments = allAssignments.filter(a => String(a.class_id) === String(classId) && a.type === 'subject');
-    
-    // Create a unique list of subjects from assignments
-    const subsMap = new Map();
-    classAssignments.forEach(a => {
+
+    console.log(`[REPORTS] Populating checklists for class: ${classId}.`);
+
+    // Build DB subjects for this class
+    const dbSubsMap = new Map();
+    allAssignments.filter(a => String(a.class_id) === String(classId) && a.type === 'subject').forEach(a => {
         if (a.subject_id && a.subjects) {
-            const key = String(a.subject_id);
-            if (!subsMap.has(key)) {
-                subsMap.set(key, {
-                    id: a.subject_id,
-                    name: a.subjects.name,
-                    abbr: a.subjects.abbr
-                });
-            }
+            const k = String(a.subject_id);
+            if (!dbSubsMap.has(k)) dbSubsMap.set(k, { id: a.subject_id, name: a.subjects.name, abbr: a.subjects.abbr });
         }
     });
-
-    // 2. MERGE: Always include subjects explicitly mapped to this class in the subjects table
     allSubjects.filter(s => String(s.class_id) === String(classId)).forEach(s => {
-        const key = String(s.id);
-        if (!subsMap.has(key)) {
-            subsMap.set(key, s);
-        }
+        const k = String(s.id);
+        if (!dbSubsMap.has(k)) dbSubsMap.set(k, s);
     });
+    const dbSubs = Array.from(dbSubsMap.values());
 
-    const subs = Array.from(subsMap.values());
-
-    el('report-subject-checklist').innerHTML = subs.length > 0 
-        ? subs.map(s => `
-            <label class="check-item active" style="padding:6px 12px; border:1.5px solid #3b82f6; background:#eff6ff; color:#1e40af; border-radius:8px; margin:4px; display:inline-block; font-size:0.8rem; font-weight:800; cursor:pointer;">
-                <input type="checkbox" checked value="${s.id}" onchange="this.parentElement.style.background = this.checked ? '#eff6ff' : '#f8fafc'; generateReportCard()" style="margin-right:8px;">
-                ${(s.abbr || s.name).toUpperCase()}
-            </label>`).join('')
-        : '<div style="color:#ef4444; font-size:0.8rem; font-weight:800; padding:10px;">Institutional Error: No curricular subjects assigned to this class level in the member registry. Contact Registrar.</div>';
-    
-    
-    const dbAssessments = await DB.getAssessments();
-    const activeAssessments = dbAssessments.length ? dbAssessments : [
-        { id: 'cat', abbr: 'CAT', name: 'Continuous Assessment' },
-        { id: 'exam', abbr: 'EXAM', name: 'End of Term Exam' },
-        { id: 'eu', abbr: 'EU', name: 'End of Unit' },
-        { id: 'et', abbr: 'ET', name: 'End of Term' }
+    // STANDARD MINEDUC subjects — always rendered
+    const STD_SUBJECTS = [
+        { key: 'MATH', label: 'Mathematics' },
+        { key: 'ENG',  label: 'English' },
+        { key: 'KINY', label: 'Kinyarwanda' },
+        { key: 'FRE',  label: 'French' },
+        { key: 'SET',  label: 'SET' },
+        { key: 'SRS',  label: 'SRS' },
+        { key: 'CA',   label: 'Creative Arts' },
+        { key: 'PE',   label: 'Sport/PES' },
     ];
 
-    const assessList = el('report-assess-checklist');
-    assessList.innerHTML = activeAssessments.map(a => `
-        <label class="check-item active" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:4px; margin:4px; display:inline-block; font-size:0.75rem;">
-            <input type="checkbox" checked class="report-assess-cb" value="${a.id}" onchange="generateReportCard()">
-            ${(a.abbr || a.name.substring(0,3)).toUpperCase()}
-        </label>`).join('');
+    const renderedIds = new Set();
+    const subItems = [];
+
+    STD_SUBJECTS.forEach(std => {
+        const match = dbSubs.find(s =>
+            (s.abbr || '').toUpperCase().startsWith(std.key.substring(0,3)) ||
+            (s.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedIds.add(String(match.id));
+            subItems.push({ id: match.id, abbr: std.key, checked: true });
+        } else {
+            subItems.push({ id: 'std_' + std.key, abbr: std.key, checked: false });
+        }
+    });
+    // Extra DB subjects not matched
+    dbSubs.forEach(s => {
+        if (!renderedIds.has(String(s.id))) {
+            subItems.push({ id: s.id, abbr: (s.abbr || s.name.substring(0,5)), checked: true });
+        }
+    });
+
+    function pillStyle(on, color) {
+        return `display:inline-flex;align-items:center;gap:5px;padding:7px 15px;
+            border-radius:999px;margin:4px;cursor:pointer;font-size:0.78rem;font-weight:800;
+            user-select:none;transition:all 0.15s;border:2px solid ${on ? color : '#cbd5e1'};
+            background:${on ? color : '#fff'};color:${on ? '#fff' : '#64748b'};`;
+    }
+
+    el('report-subject-checklist').innerHTML = subItems.map(s => {
+        const on = s.checked;
+        const color = '#0f172a';
+        return `<label style="${pillStyle(on, color)}" class="rc-spill"
+            onclick="var cb=this.querySelector('input'),v=cb.checked;
+                this.style.background=v?'${color}':'#fff';
+                this.style.borderColor=v?'${color}':'#cbd5e1';
+                this.style.color=v?'#fff':'#64748b'; generateReportCard();">
+            <input type="checkbox" ${on ? 'checked' : ''} value="${s.id}" class="rc-sub-db" style="display:none" onchange="generateReportCard()">
+            ${s.abbr}
+        </label>`;
+    }).join('');
+
+    // STANDARD ASSESSMENT TYPES — always rendered
+    const dbAssess = await DB.getAssessments();
+    const STD_ASSESS = [
+        { key: 'EU',  label: 'End of Unit' },
+        { key: 'ET',  label: 'End of Term' },
+        { key: 'MT',  label: 'Mid-Term Test' },
+        { key: 'MID', label: 'MID Test' },
+        { key: 'WK',  label: 'Weekly Test' },
+        { key: 'BT',  label: 'Beginning Test' },
+    ];
+
+    const renderedAssessIds = new Set();
+    const assessItems = [];
+
+    STD_ASSESS.forEach(std => {
+        const match = dbAssess.find(a =>
+            (a.abbr || '').toUpperCase() === std.key ||
+            (a.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        if (match) {
+            renderedAssessIds.add(String(match.id));
+            assessItems.push({ id: match.id, abbr: std.key, label: std.label, checked: true });
+        } else {
+            assessItems.push({ id: 'std_' + std.key, abbr: std.key, label: std.label, checked: false });
+        }
+    });
+    dbAssess.forEach(a => {
+        if (!renderedAssessIds.has(String(a.id))) {
+            assessItems.push({ id: a.id, abbr: a.abbr || a.name.substring(0,3), label: a.name, checked: true });
+        }
+    });
+
+    el('report-assess-checklist').innerHTML = assessItems.map(a => {
+        const on = a.checked;
+        const color = '#1d4ed8';
+        return `<label style="${pillStyle(on, color)}" class="rc-apill"
+            onclick="var cb=this.querySelector('input'),v=cb.checked;
+                this.style.background=v?'${color}':'#fff';
+                this.style.borderColor=v?'${color}':'#cbd5e1';
+                this.style.color=v?'#fff':'#64748b'; generateReportCard();"
+            title="${a.label}">
+            <input type="checkbox" ${on ? 'checked' : ''} value="${a.id}" class="report-assess-cb" style="display:none" onchange="generateReportCard()">
+            ${a.abbr}
+        </label>`;
+    }).join('');
 }
 
 async function generateProclamationList() {
@@ -1318,31 +1404,60 @@ async function generateProclamationList() {
     
     if (!cid) return toast('Please select an institutional class group.', 'warning');
 
-    const selSubIds = Array.from(el('report-subject-checklist').querySelectorAll('input:checked')).map(i => i.value);
-    const selAssLabs = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => i.parentElement.textContent.trim());
-    const selAssessIds = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => i.value);
+    // Capture ALL selected items (including std_ placeholders)
+    const rawSelSubs = Array.from(el('report-subject-checklist').querySelectorAll('input:checked')).map(i => ({
+        id: i.value,
+        label: i.parentElement.innerText.trim()
+    }));
+    const rawSelAsses = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => ({
+        id: i.value,
+        label: i.parentElement.innerText.trim()
+    }));
+
+    const selSubIds = rawSelSubs.map(s => s.id).filter(id => !id.startsWith('std_'));
+    const selAssessIds = rawSelAsses.map(a => a.id).filter(id => !id.startsWith('std_'));
     
-    if (selSubIds.length === 0) return toast('Select subjects for proclamation.', 'warning');
-    if (selAssessIds.length === 0) return toast('Select assessments for proclamation.', 'warning');
+    if (rawSelSubs.length === 0) return toast('Select active curriculum subjects for proclamation.', 'warning');
+    if (rawSelAsses.length === 0) return toast('Select active assessment markers for proclamation.', 'warning');
 
     toast('Consolidating Multi-Faculty Marks...', 'info');
 
-    const [allMarks, students, allSubjects] = await Promise.all([
+    const [allMarks, students, allDBSubjects] = await Promise.all([
         DB.getMarks({ classId: cid, term, year: el('report-year')?.value }),
         DB.getStudents(cid),
         DB.getSubjects(cid)
     ]);
 
-    const subjects = allSubjects.filter(s => selSubIds.includes(s.id));
+    // Merge DB subjects with Virtual (std_) subjects
+    const subjects = rawSelSubs.map(sel => {
+        const dbMatch = allDBSubjects.find(s => s.id === sel.id);
+        if (dbMatch) return dbMatch;
+        const cleanName = sel.label.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+        return { 
+            id: sel.id, 
+            name: cleanName.toUpperCase(), 
+            abbr: cleanName.toUpperCase().substring(0,5) 
+        };
+    });
     
-    // Header labels for assessments
-    const assessmentContext = selAssLabs.join(' + ');
+    // Header labels for assessments (strip icons)
+    const assessmentLabels = rawSelAsses.map(a => a.label.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim());
+    const assessmentContext = assessmentLabels.join(' + ');
+
+    // Virtual mapping for assessments (pillars)
+    const activePillars = rawSelAsses.map(sel => {
+        const dbId = sel.id.startsWith('std_') ? sel.id.replace('std_', '').toLowerCase() : sel.id;
+        return {
+            id: dbId,
+            abbr: sel.label.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim().toUpperCase()
+        };
+    });
 
     const subjectMeta = subjects.map(s => {
         let max = 0;
         const subMaxMap = SUBJECT_MAX[s.name] || DEFAULT_SUBJ_MAX;
-        selAssessIds.forEach(aid => {
-            const allowedMax = subMaxMap[aid.toLowerCase()] || 40;
+        activePillars.forEach(p => {
+            const allowedMax = subMaxMap[p.id.toLowerCase()] || 40;
             max += allowedMax;
         });
         return { ...s, totalMax: max };
@@ -1356,9 +1471,9 @@ async function generateProclamationList() {
         subjectMeta.forEach(s => {
             let sScore = 0;
             const subMaxMap = SUBJECT_MAX[s.name] || DEFAULT_SUBJ_MAX;
-            selAssessIds.forEach(assessId => {
-                const allowedMax = subMaxMap[assessId.toLowerCase()] || 40;
-                const mark = allMarks.find(m => m.student_id === student.id && m.subject_id === s.id && m.assessment_id === assessId);
+            activePillars.forEach(p => {
+                const allowedMax = subMaxMap[p.id.toLowerCase()] || 40;
+                const mark = allMarks.find(m => m.student_id === student.id && m.subject_id === s.id && String(m.assessment_id).toLowerCase() === String(p.id).toLowerCase());
                 if (mark) {
                     const rawScore = mark.score === -1 ? 0 : Number(mark.score);
                     const capped = Math.min(rawScore, allowedMax);
@@ -1405,13 +1520,13 @@ async function generateProclamationList() {
             ${subjectMeta.map(s => {
                 const score = item.subScores[s.id];
                 const isFail = score < (s.totalMax / 2);
-                const color = isFail ? '#c2410c' : '#000';
+                const color = '#000'; // FORCED BLACK FOR PRINTING
                 const style = isFail ? 'text-decoration: underline;' : '';
                 return `<td style="padding: 5px; border: 1px solid #000; color: ${color}; ${style} font-weight: 900; text-align: center;">${score || 0}</td>`;
             }).join('')}
-            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; text-align: center;">${item.totalScore.toFixed(0)}</td>
-            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; color: ${item.percentage < 50 ? '#ef4444' : '#000'}; text-align: center;">${item.percentage.toFixed(1)}</td>
-            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; text-align: center;">${item.position}</td>
+            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; text-align: center; color:#000;">${item.totalScore.toFixed(0)}</td>
+            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; color: #000; text-align: center;">${item.percentage.toFixed(1)}</td>
+            <td style="padding: 5px; border: 1px solid #000; font-weight: 950; text-align: center; color:#000;">${item.position}</td>
             <td style="padding: 5px 10px; border: 1px solid #000; font-weight: 950; text-align: left; font-size:0.55rem; color: #000; line-height: 1.2;">${item.comment}</td>
         </tr>
     `).join('');
@@ -1428,16 +1543,16 @@ async function generateProclamationList() {
                 <tr>
                     <td style="width:90px; vertical-align:middle; text-align:left;">
                         <img src="js/Report image/download__92_-removebg-preview.png" style="width:75px; height:auto;">
-                        <div style="font-size:0.45rem; font-weight:700; color:#1e40af; text-align:center; margin-top:2px;">Republic of Rwanda<br>Ministry of Education</div>
+                        <div style="font-size:0.45rem; font-weight:700; color:#000; text-align:center; margin-top:2px;">Republic of Rwanda<br>Ministry of Education</div>
                     </td>
                     <td style="text-align:center; vertical-align:middle;">
-                        <div style="font-size:0.65rem; font-weight:900; color:#1e40af; letter-spacing:2px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
-                        <div style="font-size:0.6rem; font-weight:700; margin-bottom:3px;">MINISTRY OF EDUCATION</div>
-                        <div style="font-size:1.3rem; font-weight:900; text-transform:uppercase; margin-bottom:5px;">${(SCHOOL_INFO.school||'EDUMARKS ACADEMY').toUpperCase()}</div>
-                        <div style="display:inline-block; background:#1d4ed8; color:#fff; font-size:0.7rem; font-weight:900; padding:5px 18px; letter-spacing:1px; text-transform:uppercase;">
+                        <div style="font-size:0.65rem; font-weight:900; color:#000; letter-spacing:2px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
+                        <div style="font-size:0.6rem; font-weight:700; margin-bottom:3px; color:#000;">MINISTRY OF EDUCATION</div>
+                        <div style="font-size:1.3rem; font-weight:900; text-transform:uppercase; margin-bottom:5px; color:#000;">${(SCHOOL_INFO.school||'EDUMARKS ACADEMY').toUpperCase()}</div>
+                        <div style="display:inline-block; background:#000; color:#fff; font-size:0.7rem; font-weight:900; padding:5px 18px; letter-spacing:1px; text-transform:uppercase;">
                             CLASS: ${classLabel} &bull; TERM ${term} PROCLAMATION
                         </div>
-                        <div style="font-size:0.55rem; margin-top:4px; color:#475569;">Assessed: ${assessedLine}</div>
+                        <div style="font-size:0.55rem; margin-top:4px; color:#000;">Assessed: ${assessedLine}</div>
                     </td>
                     <td style="width:90px; vertical-align:middle; text-align:right;">
                         ${SCHOOL_INFO.logo ? `<img src="${SCHOOL_INFO.logo}" style="width:75px; height:75px; object-fit:contain; border-radius:4px;">` : `<div style="width:75px; height:75px; border:1.5px solid #94a3b8; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:0.45rem; font-weight:700; text-align:center;">SCHOOL<br>LOGO</div>`}
@@ -1446,7 +1561,7 @@ async function generateProclamationList() {
             </table>
 
             <!-- META ROW -->
-            <div style="display:flex; justify-content:space-between; border-top:2px solid #000; border-bottom:1px solid #cbd5e1; padding:5px 2px; margin-bottom:8px; font-size:0.58rem; font-weight:800;">
+            <div style="display:flex; justify-content:space-between; border-top:2px solid #000; border-bottom:2px solid #000; padding:5px 2px; margin-bottom:8px; font-size:0.58rem; font-weight:800; color:#000;">
                 <div>
                     <div>Class Teacher: <strong>${(MY_PROFILE?.full_name||'...').toUpperCase()}</strong></div>
                     <div>Email: ${MY_PROFILE?.email || '...'} &nbsp;|&nbsp; Contact: ${MY_PROFILE?.phone || SCHOOL_INFO.phone || '...'}</div>
@@ -1459,8 +1574,8 @@ async function generateProclamationList() {
             </div>
 
             <!-- MARKS TABLE -->
-            <table style="width:100%; border-collapse:collapse; border:2px solid #000; font-size:0.55rem;">
-                <thead style="background:#f1f5f9;">
+            <table style="width:100%; border-collapse:collapse; border:2px solid #000; font-size:0.55rem; color:#000;">
+                <thead style="background:#eee;">
                     <tr>
                         <th style="border:1px solid #000; width:25px; height:65px; padding:0; vertical-align:bottom;">
                             <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem;">NO</div>
@@ -1468,11 +1583,11 @@ async function generateProclamationList() {
                         <th style="border:1px solid #000; width:75px; vertical-align:middle; padding:4px; font-weight:900;">ID NUMBER</th>
                         <th style="border:1px solid #000; min-width:120px; text-align:left; padding:4px; font-weight:900;">NAMES</th>
                         ${subjectHeaders}
-                        <th style="border:1px solid #000; width:38px; height:65px; padding:0; vertical-align:bottom; background:#f1f5f9;">
-                            <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem;">TOTAL</div>
+                        <th style="border:1px solid #000; width:38px; height:65px; padding:0; vertical-align:bottom; background:#fff;">
+                            <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem; color:#000;">TOTAL</div>
                         </th>
-                        <th style="border:1px solid #000; width:32px; height:65px; padding:0; vertical-align:bottom; background:#f1f5f9;">
-                            <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem;">PERCENT %</div>
+                        <th style="border:1px solid #000; width:32px; height:65px; padding:0; vertical-align:bottom; background:#fff;">
+                            <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem; color:#000;">PERCENT %</div>
                         </th>
                         <th style="border:1px solid #000; width:30px; height:65px; padding:0; vertical-align:bottom;">
                             <div style="transform:rotate(-90deg); white-space:nowrap; margin-bottom:18px; font-weight:900; font-size:0.55rem;">POSITION</div>
@@ -1489,17 +1604,17 @@ async function generateProclamationList() {
             </div>
 
             <!-- SIGNATURES -->
-            <div style="display:flex; justify-content:space-around; margin-top:25px; font-size:0.6rem; gap:10px;">
-                <div style="text-align:center; flex:1; border-top:1px solid #000; padding-top:5px;">
+            <div style="display:flex; justify-content:space-around; margin-top:25px; font-size:0.6rem; gap:10px; color:#000;">
+                <div style="text-align:center; flex:1; border-top:1.5px solid #000; padding-top:5px;">
                     PREPARED BY CLASS TEACHER<br>
                     <strong style="font-size:0.7rem;">${(MY_PROFILE?.full_name||'...').toUpperCase()}</strong>
                 </div>
-                <div style="text-align:center; flex:1; border-top:1px solid #000; padding-top:5px; position:relative;">
+                <div style="text-align:center; flex:1; border-top:1.5px solid #000; padding-top:5px; position:relative;">
                     APPROVED BY DOS<br>
                     ${SCHOOL_INFO.dos_sig ? `<img src="${SCHOOL_INFO.dos_sig}" style="height:35px; position:absolute; top:-10px; left:50%; transform:translateX(-50%); mix-blend-mode:multiply;">` : ''}
                     <strong style="font-size:0.7rem; position:relative; z-index:2;">${(SCHOOL_INFO.dos||'...').toUpperCase()}</strong>
                 </div>
-                <div style="text-align:center; flex:1; border-top:1px solid #000; padding-top:5px; position:relative;">
+                <div style="text-align:center; flex:1; border-top:1.5px solid #000; padding-top:5px; position:relative;">
                     APPROVED BY HEADTEACHER<br>
                     ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="height:40px; position:absolute; top:-15px; left:50%; transform:translateX(-50%); mix-blend-mode:multiply;">` : ''}
                     ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:60px; height:60px; position:absolute; top:-40px; right:-10px; opacity:0.8; mix-blend-mode:multiply;">` : ''}
@@ -1688,30 +1803,67 @@ async function generateReportCard(forceDownload = false) {
 
     const term = parseInt(el('report-term-select').value);
     const sid = el('report-student-select').value;
-    const selSubIds = Array.from(el('report-subject-checklist').querySelectorAll('input:checked')).map(i => i.value);
-    const selAssessIds = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => i.value);
-    const assessmentContext = selAsses.join(', ');
     
-    if (selSubIds.length === 0) return;
+    // Capture ALL selected items (including std_ placeholders)
+    const rawSelSubs = Array.from(el('report-subject-checklist').querySelectorAll('input:checked')).map(i => ({
+        id: i.value,
+        label: i.parentElement.innerText.trim()
+    }));
+    const rawSelAsses = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => ({
+        id: i.value,
+        label: i.parentElement.innerText.trim()
+    }));
+    
+    const selSubIds = rawSelSubs.map(s => s.id).filter(id => !id.startsWith('std_'));
+    
+    if (rawSelSubs.length === 0) return toast('Please select at least one subject.', 'warning');
 
-    const allStudentsInClass = await DB.getStudents(cid);
-    const targetStudents = sid === 'all' ? allStudentsInClass : [ allStudentsInClass.find(st => st.id === sid) ];
+    const allStudentsInClass = (await DB.getStudents(cid)) || [];
     
-    // FETCH FRESH DATA SCOPED TO CLASS
-    const [allMarks, allSubjects, schoolData] = await Promise.all([
+    // SKELETON PREVIEW ENGINE: Even with no students, we allow a template preview
+    let targetStudents = [];
+    if (sid === 'all') {
+        targetStudents = allStudentsInClass.length > 0 ? allStudentsInClass : [{ id: 'template', first_name: 'SAMPLE', last_name: 'STUDENT', sid: 'SDMS-XXXX' }];
+    } else {
+        const found = allStudentsInClass.find(st => st.id === sid);
+        targetStudents = found ? [found] : (allStudentsInClass.length > 0 ? [allStudentsInClass[0]] : []);
+    }
+    
+    // FETCH FRESH DATA (Institutional Integrity Enforcement)
+    const [allMarks, allDBSubjects, schoolData] = await Promise.all([
         DB.getMarks({ classId: cid, term }),
         DB.getSubjects(),
         DB.getSchoolInfo()
     ]);
-    if (schoolData) Object.assign(SCHOOL_INFO, schoolData);
+    
+    if (schoolData) {
+        // Deep merge to ensure all branding fields (district, sector, province) are updated
+        SCHOOL_INFO = { ...SCHOOL_INFO, ...schoolData };
+        console.log('[REPORTS] Institutional Identity Synchronized:', SCHOOL_INFO.school);
+    } else {
+        console.warn('[REPORTS] Institutional Registry unavailable. Using fallback branding.');
+    }
 
-    const subjects = allSubjects.filter(s => selSubIds.includes(s.id));
+    const subjects = rawSelSubs.map(sel => {
+        const dbMatch = allDBSubjects.find(s => s.id === sel.id);
+        if (dbMatch) return dbMatch;
+        // Strip emojis and extra spaces for the virtual name
+        const cleanName = sel.label.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+        return { 
+            id: sel.id, 
+            name: cleanName.toUpperCase(), 
+            abbr: cleanName.toUpperCase().substring(0,5) 
+        };
+    });
 
     // BUILD DYNAMIC PILLARS FROM USER SELECTION
-    const activePillars = Array.from(el('report-assess-checklist').querySelectorAll('input:checked')).map(i => ({
-        id: i.value.toLowerCase(),
-        abbr: i.parentElement.innerText.trim().toUpperCase()
-    }));
+    const activePillars = rawSelAsses.map(sel => {
+        const dbId = sel.id.startsWith('std_') ? sel.id.replace('std_', '').toLowerCase() : sel.id;
+        return {
+            id: dbId,
+            abbr: sel.label.split(' ').pop().toUpperCase()
+        };
+    });
     const pillarCount = activePillars.length;
 
     if (pillarCount === 0) return;
@@ -1778,15 +1930,15 @@ async function generateReportCard(forceDownload = false) {
             const subPct = pMax > 0 ? (pSum / pMax * 100).toFixed(1) : '0.0';
 
             rowsHtml += `
-                <tr style="font-size:${rowFS}; font-weight:800; text-align:center;">
+                <tr style="font-size:${rowFS}; font-weight:800; text-align:center; color:#000;">
                     <td style="border:2px solid #000; padding:${rowPad}; text-align:left; font-weight:900; white-space:nowrap; overflow:hidden;">${sub.name.replace(/\s*\(.*?\)\s*/g, '').trim()}</td>
                     ${mCells}
-                    <td style="border:2px solid #000; font-weight:900; background:#f1f5f9; width:28px;">${pMax}</td>
+                    <td style="border:2px solid #000; font-weight:900; background:#fff; width:28px;">${pMax}</td>
                     ${pCells}
-                    <td style="border:2px solid #000; font-weight:1000; background:#f1f5f9; width:28px;">${pSum}</td>
+                    <td style="border:2px solid #000; font-weight:1000; background:#fff; width:28px;">${pSum}</td>
                     <td style="border:2px solid #000; width:28px; font-weight:900;">${subPct}</td>
                     <td style="border:2px solid #000; width:24px; font-weight:900;">${calcGrade(Number(subPct))}</td>
-                    <td style="border:2px solid #000; background:#f1f5f9; width:28px;">${pSum}</td>
+                    <td style="border:2px solid #000; background:#fff; width:28px;">${pSum}</td>
                     <td style="border:2px solid #000; width:28px;">${pMax}</td>
                     <td style="border:2px solid #000; width:28px;">${subPct}</td>
                     <td style="border:2px solid #000; width:24px;">${calcGrade(Number(subPct))}</td>
@@ -1818,7 +1970,7 @@ async function generateReportCard(forceDownload = false) {
 
                 <table style="width:100%; border-collapse:collapse; border:2.5px solid #000; margin-bottom:5px; text-align:center; font-size:${rowFS};">
                     <thead>
-                        <tr style="background:#f1f5f9; height:30px; color:#000;">
+                        <tr style="background:#eee; height:30px; color:#000;">
                             <th rowspan="2" style="border:2.5px solid #000; width:${subjectW}; text-align:center; font-weight:900; font-size: 0.75rem;">SUBJECT</th>
                             <th colspan="${pillarCount + 1}" style="border:2.5px solid #000; font-size: 0.7rem; font-weight:900;">MAXIMUM MARKS</th>
                             <th colspan="${pillarCount + 1}" style="border:2.5px solid #000; font-size: 0.7rem; font-weight:900;">TERM ${term} / ${academicYear}</th>
@@ -1828,9 +1980,9 @@ async function generateReportCard(forceDownload = false) {
                         </tr>
                         <tr style="background:#fff; font-weight:900; font-size:0.5rem; height:20px;">
                             ${activePillars.map(p => `<th style="border:1.5px solid #000; width:${cellW};">${p.abbr}</th>`).join('')}
-                            <th style="border:2.5px solid #000; width:28px; background:#f1f5f9;">TOT</th>
+                            <th style="border:2.5px solid #000; width:28px; background:#fff;">TOT</th>
                             ${activePillars.map(p => `<th style="border:1.5px solid #000; width:${cellW};">${p.abbr}</th>`).join('')}
-                            <th style="border:2.5px solid #000; width:28px; background:#f1f5f9;">TOT</th>
+                            <th style="border:2.5px solid #000; width:28px; background:#fff;">TOT</th>
                             <th style="border:1.5px solid #000; width:28px;">TOT</th>
                             <th style="border:1.5px solid #000; width:28px;">MAX</th>
                             <th style="border:1.5px solid #000; width:28px;">%</th>
@@ -1839,7 +1991,7 @@ async function generateReportCard(forceDownload = false) {
                     </thead>
                     <tbody>
                         ${rowsHtml}
-                        <tr style="font-weight:1000; border-top:2.5px solid #000; background:#f1f5f9; text-align:center;">
+                        <tr style="font-weight:1000; border-top:2.5px solid #000; background:#fff; text-align:center; color:#000;">
                             <td style="border:2.5px solid #000; text-align:left; padding:5px; font-size:0.75rem;">TOTAL</td>
                             ${grandPillarMaxs.map(m => `<td style="border:1.5px solid #000;">${m}</td>`).join('')}
                             <td style="border:2.5px solid #000; background:#fff;">${grandTotMax}</td>
@@ -1855,8 +2007,8 @@ async function generateReportCard(forceDownload = false) {
                     </tbody>
                 </table>
 
-                <table style="width:100%; border-collapse:collapse; border:2.5px solid #000; margin-bottom:5px; font-size:${rowFS}; font-weight:900;">
-                    <tr style="background:#f1f5f9; text-align:center;">
+                <table style="width:100%; border-collapse:collapse; border:2.5px solid #000; margin-bottom:5px; font-size:${rowFS}; font-weight:900; color:#000;">
+                    <tr style="background:#eee; text-align:center;">
                         <td style="border:1px solid #000; width:30%;">ASSESSMENT SUMMARY</td>
                         <td style="border:1px solid #000;">TERM ${term}</td>
                         <td style="border:1px solid #000;">ANNUAL /360</td>
@@ -1913,18 +2065,24 @@ async function generateReportCard(forceDownload = false) {
                             <td style="border:1px solid #000; font-weight:900;">6</td><td style="border:1px solid #000; font-weight:900;">5</td><td style="border:1px solid #000; font-weight:900;">4</td><td style="border:1px solid #000; font-weight:900;">3</td><td style="border:1px solid #000; font-weight:900;">2</td><td style="border:1px solid #000; font-weight:900;">1</td><td style="border:1px solid #000; font-weight:900;">0</td>
                         </tr>
                     </table>
-                    <div style="border:2px solid #000; padding:12px; font-size:0.58rem; display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative;">
-                        <div style="font-size:0.4rem; font-weight:900; color:#64748b; text-transform:uppercase; margin-bottom:2px;">Done at ${(SCHOOL_INFO.district || '...').toUpperCase()}, on ${finalDate}</div>
-                        <div style="font-weight:900; font-size:0.6rem; margin-bottom:12px;">HEADTEACHER / PRINCIPAL</div>
-                        <div style="height:75px; display:flex; align-items:center; justify-content:center; position:relative; margin: 4px 0;">
-                            ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:70px; max-width:180px; object-fit:contain; mix-blend-mode:multiply; position:absolute; z-index:2;">` : ''}
-                            ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:100px; height:100px; opacity:0.85; mix-blend-mode:multiply; position:absolute; z-index:1; transform: translate(15px, -10px) rotate(-5deg);">` : ''}
+                    <div style="border:2px solid #000; padding:12px; font-size:0.58rem; display:flex; flex-direction:column; justify-content:center; text-align:center; position:relative; color:#000; min-height:165px;">
+                        <div style="font-size:0.52rem; font-weight:1000; color:#000; text-transform:uppercase; margin-bottom:5px; border-bottom:1px solid #000; padding-bottom:3px;">
+                            DONE AT ${(SCHOOL_INFO.district || '...').toUpperCase()}, ON ${finalDate}
                         </div>
-                        <div style="font-weight:950; font-size:0.8rem; border-top: 1.5px solid #000; padding-top:6px; margin-top:8px;">${(SCHOOL_INFO.headteacher || '...').toUpperCase()}</div>
+                        <div style="font-weight:1000; font-size:0.75rem; margin-bottom:15px; color:#000; letter-spacing:1px;">HEADTEACHER / PRINCIPAL</div>
+                        
+                        <div style="flex-grow:1; display:flex; align-items:center; justify-content:center; position:relative; margin-bottom:10px;">
+                            ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:80px; max-width:200px; object-fit:contain; mix-blend-mode:multiply; position:absolute; z-index:2; transform: translateY(-5px);">` : ''}
+                            ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:115px; height:115px; opacity:0.85; mix-blend-mode:multiply; position:absolute; z-index:1; transform: translate(30px, -15px) rotate(-8deg);">` : ''}
+                        </div>
+
+                        <div style="font-weight:1000; font-size:0.95rem; border-top: 2px solid #000; padding-top:8px; color:#000; text-transform:uppercase; letter-spacing:0.5px;">
+                            ${(SCHOOL_INFO.headteacher || '...').toUpperCase()}
+                        </div>
                     </div>
                 </div>
 
-                <div style="padding:10px 0; display:flex; justify-content:flex-end; font-size:0.55rem; color:#64748b; font-weight:800;">
+                <div style="padding:10px 0; display:flex; justify-content:flex-end; font-size:0.55rem; color:#000; font-weight:800;">
                     <span>OFFICIAL STUDENT REGISTRY ID: ${student.sid || 'N/A'}</span>
                 </div>
             </div>
@@ -1936,7 +2094,22 @@ async function generateReportCard(forceDownload = false) {
     printArea.style.border = 'none';
     printArea.style.padding = '0';
     printArea.style.margin = '0';
-    printArea.innerHTML = areaHtml.trim();
+    
+    if (!areaHtml || areaHtml.trim() === '') {
+        printArea.innerHTML = `
+            <div style="text-align:center; padding: 5rem 2rem; background: #fff; border: 2px dashed #e2e8f0; border-radius: 20px; color: #64748b;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📂</div>
+                <h3 style="font-weight: 1000; color: #1e293b; margin-bottom: 0.5rem;">No Active Records Identified</h3>
+                <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto;">Ensure your school node (541010) is synchronized and that marks have been recorded for the selected term.</p>
+            </div>
+        `;
+    } else {
+        printArea.innerHTML = areaHtml.trim();
+        // Give the DOM a moment to render then scroll
+        setTimeout(() => {
+            printArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
 
     if (forceDownload) {
         toast('Generating Institutional PDF...', 'info');
@@ -2566,38 +2739,54 @@ function getSelectedReportAssessLabels() {
 function generateInstitutionalHeader(reportTitle, subtitle = '') {
     const info = SCHOOL_INFO;
     const assessLabel = getSelectedReportAssessLabels() || 'ALL ASSESSMENTS';
+    const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
+    const schoolLogo = info.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png";
+
     return `
-        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; border-bottom: 2px solid #000; padding-bottom: 15px;">
-            <tr>
-                <td style="width:110px; vertical-align:middle; text-align:left;">
-                    <img src="js/Report image/download__92_-removebg-preview.png" style="width:85px; height:auto;">
-                    <div style="font-size:0.55rem; font-weight:700; color:#1e40af; text-align:center; margin-top:4px; line-height:1.2;">REPUBLIC OF RWANDA<br>MINISTRY OF EDUCATION</div>
-                </td>
-                <td style="text-align:center; vertical-align:middle; padding: 0 10px;">
-                    <div style="font-size:0.65rem; font-weight:900; color:#1e40af; letter-spacing:1.5px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
-                    <div style="font-size:1.6rem; font-weight:1000; text-transform:uppercase; margin-bottom:4px; color:#000; letter-spacing:-0.5px;">${(info.school || 'EDUMARKS ACADEMY').toUpperCase()}</div>
-                    <div style="font-size:0.8rem; font-weight:800; color:#475569; margin-bottom:12px; text-transform: uppercase;">
-                        ${info.province ? info.province + ' PROVINCE | ' : ''} District: ${info.district || '...'} | Sector: ${info.sector || '...'} | Level: ${info.level || 'Primary'}
-                    </div>
-                    <div style="display:inline-block; background:yellow; border:2.5px solid #000; color:#000; font-size:1.05rem; font-weight:1000; padding:8px 25px; text-transform:uppercase; letter-spacing:0.5px;">
-                        ${reportTitle}
-                    </div>
-                    <div style="font-size:0.75rem; font-weight:700; color:#1e293b; margin-top:8px;">
-                        Email: ${info.email || '...'} | Phone: ${info.phone || '...'}
-                    </div>
-                    <div style="font-size:0.85rem; font-weight:900; color:#3b82f6; margin-top:8px; text-transform:uppercase;">
-                        [ BASED ON: ${assessLabel} ]
-                    </div>
-                    ${subtitle ? `<div style="font-size:0.8rem; font-weight:900; margin-top:5px; color:#475569; font-style: italic;">${subtitle}</div>` : ''}
-                </td>
-                <td style="width:110px; vertical-align:middle; text-align:right;">
-                    ${info.logo ? 
-                        `<img src="${info.logo}" style="width:90px; height:90px; object-fit:contain; border-radius:8px;">` : 
-                        `<div style="width:90px; height:90px; border:2px dashed #000; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:900; text-align:center; color:#000;">OFFICIAL<br>SCHOOL STAMP</div>`
-                    }
-                </td>
-            </tr>
-        </table>
+        <div style="display:flex; flex-direction:column; align-items:center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 20px; position:relative;">
+            
+            <!-- Standard Rwanda/MINEDUC Branding (Left Overlay-ish) -->
+            <div style="position:absolute; left:0; top:0; width:120px; text-align:center;">
+                <img src="${rwandaLogo}" style="width:85px; height:auto; margin-bottom:2px;">
+                <div style="font-size:0.55rem; font-weight:800; color:#000; line-height:1.1;">
+                    REPUBLIC OF RWANDA<br>MINISTRY OF EDUCATION
+                </div>
+            </div>
+
+            <!-- Central School Details -->
+            <div style="text-align:center; padding: 0 130px; width:100%; box-sizing:border-box;">
+                <div style="font-size:0.8rem; font-weight:900; color:#000; letter-spacing:1px;">${(info.republic || 'REPUBLIC OF RWANDA').toUpperCase()}</div>
+                <div style="font-size:2.2rem; font-weight:1000; color:#000; text-transform:uppercase; margin: 4px 0; letter-spacing:-1px; line-height:1;">${(info.school || 'MMS PORTAL').toUpperCase()}</div>
+                
+                <div style="font-size:0.85rem; font-weight:900; color:#000; margin: 6px 0; text-transform:uppercase;">
+                    ${info.province ? info.province + ' PROVINCE | ' : ''}
+                    DISTRICT: ${info.district || '...'} | SECTOR: ${info.sector || '...'} | LEVEL: ${info.level || 'PRIMARY'}
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 45px; border:3px solid #000; display:inline-block; letter-spacing:3px;">${reportTitle.toUpperCase()}</span>
+                </div>
+
+                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px;">
+                    Email: ${info.email || '...'} | Phone: ${info.phone || '...'}
+                </div>
+
+                <div style="font-size:0.95rem; font-weight:900; color:#000; margin-top:10px; text-transform:uppercase;">
+                    [ BASED ON: ${assessLabel} ]
+                </div>
+                
+                ${subtitle ? `<div style="font-size:1rem; font-weight:950; margin-top:8px; font-style:italic;">${subtitle}</div>` : ''}
+            </div>
+
+            <!-- School Logo (Right Overlay-ish) -->
+            <div style="position:absolute; right:0; top:0; width:120px; text-align:center;">
+                ${info.logo ? 
+                    `<img src="${info.logo}" style="width:100px; height:100px; object-fit:contain;">` : 
+                    `<div style="width:100px; height:100px; border:2.5px dashed #000; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:900; text-align:center; color:#000;">OFFICIAL<br>STAMP / LOGO</div>`
+                }
+            </div>
+
+        </div>
     `;
 }
 
@@ -2696,7 +2885,7 @@ window.generateGradeDistributionReport = async function() {
         });
 
         renderGradeDistributionPdf({ 
-            year, term, className: cls.name, 
+            year, term, className: cls?.name || 'Class Registry', 
             exp: { b: exp_b, g: exp_g, t: exp_b+exp_g },
             sat: { b: sat_b, g: sat_g, t: sat_b+sat_g },
             abs: { b: abs_b, g: abs_g, t: abs_b+abs_g },
@@ -3199,7 +3388,7 @@ window.generatePassRateReport = async function() {
         const fail_p = sat_t > 0 ? ((fail_t / sat_t) * 100).toFixed(2) : '0.00';
 
         reportData.push({
-            name: cls.name,
+            name: cls?.name || 'Class Archive',
             sat_b, sat_g, sat_t,
             pass_b, pass_g, pass_t, pass_p,
             fail_b, fail_g, fail_t, fail_p

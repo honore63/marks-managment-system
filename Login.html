@@ -13,19 +13,21 @@
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/ai-assistant.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
+  <style id="mms-elite-gatekeeper-style">
     :root {
       --primary-brand: #2563EB;
-      --secondary-brand: #0B0E14;
+      --secondary-brand: #0F172A;
       --accent-glow: rgba(37, 99, 235, 0.15);
       --font-heading: 'Plus Jakarta Sans', sans-serif;
       --font-body: 'Inter', sans-serif;
+      --glass-bg: rgba(255, 255, 255, 0.95);
+      --glass-border: rgba(255, 255, 255, 0.2);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
       font-family: var(--font-body); 
-      background: #fff; 
+      background: #F8FAFC; 
       min-height: 100vh;
       overflow-x: hidden;
     }
@@ -36,13 +38,13 @@
       width: 100%;
     }
 
-    /* LEFT: BRANDING SECTION */
+    /* LEFT: BRANDING SECTION (Kinetic Depth) */
     .branding-section {
       flex: 1.2;
-      background: #0F172A;
+      background: #020617;
       background-image: 
-        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.2) 0, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.1) 0, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.25) 0, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.15) 0, transparent 50%);
       position: relative;
       overflow: hidden;
       display: flex;
@@ -56,143 +58,156 @@
       .branding-section { display: none; }
     }
 
-    .branding-section::before {
+    .branding-section::after {
       content: '';
       position: absolute;
-      top: -10%; left: -10%;
-      width: 40%; height: 40%;
-      background: radial-gradient(circle, rgba(37, 99, 235, 0.2) 0%, transparent 70%);
-      filter: blur(60px);
+      inset: 0;
+      background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+      opacity: 0.1;
+      pointer-events: none;
     }
 
-    .branding-content { position: relative; z-index: 10; }
+    .branding-content { 
+      position: relative; z-index: 10;
+      animation: floatIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes floatIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     
     .mms-logo {
-      display: flex; align-items: center; gap: 1rem; margin-bottom: 3rem;
+      display: flex; align-items: center; gap: 1.5rem; margin-bottom: 4rem;
+      animation: logoPulse 4s ease-in-out infinite;
     }
+    @keyframes logoPulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
     .logo-box {
-      width: 50px; height: 50px;
-      background: linear-gradient(135deg, #3B82F6, #2563EB);
-      border-radius: 14px;
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+      border-radius: 20px;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 1.5rem;
-      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+      font-weight: 950; font-size: 1.8rem;
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.4);
     }
 
     .branding-heading {
       font-family: var(--font-heading);
-      font-size: 4rem;
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.04em;
-      margin-bottom: 1.5rem;
-      background: linear-gradient(to right, #fff, #94a3b8);
+      font-size: 4.5rem;
+      font-weight: 850;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      margin-bottom: 2rem;
+      background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .branding-sub {
-      font-size: 1.15rem;
-      line-height: 1.6;
+      font-size: 1.25rem;
+      line-height: 1.7;
       color: #94A3B8;
-      max-width: 500px;
+      max-width: 550px;
+      font-weight: 500;
     }
 
     .visual-footer {
       margin-top: auto;
-      display: flex; gap: 2rem;
-      padding-top: 4rem;
+      display: flex; gap: 3rem;
+      padding-top: 5rem;
     }
-    .stat-item {
-      display: flex; flex-direction: column;
-    }
-    .stat-val { font-size: 1.5rem; font-weight: 800; color: #fff; }
-    .stat-lbl { font-size: 0.75rem; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-item { display: flex; flex-direction: column; gap: 0.5rem; }
+    .stat-val { font-size: 1.75rem; font-weight: 900; color: #fff; letter-spacing: -1px; }
+    .stat-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
 
-    /* RIGHT: FORM SECTION */
+    /* RIGHT: FORM SECTION (Masterclass Glassmorphism) */
     .form-section {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 40px;
-      background: #F8FAFC;
+      position: relative;
+    }
+    .form-section::before {
+      content: '';
+      position: absolute;
+      top: 10%; right: 10%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+      filter: blur(50px);
     }
 
     .login-card {
       width: 100%;
-      max-width: 450px;
-      background: #fff;
-      padding: 3.5rem;
-      border-radius: 32px;
-      box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.08);
-      border: 1px solid rgba(241, 245, 249, 0.8);
-      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 480px;
+      background: var(--glass-bg);
+      padding: 4rem;
+      border-radius: 40px;
+      box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.1);
+      border: 1px solid rgba(255,255,255,0.8);
+      position: relative;
+      z-index: 10;
+      animation: cardSlide 0.8s cubic-bezier(0.19, 1, 0.22, 1);
     }
+    @keyframes cardSlide { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    .form-header { margin-bottom: 3rem; text-align: center; }
+    .form-header h2 { font-family: var(--font-heading); font-size: 2.25rem; font-weight: 850; color: #0F172A; letter-spacing: -1px; }
+    .form-header p { color: #64748B; font-size: 1rem; margin-top: 0.75rem; font-weight: 500; }
 
-    .form-header { margin-bottom: 2.5rem; }
-    .form-header h2 { font-family: var(--font-heading); font-size: 1.85rem; font-weight: 800; color: #0F172A; }
-    .form-header p { color: #64748B; font-size: 0.95rem; margin-top: 0.5rem; }
-
-    .input-group { margin-bottom: 1.25rem; }
-    .input-label { display: block; font-size: 0.8rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-group { margin-bottom: 1.75rem; }
+    .input-label { display: block; font-size: 0.75rem; font-weight: 850; color: #475569; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; }
     
     .input-wrapper { position: relative; }
-    .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #CBD5E1; pointer-events: none; }
+    .input-icon { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: #94A3B8; transition: color 0.3s; }
     
     .form-input {
       width: 100%;
-      padding: 1rem 3.5rem 1rem 3rem;
-      border: 1.5px solid #E2E8F0;
-      border-radius: 14px;
+      padding: 1.15rem 1.25rem 1.15rem 3.5rem;
+      border: 2.5px solid #F1F5F9;
+      border-radius: 20px;
       font-family: var(--font-body);
       font-size: 1rem;
+      font-weight: 600;
       color: #0F172A;
-      transition: all 0.2s;
+      transition: all 0.3s;
       background: #F8FAFC;
     }
     .form-input:focus {
       outline: none;
       border-color: var(--primary-brand);
       background: #fff;
-      box-shadow: 0 0 0 4px var(--accent-glow);
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.08);
     }
+    .input-wrapper:focus-within .input-icon { color: var(--primary-brand); }
 
     .form-options {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 2rem; font-size: 0.85rem;
+      margin-bottom: 2.5rem; font-size: 0.9rem;
     }
-    .remember-me { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #64748B; cursor: pointer; }
-    .remember-me input { cursor: pointer; }
-    .forgot-link { text-decoration: none; color: var(--primary-brand); font-weight: 700; }
+    .remember-me { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; color: #64748B; cursor: pointer; transition: color 0.2s; }
+    .remember-me:hover { color: #0F172A; }
+    .forgot-link { text-decoration: none; color: var(--primary-brand); font-weight: 800; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .forgot-link:hover { border-bottom-color: var(--primary-brand); }
 
     .submit-btn {
       width: 100%;
-      padding: 1.15rem;
+      padding: 1.25rem;
       border: none;
-      border-radius: 14px;
-      background: var(--primary-brand);
+      border-radius: 20px;
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
       color: white;
       font-family: var(--font-heading);
-      font-size: 1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       cursor: pointer;
-      transition: all 0.3s;
-      display: flex; align-items: center; justify-content: center; gap: 0.75rem;
-      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex; align-items: center; justify-content: center; gap: 1rem;
+      box-shadow: 0 15px 30px rgba(37, 99, 235, 0.3);
     }
     .submit-btn:hover {
-      filter: brightness(1.1);
-      transform: translateY(-2px);
-      box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.5);
+      transform: translateY(-4px);
+      box-shadow: 0 25px 50px rgba(37, 99, 235, 0.4);
     }
-    .submit-btn:disabled { background: #94A3B8; cursor: not-allowed; transform: none; box-shadow: none; }
+    .submit-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
     .loader {
       width: 20px; height: 20px;
@@ -205,48 +220,23 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .support-footer {
-      margin-top: 2.5rem; text-align: center;
-      padding-top: 1.5rem; border-top: 1px solid #F1F5F9;
-      font-size: 0.8rem; color: #94A3B8; font-weight: 600;
+      margin-top: 3rem; text-align: center;
+      padding-top: 2rem; border-top: 1px solid #F1F5F9;
+      font-size: 0.85rem; color: #94A3B8; font-weight: 600;
     }
-    .support-footer a { color: #475569; text-decoration: none; font-weight: 700; }
+    .support-footer a { color: #0F172A; text-decoration: none; font-weight: 800; }
 
-    /* Role Detection Hint */
     .role-hint {
-      margin-top: 1.5rem;
-      font-size: 0.7rem; font-weight: 800; color: #CBD5E1;
-      text-transform: uppercase; letter-spacing: 1px;
-      text-align: center;
+      margin-top: 1.5rem; text-align: center;
+      font-size: 0.65rem; font-weight: 900; color: #CBD5E1;
+      text-transform: uppercase; letter-spacing: 2px;
     }
 
-    /* MOBILE & TABLET OPTIMIZATIONS */
+    /* MOBILE OPTIMIZATIONS */
     @media (max-width: 1024px) {
-      .login-container { flex-direction: column; height: auto; }
-      .branding-section { 
-          flex: none; width: 100%; 
-          padding: 3rem 1.5rem; 
-          min-height: auto;
-          text-align: center;
-          align-items: center;
-      }
-      .branding-heading { font-size: 2.25rem; margin-bottom: 1rem; }
-      .branding-sub { font-size: 0.95rem; margin: 0 auto; }
-      .mms-logo { justify-content: center; margin-bottom: 2rem; }
-      .visual-footer { display: none; }
-      
-      .form-section { padding: 40px 20px; background: #f8fafc; }
-      .login-card { padding: 2.5rem; max-width: 450px; box-shadow: 0 40px 80px -20px rgba(15, 23, 42, 0.08); border-radius: 32px; border: 1px solid rgba(241, 245, 249, 0.8); }
-    }
-
-    @media (max-width: 480px) {
-      .branding-heading { font-size: 1.85rem; }
-      .branding-section { padding: 4rem 1.25rem; }
-      .form-header h2 { font-size: 1.5rem; }
-      .form-header p { font-size: 0.85rem; }
-      .login-card { padding: 2rem 1.5rem; }
-      .submit-btn { padding: 1rem; font-size: 0.9rem; }
-      .form-input { padding-left: 2.75rem; font-size: 0.95rem; }
-      .support-footer { font-size: 0.75rem; }
+      .login-container { flex-direction: column; }
+      .form-section { padding: 4rem 1.5rem; background: #fff; }
+      .login-card { padding: 3rem 2rem; box-shadow: none; border: none; }
     }
   </style>
   <link rel="manifest" href="manifest.json">
@@ -287,6 +277,11 @@
   <div class="form-section">
     <div class="login-card">
       <div class="form-header">
+        <div style="display:flex; justify-content:center; margin-bottom:1.5rem;">
+          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png"
+               alt="MMS Logo"
+               style="height: 80px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(37,99,235,0.15));">
+        </div>
         <h2>Welcome Back</h2>
         <p>Enter your institutional credentials to access your dashboard.</p>
       </div>
