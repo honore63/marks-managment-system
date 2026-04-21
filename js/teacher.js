@@ -555,6 +555,14 @@ async function switchView(viewId, el) {
         
         if (contentArea) contentArea.style.opacity = '1';
         if (window.lucide) lucide.createIcons();
+
+        // 7. Auto-Close Sidebar on mobile
+        if (window.innerWidth <= 1024) {
+            const sb = document.querySelector('.sidebar');
+            if (sb && sb.classList.contains('open')) {
+                toggleSidebar();
+            }
+        }
     } catch (err) {
         if (contentArea) contentArea.style.opacity = '1';
         console.error(`[NAV] Dispatch failed for '${viewId}':`, err);

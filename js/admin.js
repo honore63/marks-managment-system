@@ -722,6 +722,14 @@ async function switchView(viewId, triggerEl) {
         renderFacultyMonitor();
     }
 
+    // Auto-Close Sidebar on mobile
+    if (window.innerWidth <= 1024) {
+        const sb = document.querySelector('.sidebar');
+        if (sb && sb.classList.contains('open')) {
+            toggleSidebar();
+        }
+    }
+
     // Support View Special Content
     if (viewId === 'support') {
         const supportView = document.getElementById('view-support');
