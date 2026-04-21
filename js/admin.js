@@ -413,12 +413,6 @@ function toggleSidebar() {
         // Desktop: Toggle Collapse
         sb.classList.toggle('collapsed');
         localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
-        
-        // Adjust main wrapper margin
-        const main = document.querySelector('.main-wrapper');
-        if (main) {
-            main.style.marginLeft = sb.classList.contains('collapsed') ? '80px' : 'var(--sidebar-w)';
-        }
     } else {
         // Mobile: Toggle Open Overlay
         const isOpen = sb.classList.toggle('open');
