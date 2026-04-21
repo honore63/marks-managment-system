@@ -1818,3 +1818,17 @@ textarea.input-field {
 .mt-lg {
   margin-top: 2rem;
 }
+
+/* ============================================================
+   DARK MODE (BRIGHTNESS TOGGLE)
+   ============================================================ */
+body.dark-mode {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95);
+  background-color: #f1f5f9;
+}
+body.dark-mode img,
+body.dark-mode video,
+body.dark-mode .no-invert,
+body.dark-mode [data-lucide] {
+  filter: invert(1) hue-rotate(180deg);
+}

@@ -77,24 +77,24 @@
     }
 
     :root {
-      --midnight: #0f0e2a;
-      --navy: #1e1b4b;
-      --indigo: #4338ca;
-      --indigo-light: #6366f1;
-      --primary: #4338ca;
-      --primary-hover: #3730a3;
+      --midnight: #111827;
+      --navy: #1f2937;
+      --indigo: #2563eb;
+      --indigo-light: #60a5fa;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
       --gold: #f59e0b;
       --gold-light: #fbbf24;
       --gold-glow: rgba(245, 158, 11, 0.12);
       --emerald: #10b981;
-      --rose: #f43f5e;
+      --rose: #ef4444;
       --violet: #8b5cf6;
-      --sidebar-w: 280px;
+      --sidebar-w: 260px;
       --header-h: 72px;
-      --radius-xl: 24px;
-      --radius-2xl: 32px;
-      --shadow-card: 0 4px 24px rgba(15, 14, 42, 0.08);
-      --transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
+      --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -111,73 +111,84 @@
     .sidebar {
       width: var(--sidebar-w);
       background: #ffffff;
-      border-right: 1.5px solid #e8ecf0;
+      border-right: 1px solid #e5e7eb;
       display: flex; flex-direction: column; flex-shrink: 0;
       z-index: 200; overflow: hidden;
       transition: var(--transition);
       position: relative;
-      box-shadow: 4px 0 24px rgba(15, 14, 42, 0.04);
     }
     .sidebar::before { display: none; }
-    .sidebar::after {
-      content: ''; position: absolute; top: 0; left: 0;
-      width: 100%; height: 4px;
-      background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--indigo-light));
-    }
+    .sidebar::after { display: none; }
 
     .sidebar-brand {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1.5rem 1.25rem 1.25rem;
-      border-bottom: 1.5px solid #f1f5f9;
+      padding: 1.5rem 1rem 1rem;
+      border-bottom: 1px solid #f9fafb;
       margin-bottom: 0.5rem;
-      margin-top: 0.5rem;
     }
     .navbar-brand { display: flex; align-items: center; gap: 0.75rem; }
     .sidebar-toggle {
-      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
-      background: #f8fafc; border: 1.5px solid #e8ecf0; border-radius: 10px;
-      cursor: pointer; color: #64748b; font-size: 1.1rem; transition: var(--transition);
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px;
+      cursor: pointer; color: #6b7280; font-size: 0.9rem; transition: var(--transition);
     }
-    .sidebar-toggle:hover { background: var(--midnight); color: var(--gold); border-color: var(--midnight); }
-    .logo-main { font-size: 1.5rem !important; font-weight: 900 !important; color: var(--midnight) !important; letter-spacing: -1px; line-height: 1; }
-    .logo-main span { color: var(--gold) !important; }
-    .logo-sub { font-size: 0.6rem !important; font-weight: 800 !important; color: #94a3b8 !important; text-transform: uppercase !important; letter-spacing: 2px !important; margin-top: 3px; }
+    .sidebar-toggle:hover { background: #f3f4f6; color: #111827; border-color: #d1d5db; }
+    .logo-main { font-size: 1.4rem !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px; line-height: 1; }
+    .logo-main span { color: var(--primary) !important; font-weight: 800 !important; }
+    .logo-sub { font-size: 0.6rem !important; font-weight: 700 !important; color: var(--primary) !important; text-transform: uppercase !important; letter-spacing: 1px !important; margin-top: 3px; }
 
-    .sidebar-nav { padding: 0 1.25rem 1.25rem; overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+    .sidebar-nav { padding: 0 1rem 1rem; overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #e5e7eb transparent; }
     .sidebar-nav::-webkit-scrollbar { width: 4px; }
-    .sidebar-nav::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
 
     .sidebar-group-label {
-      font-size: 0.62rem !important; font-weight: 900 !important;
-      color: #94a3b8 !important; text-transform: uppercase !important;
-      letter-spacing: 2.5px !important; padding: 0 0.75rem;
-      margin: 1.25rem 0 0.4rem !important;
+      font-size: 0.65rem !important; font-weight: 600 !important;
+      color: #9ca3af !important; text-transform: uppercase !important;
+      letter-spacing: 0.5px !important; padding: 0 0.75rem;
+      margin: 1.5rem 0 0.5rem !important;
     }
     .sidebar-item {
-      display: flex !important; align-items: center !important; gap: 0.875rem !important;
-      padding: 0.8rem 0.875rem !important;
-      border-radius: 14px !important; font-weight: 700 !important; font-size: 0.875rem !important;
-      color: #475569 !important; cursor: pointer;
+      display: flex !important; align-items: center !important; gap: 0.75rem !important;
+      padding: 0.75rem 0.875rem !important;
+      border-radius: 8px !important; font-weight: 600 !important; font-size: 0.9rem !important;
+      color: #4b5563 !important; cursor: pointer;
       transition: var(--transition) !important; position: relative;
-      border: 1px solid transparent !important; margin-bottom: 2px !important;
+      border: 1px solid transparent !important; margin-bottom: 4px !important;
     }
-    .sidebar-item i { width: 18px; height: 18px; flex-shrink: 0; color: #94a3b8; transition: all 0.3s; }
-    .sidebar-item-text { color: inherit !important; font-weight: 700 !important; }
-    .sidebar-item:hover { background: #f8fafc !important; color: var(--midnight) !important; border-color: #e8ecf0 !important; transform: none !important; }
-    .sidebar-item:hover i { transform: translateX(3px); color: var(--indigo); }
+    .sidebar-item i { width: 18px; height: 18px; flex-shrink: 0; color: #9ca3af; transition: all 0.2s; }
+    .sidebar-item-text { color: inherit !important; font-weight: 600 !important; }
+    .sidebar-item:hover { background: #f9fafb !important; color: #111827 !important; border-color: #f3f4f6 !important; transform: none !important; }
+    .sidebar-item:hover i { transform: none; color: #4b5563; }
     .sidebar-item.active {
-      background: linear-gradient(135deg, rgba(67,56,202,0.1), rgba(67,56,202,0.05)) !important;
-      color: var(--midnight) !important; border-color: rgba(67,56,202,0.3) !important; font-weight: 800 !important;
+      background: #eff6ff !important;
+      color: var(--primary) !important; border-color: #eff6ff !important; font-weight: 700 !important;
       box-shadow: none !important;
     }
-    .sidebar-item.active::before {
-      content: ''; position: absolute; left: -5px; top: 20%; bottom: 20%;
-      width: 4px; border-radius: 4px; background: var(--indigo);
+    .sidebar-item.active::before { display: none; }
+    .sidebar-item.active::after {
+      content: '•'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--primary); font-size: 1.5rem; line-height: 0;
     }
-    .sidebar-item.active i { color: var(--indigo); }
+    .sidebar-item.active i { color: var(--primary); }
     .sidebar-item.danger { color: #ef4444 !important; }
     .sidebar-item.danger i { color: #fca5a5; }
     .sidebar-item.danger:hover { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+
+    /* ── COLLAPSED SIDEBAR (DESKTOP) ──────────────── */
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed .logo-main, 
+    .sidebar.collapsed .logo-sub,
+    .sidebar.collapsed .sidebar-item-text, 
+    .sidebar.collapsed .sidebar-group-label,
+    .sidebar.collapsed .user-info,
+    .sidebar.collapsed .btn-text { display: none !important; }
+    .sidebar.collapsed .sidebar-item { justify-content: center; padding: 0.8rem !important; }
+    .sidebar.collapsed .sidebar-item i { margin: 0; }
+    .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 1.5rem 0.5rem 1.25rem; flex-direction: column; gap: 1rem; }
+    .sidebar.collapsed .navbar-brand { gap: 0; justify-content: center; }
+    .sidebar.collapsed .navbar-brand img { height: 40px !important; margin: 0 auto; }
+    .sidebar.collapsed .user-compact { padding: 0.875rem 0.5rem; justify-content: center; }
+    .sidebar.collapsed .sidebar-footer .btn { padding: 0.65rem 0 !important; }
 
     /* ── MAIN WRAPPER ─────────────────────────────── */
     .layout-sidebar { display: flex; height: 100vh; overflow: hidden; }
@@ -188,10 +199,8 @@
     /* ── TOPBAR (sub-header) ──────────────────────── */
     .sub-header {
       height: var(--header-h) !important;
-      background: rgba(255,255,255,0.92) !important;
-      backdrop-filter: blur(20px) saturate(1.8) !important;
-      -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
-      border-bottom: 1px solid rgba(30,27,75,0.06) !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e5e7eb !important;
       padding: 0 2rem !important;
       display: flex !important; justify-content: space-between !important; align-items: center !important;
       top: 0; z-index: 1500; position: sticky !important;
@@ -199,14 +208,18 @@
       flex-shrink: 0;
     }
     .sub-header.scrolled {
-      box-shadow: 0 4px 30px rgba(15,14,42,0.08) !important;
-      border-bottom-color: rgba(67,56,202,0.25) !important;
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+      border-bottom-color: transparent !important;
+    }
+    @media (min-width: 1025px) {
+      .sub-header .user-pill-elite { display: none !important; }
     }
 
     /* ── CONTENT ──────────────────────────────────── */
     .main-content {
       flex: 1; overflow-y: auto; padding: 2rem;
       scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+      background: #f9fafb;
     }
     .main-content::-webkit-scrollbar { width: 6px; }
     .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -218,33 +231,24 @@
       border-radius: var(--radius-xl) !important;
       padding: 1.75rem 2rem !important;
       display: flex !important; align-items: center !important; gap: 1.5rem !important;
-      border: 1.5px solid #e2e8f0 !important;
+      border: 1px solid #e5e7eb !important;
       box-shadow: var(--shadow-card) !important;
       transition: var(--transition) !important;
       position: relative !important; overflow: hidden !important;
     }
-    .kpi-card::before {
-      content: ''; position: absolute;
-      left: 0; top: 10%; bottom: 10%; width: 4px;
-      border-radius: 0 4px 4px 0; background: var(--card-accent, var(--indigo));
-    }
-    .kpi-card::after {
-      content: ''; position: absolute;
-      top: -30px; right: -30px; width: 120px; height: 120px;
-      background: radial-gradient(circle, var(--card-glow, rgba(67,56,202,0.07)), transparent 70%);
-      pointer-events: none;
-    }
-    .kpi-card:hover { transform: translateY(-6px) !important; box-shadow: 0 20px 40px rgba(15,14,42,0.1) !important; border-color: rgba(67,56,202,0.25) !important; }
-    .kpi-icon { width: 60px !important; height: 60px !important; border-radius: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
-    .kpi-card:hover .kpi-icon { transform: scale(1.08) rotate(-5deg) !important; }
-    .kpi-info h4 { font-size: 0.7rem !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: 1.5px !important; color: #94a3b8 !important; margin-bottom: 0.4rem; }
-    .kpi-info .val { font-size: 2.25rem !important; font-weight: 900 !important; color: var(--midnight) !important; line-height: 1; letter-spacing: -1.5px; }
+    .kpi-card::before { display: none; }
+    .kpi-card::after { display: none; }
+    .kpi-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; border-color: #d1d5db !important; }
+    .kpi-icon { width: 56px !important; height: 56px !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .kpi-card:hover .kpi-icon { transform: scale(1.05) !important; }
+    .kpi-info h4 { font-size: 0.75rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: #6b7280 !important; margin-bottom: 0.4rem; }
+    .kpi-info .val { font-size: 2rem !important; font-weight: 800 !important; color: #111827 !important; line-height: 1; letter-spacing: -0.5px; }
 
     /* ── CARDS / PANELS ───────────────────────────── */
     .card, .table-card, .chart-box {
-      background: #fff !important;
+      background: #ffffff !important;
       border-radius: var(--radius-xl) !important;
-      border: 1.5px solid #e2e8f0 !important;
+      border: 1px solid #e5e7eb !important;
       box-shadow: var(--shadow-card) !important;
       overflow: hidden !important; margin-bottom: 2rem;
       transition: var(--transition) !important;
@@ -252,12 +256,12 @@
     .card-header, .table-card-header {
       padding: 1.5rem 2rem !important;
       display: flex !important; align-items: center !important; justify-content: space-between !important;
-      border-bottom: 1.5px solid #f1f5f9 !important;
-      background: linear-gradient(135deg, #fafafa, #fff) !important;
+      border-bottom: 1px solid #f9fafb !important;
+      background: #ffffff !important;
       flex-wrap: wrap; gap: 1rem;
     }
-    .card-header h3, .card-header h2 { font-size: 1.1rem !important; font-weight: 800 !important; color: var(--midnight) !important; letter-spacing: -0.3px !important; }
-    .card-body { padding: 1.75rem 2rem !important; }
+    .card-header h3, .card-header h2 { font-size: 1.25rem !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px !important; }
+    .card-body { padding: 1.5rem 2rem !important; }
 
     /* ── CHARTS ───────────────────────────────────── */
     .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
@@ -295,10 +299,10 @@
     /* ── BUTTONS ──────────────────────────────────── */
     .btn {
       display: inline-flex !important; align-items: center !important; gap: 0.5rem !important;
-      padding: 0.75rem 1.5rem !important; border-radius: 14px !important;
+      padding: 0.75rem 1.5rem !important; border-radius: 8px !important;
       font-family: 'Inter', sans-serif !important;
-      font-size: 0.82rem !important; font-weight: 800 !important;
-      cursor: pointer !important; border: 2px solid transparent !important;
+      font-size: 0.875rem !important; font-weight: 600 !important;
+      cursor: pointer !important; border: 1px solid transparent !important;
       transition: var(--transition) !important; white-space: nowrap !important;
       width: auto !important; justify-content: center !important;
     }
@@ -352,7 +356,7 @@
       z-index: 10000; padding: 1.5rem;
     }
     .modal-overlay.open { display: flex; }
-    .modal-box, .modal-content, [class*="modal"] > .card {
+    .modal-box, .modal-content, .modal-card, [class*="modal"] > .card {
       background: #fff !important; width: 100%; max-width: 580px;
       border-radius: var(--radius-2xl) !important; padding: 3rem !important;
       border: 2px solid rgba(67,56,202,0.2) !important;
@@ -370,15 +374,16 @@
     }
     .form-control, .input-field, select.form-control {
       width: 100%; padding: 0.875rem 1.25rem;
-      border: 2px solid #e2e8f0; border-radius: 14px;
-      font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 700;
-      color: var(--midnight); background: #fafafa;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500;
+      color: #111827; background: #ffffff;
       transition: var(--transition); outline: none;
     }
     .form-control:focus, .input-field:focus {
       border-color: var(--indigo); background: #fff;
-      box-shadow: 0 0 0 4px rgba(67,56,202,0.1);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
     }
+    .search-pill { border-radius: 9999px !important; padding-left: 40px !important; }
 
     /* ── TOAST ────────────────────────────────────── */
     #toast-container {
@@ -471,11 +476,13 @@
       .kpi-grid, .stats-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 1024px) {
+      .sidebar-toggle { display: flex !important; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0; width: 32px; height: 32px; }
       .layout-sidebar { display: flex; }
-      .sidebar { position: fixed; left: -300px; top: 0; height: 100vh; transition: left 0.4s cubic-bezier(0.19,1,0.22,1); box-shadow: none; }
+      .sidebar { position: fixed; left: -300px; top: 0; height: 100vh; z-index: 9999; transition: left 0.4s cubic-bezier(0.19,1,0.22,1); box-shadow: none; }
       .sidebar.open { left: 0; box-shadow: 20px 0 60px rgba(15,14,42,0.25); }
       .main-wrapper { width: 100%; }
       .mobile-menu-btn { display: flex !important; }
+      .sidebar-toggle { display: none !important; }
     }
     @media (max-width: 768px) {
       .main-content { padding: 1.25rem; }
@@ -496,14 +503,14 @@
   <aside class="sidebar" id="institutional-sidebar">
     <div class="sidebar-brand">
         <div class="navbar-brand">
-          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 58px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));" alt="MMS Logo">
+          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 48px; width: auto; object-fit: contain;" alt="MMS Logo">
           <div class="logo-text-group" style="padding-left: 5px;">
-            <div class="logo-main" style="color: var(--primary); font-size: 1.8rem; letter-spacing: -1.5px; line-height: 1;">MMS<span style="color: #64748b;">SYS</span></div>
-            <div class="logo-sub" style="color: #64748b; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px;">Institutional Hub</div>
+            <div class="logo-main" style="color: var(--primary); font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; line-height: 1;">MMS<span style="color: #6b7280;">SYS</span></div>
+            <div class="logo-sub" style="color: #6b7280; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; margin-top: 3px;">Institutional Hub</div>
           </div>
         </div>
-       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
-          <span style="font-size: 1.2rem;">≡</span>
+       <button class="sidebar-toggle" onclick="toggleSidebar()" title="Close Sidebar" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s;">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
        </button>
     </div>
     
@@ -551,17 +558,20 @@
        </div>
     </div>
     
-    <div class="sidebar-footer">
-       <div class="user-compact" onclick="switchView('profile')">
-          <div class="user-avatar" id="sidebar-avatar-init">AJ</div>
-          <div class="user-info">
-             <span class="name" id="sidebar-user-name">NDAGIJIMANA</span>
-             <span class="role" id="sidebar-user-role">Head Administration</span>
+    <div class="sidebar-footer" style="padding: 1.5rem 1rem;">
+       <div class="user-compact" style="display: flex; flex-direction: column; gap: 0.75rem; background: #f3f4f6; padding: 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;" onclick="switchView('profile')">
+             <div class="user-avatar" id="sidebar-avatar-init" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">AJ</div>
+             <div class="user-info" style="display: flex; flex-direction: column; overflow: hidden; white-space: nowrap;">
+                <span class="name" id="sidebar-user-name" style="font-weight: 700; font-size: 0.85rem; color: #111827; overflow: hidden; text-overflow: ellipsis;">ADMINISTRATOR</span>
+                <span class="role" id="sidebar-user-role" style="font-weight: 700; font-size: 0.65rem; color: #6b7280; text-transform: uppercase;">Head Administration</span>
+             </div>
+          </div>
+          <div title="Logout" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; color: #ef4444; border: 1px solid #fee2e2; border-radius: 8px; transition: all 0.2s; font-size: 0.75rem; font-weight: 700;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='transparent'" onclick="handleLogout()">
+             <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+             <span>Sign Out from Portal</span>
           </div>
        </div>
-       <button class="btn" style="width: 100%; justify-content: center; margin-top: 1rem; background: #FEF2F2; color: #DC2626; border: none;" onclick="handleLogout()">
-          <i data-lucide="log-out" style="width: 16px; height: 16px;"></i> <span class="btn-text">Log Out</span>
-       </button>
     </div>
   </aside>
 
@@ -573,27 +583,27 @@
     <!-- TOPBAR (sticky, outside scroll) -->
     <div class="sub-header" id="main-sub-header">
       <div style="display:flex; align-items:center; gap:1.25rem;">
-        <button class="mobile-menu-btn" id="mobile-toggle-btn" onclick="toggleSidebar()">☰</button>
+        <button class="mobile-menu-btn" id="mobile-toggle-btn" onclick="toggleSidebar()">
+          <i data-lucide="menu"></i>
+        </button>
         <div>
           <div style="font-size:0.65rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px;">MMS Institutional Hub</div>
-          <h1 id="page-title" style="margin:0;">Dashboard</h1>
+          <h1 id="page-title" style="margin:0; font-size: 1.5rem; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Dashboard</h1>
         </div>
       </div>
-      <div style="display:flex; gap:0.875rem; align-items:center;">
-        <div id="notif-bell" style="cursor:pointer; padding:10px; background:#f8fafc; border:1.5px solid #e8ecf0; border-radius:12px; position:relative; display:flex; align-items:center;" onclick="toggleNotifPanel()">
-          <i data-lucide="bell" style="width:18px; height:18px; color:#64748b;"></i>
-          <span id="notif-count" style="display:none; position:absolute; top:-5px; right:-5px; background:#ef4444; color:#fff; font-size:0.6rem; font-weight:900; padding:2px 5px; border-radius:100px; border:2px solid #fff;">0</span>
+      <div style="display:flex; gap:1rem; align-items:center;">
+        <div id="notif-bell" style="cursor:pointer; width:40px; height:40px; background:#fff; border:1px solid #e5e7eb; border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; transition:var(--transition);" onclick="toggleNotifPanel()" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+          <i data-lucide="bell" style="width:18px; height:18px; color:#4b5563;"></i>
+          <span id="notif-count" style="display:none; position:absolute; top:-2px; right:-2px; background:#ef4444; color:#fff; font-size:0.6rem; font-weight:700; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:50%;">0</span>
         </div>
-        <div class="user-pill-elite" style="background:#fff; border-radius:100px; display:flex; align-items:center; gap:10px; padding:4px 6px 4px 14px; border:1.5px solid #e8ecf0; cursor:pointer; transition:all 0.3s;">
-          <div class="user-info" style="text-align:right;">
-            <span id="header-user-name" style="font-size:0.75rem; font-weight:800; color:var(--midnight); display:block;">ADMINISTRATOR</span>
-            <span id="header-school-name" style="font-size:0.55rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">INSTITUTION</span>
-          </div>
-          <div id="header-user-avatar" style="width:36px; height:36px; background:linear-gradient(135deg,var(--midnight),var(--indigo)); color:#fff; border:2px solid var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.8rem;">A</div>
+        <div style="cursor:pointer; width:40px; height:40px; background:#fff; border:1px solid #e5e7eb; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:var(--transition);" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'" onclick="toggleDarkMode()">
+          <i data-lucide="moon" style="width:18px; height:18px; color:#4b5563;"></i>
         </div>
-        <button class="icon-btn" onclick="handleLogout()" title="Logout" style="width:40px; height:40px; border-radius:12px; background:#fff; border:1.5px solid #fecaca; color:#ef4444; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s; box-shadow:0 2px 10px rgba(239, 68, 68, 0.05);">
-          <i data-lucide="log-out" style="width:18px; height:18px;"></i>
-        </button>
+        <div class="user-pill-elite" style="background:#eff6ff; border-radius:100px; display:flex; align-items:center; gap:8px; padding:4px 16px 4px 4px; border:1px solid #bfdbfe; cursor:pointer; transition:all 0.3s;" onclick="switchView('profile')">
+          <div id="header-user-avatar" style="width:34px; height:34px; background:var(--primary); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem;">AJ</div>
+          <span id="header-user-name" style="font-size:0.9rem; font-weight:700; color:#1e40af;">ADMINISTRATOR</span>
+          <span id="header-school-name" style="display:none;"></span>
+        </div>
       </div>
     </div>
 
@@ -606,59 +616,59 @@
       <!-- VIEW: DASHBOARD -->
       <div class="view active" id="view-dashboard">
         <!-- Institutional Identity Hub -->
-        <div class="table-card" style="padding: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #fff, #f8fafc); border: 2.5px solid var(--primary); border-left: 10px solid var(--primary); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.1);">
-            <div style="display: flex; align-items: center; gap: 2rem;">
-                <div class="kpi-icon" style="width: 64px; height: 64px; background: var(--primary); color: #fff; border: none; font-size: 2rem;"><i data-lucide="school"></i></div>
+        <div class="table-card" style="padding: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div class="kpi-icon" style="width: 56px; height: 56px; background: #eff6ff; color: var(--primary); border-radius: 12px; font-size: 1.8rem;"><i data-lucide="school"></i></div>
                 <div>
-                   <h1 id="school-name-hd" style="margin: 0; font-size: 1.6rem; font-weight: 1000; color: var(--text-dark); letter-spacing: -1px; text-transform: uppercase;">MMS PORTAL</h1>
+                   <h1 id="school-name-hd" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #111827; letter-spacing: -0.5px; text-transform: uppercase;">MMS PORTAL</h1>
                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                      <span id="school-code-hd" style="font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; background: rgba(99, 102, 241, 0.1); padding: 2px 10px; border-radius: 6px;">SDMS: LOADING...</span>
-                      <span class="badge" style="background: #22c55e; color: #fff; font-size: 0.6rem; font-weight: 1000; border: none;">ACTIVE NODE</span>
+                      <span id="school-code-hd" style="font-size: 0.75rem; font-weight: 700; color: #4b5563; text-transform: uppercase;">SDMS: LOADING...</span>
+                      <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.65rem; font-weight: 800; border-radius: 9999px; padding: 2px 8px;">ACTIVE NODE</span>
                    </div>
                 </div>
             </div>
             <div style="display: flex; gap: 1rem;">
-               <button class="btn btn-primary" style="padding: 0.85rem 1.5rem; font-weight: 1000;" onclick="openModal('add-teacher-modal')"><i data-lucide="user-plus"></i> REGISTER FACULTY</button>
-               <button class="btn btn-secondary" style="background: #fff; border: 2.5px solid #e2e8f0; font-weight: 900; font-size: 0.75rem;" onclick="syncInstitutionalNodes()"><i data-lucide="refresh-cw"></i> FORCE SYNC</button>
+               <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-weight: 700;" onclick="openModal('add-teacher-modal')"><i data-lucide="user-plus"></i> REGISTER FACULTY</button>
+               <button class="btn btn-secondary" style="background: #f9fafb; color: #111827; border: 1px solid #d1d5db; font-weight: 600;" onclick="syncInstitutionalNodes()"><i data-lucide="refresh-cw"></i> FORCE SYNC</button>
             </div>
         </div>
 
         <!-- PRIMARY KPI TIERS -->
         <div class="stats-grid" style="margin-bottom: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem;">
            <!-- Card 1: Students -->
-           <div class="kpi-card" style="border-left: 8px solid var(--primary) !important;">
-              <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);"><i data-lucide="graduation-cap"></i></div>
+           <div class="kpi-card" style="border: 1px solid #e5e7eb !important;">
+              <div class="kpi-icon" style="background: #eff6ff; color: var(--primary);"><i data-lucide="graduation-cap"></i></div>
               <div class="kpi-info">
                  <h4>Institutional Registry</h4>
                  <div class="val" id="stat-students">0</div>
-                 <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Students Enrolled</p>
+                 <p style="font-size: 0.65rem; font-weight: 600; color: #6b7280; margin: 0; text-transform: uppercase;">Students Enrolled</p>
               </div>
            </div>
            <!-- Card 2: Teachers -->
-           <div class="kpi-card" style="border-left: 8px solid var(--secondary) !important;">
-              <div class="kpi-icon" style="background: rgba(168, 85, 247, 0.1); color: var(--secondary); border-color: var(--secondary) !important;"><i data-lucide="users"></i></div>
+           <div class="kpi-card" style="border: 1px solid #e5e7eb !important;">
+              <div class="kpi-icon" style="background: #faf5ff; color: #a855f7;"><i data-lucide="users"></i></div>
               <div class="kpi-info">
                  <h4>Pedagogical Faculty</h4>
-                 <div class="val" id="stat-teachers" style="color: var(--secondary) !important;">0</div>
-                 <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Active Educators</p>
+                 <div class="val" id="stat-teachers" style="color: #a855f7 !important;">0</div>
+                 <p style="font-size: 0.65rem; font-weight: 600; color: #6b7280; margin: 0; text-transform: uppercase;">Active Educators</p>
               </div>
            </div>
            <!-- Card 3: Classes -->
-           <div class="kpi-card" style="border-left: 8px solid var(--success) !important;">
-              <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border-color: var(--success) !important;"><i data-lucide="layout"></i></div>
+           <div class="kpi-card" style="border: 1px solid #e5e7eb !important;">
+              <div class="kpi-icon" style="background: #f0fdf4; color: #10b981;"><i data-lucide="layout"></i></div>
               <div class="kpi-info">
                  <h4>Academic Structure</h4>
-                 <div class="val" id="stat-classes" style="color: var(--success) !important;">0</div>
-                 <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Total Classes</p>
+                 <div class="val" id="stat-classes" style="color: #10b981 !important;">0</div>
+                 <p style="font-size: 0.65rem; font-weight: 600; color: #6b7280; margin: 0; text-transform: uppercase;">Total Classes</p>
               </div>
            </div>
            <!-- Card 4: Pending -->
-           <div class="kpi-card" style="border-left: 8px solid var(--accent) !important;">
-              <div class="kpi-icon" style="background: rgba(244, 63, 94, 0.1); color: var(--accent); border-color: var(--accent) !important;"><i data-lucide="clock"></i></div>
+           <div class="kpi-card" style="border: 1px solid #e5e7eb !important;">
+              <div class="kpi-icon" style="background: #fff1f2; color: #f43f5e;"><i data-lucide="clock"></i></div>
               <div class="kpi-info">
                  <h4>Governance Status</h4>
-                 <div class="val" id="stat-pending" style="color: var(--accent) !important;">0</div>
-                 <p style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin: 0; text-transform: uppercase;">Pending Submissions</p>
+                 <div class="val" id="stat-pending" style="color: #f43f5e !important;">0</div>
+                 <p style="font-size: 0.65rem; font-weight: 600; color: #6b7280; margin: 0; text-transform: uppercase;">Pending Submissions</p>
               </div>
            </div>
         </div>
@@ -812,12 +822,14 @@
                 <h2 style="white-space:nowrap;">Student Registry</h2>
                 <div style="display:flex; gap: 0.5rem; flex: 1; max-width: 600px;">
                   <div style="position:relative; flex: 1;">
-                    <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.3;">🔍</span>
+                    <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.4;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </span>
                     <input type="text" id="student-search-input" placeholder="Search name or ID..." 
-                      class="input-field" style="margin:0; padding-left:35px; background:#f8fafc; font-size: 0.8rem;"
+                      class="input-field search-pill" style="margin:0; background:#ffffff; font-size: 0.8rem;"
                       onkeyup="renderCohortRegistry()">
                   </div>
-                  <select id="student-class-filter" class="input-field" style="margin:0; width:150px; font-size: 0.8rem; background:#f8fafc;" onchange="renderCohortRegistry()">
+                  <select id="student-class-filter" class="input-field" style="margin:0; width:150px; font-size: 0.8rem; background:#ffffff;" onchange="renderCohortRegistry()">
                      <option value="all">All Classes</option>
                   </select>
                 </div>
@@ -834,26 +846,64 @@
             </div>
 
             <!-- IMPORT STUDENTS MODAL (ADMIN) -->
-            <div class="modal-overlay" id="import-students-modal" style="display:none;">
-                <div class="modal-card" style="padding:2.5rem; max-width:600px; text-align:left;">
-                    <h2 style="font-size:1.2rem; font-weight:900; margin-bottom:1rem;">Bulk Student Import</h2>
-                    <p style="margin-bottom:0.5rem; font-size: 0.85rem; color: #64748b;">Paste student data (Name, SMD/ID, Gender) or upload a .csv file. One student per line.</p>
+            <div class="modal-overlay" id="import-students-modal">
+                <div class="modal-card" style="padding:2.5rem; max-width:800px; text-align:left;">
+                    <h2 style="font-size:1.4rem; font-weight:900; margin-bottom:0.5rem;">Bulk Student Registry</h2>
+                    <p style="margin-bottom:1.5rem; font-size: 0.85rem; color: #64748b;">
+                        Import students via Copy-Paste or CSV file. Mandatory fields: <strong>Name, SDMS ID, Gender</strong>.
+                    </p>
                     
-                    <div class="filter-group" style="margin-bottom: 1rem;">
-                        <label>Target Class Group</label>
-                        <select id="import-target-class" class="input-field" style="margin:0;"></select>
+                    <div id="import-step-1">
+                        <div class="filter-group" style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Target Class Group <span style="color:red;">*</span></label>
+                            <select id="import-target-class" class="input-field" style="margin:0;"></select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Copy & Paste Data (Format: First Name, Last Name, SDMS, Gender)</label>
+                            <textarea id="import-students-textarea" placeholder="Example:&#10;John, DOE, SDMS001, M&#10;Jane, SMITH, SDMS002, F" style="width:100%; height:120px; padding:0.75rem; border: 1px solid #e2e8f0; border-radius: 12px; font-family: monospace; font-size: 0.85rem; background: #fafafa;"></textarea>
+                        </div>
+                        
+                        <div style="border: 2px dashed #cbd5e1; padding: 1.5rem; border-radius: 12px; text-align: center; margin-bottom: 1.5rem; background: #f8fafc;">
+                            <p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.75rem;"><strong>Or Upload CSV File</strong></p>
+                            <input type="file" id="import-students-file" accept=".csv" style="font-size: 0.8rem; color: #64748b; margin: 0 auto;" />
+                        </div>
+
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" onclick="previewImportRecords()" style="flex: 1; justify-content: center; font-weight: 900;">🔍 PREVIEW COLLECTIONS</button>
+                            <button class="btn" onclick="closeModal('import-students-modal')" style="flex: 1; justify-content: center;">Cancel</button>
+                        </div>
                     </div>
 
-                    <textarea id="import-students-textarea" placeholder="Example:&#10;John Doe, SDMS123, M&#10;Jane Smith, SDMS456, F" style="width:100%; height:150px; margin-bottom:1rem; padding:0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace; font-size: 0.85rem;"></textarea>
-                    
-                    <div style="border: 2px dashed #e2e8f0; padding: 1rem; border-radius: 8px; text-align: center; margin-bottom: 1rem;">
-                        <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Or upload a CSV file</p>
-                        <input type="file" id="import-students-file" accept=".csv" style="font-size: 0.75rem;" />
-                    </div>
+                    <div id="import-preview-section" style="display:none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 800;">Validation Preview</h3>
+                            <span id="import-preview-summary" class="badge" style="background:#eff6ff; color:#3b82f6; font-weight:800;"></span>
+                        </div>
+                        
+                        <div class="data-table-wrapper" style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <table class="data-table" style="min-width: 100%;">
+                                <thead style="position:sticky; top:0; background:white; z-index:10;">
+                                    <tr>
+                                        <th style="padding: 0.75rem;">Status</th>
+                                        <th style="padding: 0.75rem;">Student Name</th>
+                                        <th style="padding: 0.75rem;">SDMS</th>
+                                        <th style="padding: 0.75rem;">Gender</th>
+                                        <th style="padding: 0.75rem;">Diagnostics</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-preview-tbody"></tbody>
+                            </table>
+                        </div>
 
-                    <div style="display:flex; gap:1rem; margin-top:0.5rem;">
-                        <button class="btn btn-primary" onclick="processStudentImport()" style="flex: 1; justify-content: center;">Confirm Import</button>
-                        <button class="btn" onclick="closeModal('import-students-modal')" style="flex: 1; justify-content: center;">Cancel</button>
+                        <div id="import-error-warning" style="display:none; padding: 1rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <p style="color: #991b1b; font-size: 0.8rem; font-weight: 700;">⚠️ Some records are invalid. Only fully valid records will be registered.</p>
+                        </div>
+
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" id="btn-confirm-import" onclick="processStudentImport()" style="flex: 1; justify-content: center; font-weight: 900;">✅ COMMIT REGISTRATION</button>
+                            <button class="btn btn-secondary" onclick="resetImportStep()" style="flex: 1; justify-content: center;">⟲ Back to Edit</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1404,23 +1454,44 @@
 </div>
 
 <div class="modal-overlay" id="add-student-modal">
-  <div class="modal-card" style="padding: 2.5rem;">
-    <h2 style="font-weight:900; margin-bottom:1.5rem;">Enroll Candidate</h2>
-    <div style="display:flex; flex-direction:column; gap: 1rem;">
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
-         <input type="text" id="s-fname" placeholder="First Name" class="input-field">
-         <input type="text" id="s-lname" placeholder="Last Name" class="input-field">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:0.5rem;">Enroll Candidate</h2>
+    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">Fill all required fields to register a new student.</p>
+    
+    <div style="display:flex; flex-direction:column; gap: 1.25rem;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+         <div class="form-group">
+            <label class="form-label">First Name <span style="color:red;">*</span></label>
+            <input type="text" id="s-fname" placeholder="e.g. John" class="input-field" required>
+         </div>
+         <div class="form-group">
+            <label class="form-label">Last Name <span style="color:red;">*</span></label>
+            <input type="text" id="s-lname" placeholder="e.g. DOE" class="input-field" required>
+         </div>
       </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
-         <select id="s-gender" class="input-field" style="background:#f8fafc;">
-            <option value="M">Male (M)</option>
-            <option value="F">Female (F)</option>
-         </select>
-         <input type="text" id="s-id" placeholder="Student ID (e.g. STU-001)" class="input-field">
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+         <div class="form-group">
+            <label class="form-label">Gender <span style="color:red;">*</span></label>
+            <select id="s-gender" class="input-field" style="background:#f8fafc;" required>
+               <option value="">Select Gender</option>
+               <option value="M">Male (M)</option>
+               <option value="F">Female (F)</option>
+            </select>
+         </div>
+         <div class="form-group">
+            <label class="form-label">SDMS Code <span style="color:red;">*</span></label>
+            <input type="text" id="s-id" placeholder="e.g. SDMS123456" class="input-field" required>
+         </div>
       </div>
-      <select id="s-class" class="input-field" style="background:#f8fafc;"></select>
+      
+      <div class="form-group">
+         <label class="form-label">Class Assigned <span style="color:red;">*</span></label>
+         <select id="s-class" class="input-field" style="background:#f8fafc;" required></select>
+      </div>
+
       <div style="display:flex; gap: 1rem; margin-top: 1rem;">
-        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="addStudent()">CONFIRM ENROLLMENT</button>
+        <button class="btn btn-primary" style="flex:2; justify-content: center; font-weight: 900;" onclick="addStudent()">CONFIRM ENROLLMENT</button>
         <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-student-modal')">Cancel</button>
       </div>
     </div>
@@ -1781,10 +1852,10 @@
     document.write('<scr'+'ipt src="js/db.js?v='+_v+'"><\/scr'+'ipt>');
     document.write('<scr'+'ipt src="js/registration.js?v='+_v+'"><\/scr'+'ipt>');
     document.write('<scr'+'ipt src="js/admin.js?v='+_v+'"><\/scr'+'ipt>');
-    document.write('<scr'+'ipt src="js/font-switcher.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="js/dark-mode.js?v='+_v+'"><\/scr'+'ipt>');
     document.write('<scr'+'ipt src="js/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
   </script>
 
-<script src="js/fullscreen.js"></script>
+
 </body>
 </html>

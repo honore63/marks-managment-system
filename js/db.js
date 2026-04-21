@@ -1030,8 +1030,8 @@ async function registerUserWithSchoolCode(adminName, schoolName, sdmsCode, schoo
     
     sessionStorage.setItem('current_school_code', schoolCode);
     
-    console.log(`[ADMIN] Successfully registered ${role} for school ${schoolCode}`);
-    return { success: true, user: authData.user, profile };
+    console.log(`[ADMIN] Successfully provisioned school node: ${schoolCode} for ${adminName}`);
+    return { success: true, profile: { email: sdmsEmail, full_name: adminName, role: 'admin', school_code: schoolCode } };
     
   } catch (error) {
     console.error('[ADMIN] Registration failed:', error.message);

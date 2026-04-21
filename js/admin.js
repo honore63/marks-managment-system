@@ -406,12 +406,35 @@ function isValidSDMS(code) { return /^\d{11}$/.test(code); }
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
+    const mobileBtn = document.getElementById('mobile-toggle-btn');
     if (!sb) return;
     
-    sb.classList.toggle('open');
-    if (overlay) {
-        overlay.classList.toggle('active');
-        overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
+    if (window.innerWidth > 1024) {
+        // Desktop: Toggle Collapse
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+        
+        // Adjust main wrapper margin
+        const main = document.querySelector('.main-wrapper');
+        if (main) {
+            main.style.marginLeft = sb.classList.contains('collapsed') ? '80px' : 'var(--sidebar-w)';
+        }
+    } else {
+        // Mobile: Toggle Open Overlay
+        const isOpen = sb.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('active');
+            overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
+        }
+
+        // Dynamic icon toggle
+        if (mobileBtn) {
+            const icon = mobileBtn.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
+                if (window.lucide) lucide.createIcons();
+            }
+        }
     }
 }
 
@@ -593,7 +616,7 @@ function generateInstitutionalHeader(reportTitle, subtitle = '') {
                 </td>
                 <td style="text-align:center; vertical-align:middle; padding: 0 10px;">
                     <div style="font-size:0.65rem; font-weight:900; color:#1e40af; letter-spacing:1.5px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
-                    <div style="font-size:1.6rem; font-weight:1000; text-transform:uppercase; margin-bottom:4px; color:#000; letter-spacing:-0.5px;">${(info.school || 'EDUMARKS ACADEMY').toUpperCase()}</div>
+                    <div style="font-size:1.6rem; font-weight:1000; text-transform:uppercase; margin-bottom:4px; color:#000; letter-spacing:-0.5px;">${(info.school || 'MMS PORTAL').toUpperCase()}</div>
                     <div style="font-size:0.8rem; font-weight:800; color:#475569; margin-bottom:12px; text-transform: uppercase;">
                         District: ${info.district || '...'} | Sector: ${info.sector || '...'} | Level: ${info.level || 'Primary'}
                     </div>
@@ -791,6 +814,56 @@ function handleInstitutionalMediaUpload(input, hiddenId, previewId) {
         }
     };
     reader.readAsDataURL(file);
+}
+
+// ------------------------------------------------------------
+// SINGLE STUDENT REGISTRATION (UI HANDLER)
+// ------------------------------------------------------------
+async function addStudent() {
+    const fname = document.getElementById('s-fname').value;
+    const lname = document.getElementById('s-lname').value;
+    const gender = document.getElementById('s-gender').value;
+    const sid = document.getElementById('s-id').value;
+    const classId = document.getElementById('s-class').value;
+
+    if (!fname || !lname || !gender || !sid || !classId) {
+        toast('Please fill all mandatory fields.', 'warning');
+        return;
+    }
+
+    try {
+        if (typeof registerStudentIndividual === 'function') {
+            const response = await registerStudentIndividual(fname, lname, sid, classId, gender);
+            if (!response.success) throw new Error(response.error);
+        } else {
+            const payload = {
+                first_name: fname.trim().toUpperCase(),
+                last_name: lname.trim().toUpperCase(),
+                full_name: `${fname.trim()} ${lname.trim()}`.toUpperCase(),
+                sid: sid.trim().toUpperCase(),
+                gender: gender.toUpperCase(),
+                class_id: classId,
+                is_active: true
+            };
+            const { error } = await DB.addStudent(payload);
+            if (error) throw error;
+        }
+
+        toast('Student successfully registered.', 'success');
+        closeModal('add-student-modal');
+        if (typeof renderCohortRegistry === 'function') await renderCohortRegistry();
+        if (typeof updateInstitutionalStats === 'function') await updateInstitutionalStats();
+        
+        // Reset form
+        document.getElementById('s-fname').value = '';
+        document.getElementById('s-lname').value = '';
+        document.getElementById('s-id').value = '';
+        document.getElementById('s-gender').value = '';
+        document.getElementById('s-class').value = '';
+    } catch (e) {
+        console.error('[REGISTRY]', e);
+        toast('Registration failed: ' + e.message, 'error');
+    }
 }
 
 async function renderProfile() {
@@ -1151,7 +1224,7 @@ async function downloadStudentList(format = 'excel') {
         return nameA.localeCompare(nameB);
     });
 
-    const schoolName = (document.getElementById('school-name-hd')?.textContent || 'EDUMARKS ACADEMY').toUpperCase();
+    const schoolName = (document.getElementById('school-name-hd')?.textContent || 'MMS PORTAL').toUpperCase();
     const schoolCode = document.getElementById('school-code-hd')?.textContent || 'Code: —';
 
     if (format === 'excel') {
@@ -1413,15 +1486,28 @@ async function addStudent() {
     const sid   = document.getElementById('s-id').value.trim();
     const gen   = document.getElementById('s-gender').value;
     const cid   = document.getElementById('s-class').value;
-    if (!fname || !lname || !cid) return toast('All recruitment fields are required.', 'error');
     
-    await DB.addStudent({ first_name: fname, last_name: lname, sid: sid, gender: gen, class_id: cid });
-    toast('Candidate enrolled successfully in institutional registry.', 'success');
-    closeModal('add-student-modal');
-    // Clear inputs
-    ['s-fname','s-lname','s-id'].forEach(id => document.getElementById(id).value = '');
-    await renderCohortRegistry();
-    await updateInstitutionalStats();
+    toast('Validating mandatory registry nodes...', 'info');
+    
+    // Use the centralized registration logic which enforces all policy-mandated fields
+    const result = await StudentRegistration.registerIndividual(fname, lname, sid, cid, gen);
+    
+    if (result.success) {
+        toast('✅ Student enrolled successfully in institutional registry.', 'success');
+        closeModal('add-student-modal');
+        // Clear inputs
+        ['s-fname','s-lname','s-id'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        const genSelect = document.getElementById('s-gender');
+        if (genSelect) genSelect.value = '';
+        
+        await renderCohortRegistry();
+        await updateInstitutionalStats();
+    } else {
+        toast(`❌ Registration Blocked: ${result.error}`, 'error');
+    }
 }
 
 async function openEditStudentModal(id) {
@@ -3495,7 +3581,7 @@ window.exportClassProclamation = async function(classId, targetSubs = [], target
                         <td style="text-align:center; vertical-align:middle;">
                             <div style="font-size:8pt; font-weight:900; color:#1e40af; letter-spacing:2px;">REPUBLIC OF RWANDA</div>
                             <div style="font-size:7pt; font-weight:700; margin-bottom:2px;">MINISTRY OF EDUCATION</div>
-                            <div style="font-size:15pt; font-weight:900; text-transform:uppercase; margin-bottom:4px;">${(SCHOOL_INFO.school||'EDUMARKS ACADEMY').toUpperCase()}</div>
+                            <div style="font-size:15pt; font-weight:900; text-transform:uppercase; margin-bottom:4px;">${(SCHOOL_INFO.school||'MMS PORTAL').toUpperCase()}</div>
                             <div style="display:inline-block; background:#1d4ed8; color:#fff; font-size:8pt; font-weight:900; padding:5px 18px; letter-spacing:1px; text-transform:uppercase;">
                                 CLASS: ${cls.name.toUpperCase()} &bull; TERM ${term} PROCLAMATION
                             </div>
@@ -4699,6 +4785,9 @@ async function openImportStudentsModal() {
                 classes.map(c => `<option value="${c.id}">${c.name || c.level} ${c.stream || ''}</option>`).join('');
         }
         
+        // Reset to step 1 workflow
+        if (typeof resetImportStep === 'function') resetImportStep();
+        
         // Clear previous import data
         const textarea = document.getElementById('import-students-textarea');
         const fileInput = document.getElementById('import-students-file');
@@ -4712,78 +4801,101 @@ async function openImportStudentsModal() {
     }
 }
 
-async function processStudentImport() {
+let currentImportBatch = [];
+
+/**
+ * Preview Import Records
+ * Parses and validates data, showing progress and errors before final commitment.
+ */
+async function previewImportRecords() {
     const textarea = document.getElementById('import-students-textarea');
     const fileInput = document.getElementById('import-students-file');
     const classId = document.getElementById('import-target-class').value;
+    
+    if (!classId) return toast('⚠️ Please select a target class.', 'warning');
+    
     let csvData = '';
-
-    // Validation: Class selected
-    if (!classId) {
-        toast('⚠️ Please select a target class.', 'warning');
-        return;
-    }
-
-    // Get CSV data from file or textarea
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        
-        // Validate file type
-        if (!file.name.endsWith('.csv') && !file.type.startsWith('text')) {
-            toast('❌ Please upload a CSV file.', 'error');
-            return;
-        }
-        
-        csvData = await new Promise((resolve, reject) => {
+        csvData = await new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = e => resolve(e.target.result);
-            reader.onerror = e => reject(e);
-            reader.readAsText(file);
+            reader.readAsText(fileInput.files[0]);
         });
     } else if (textarea && textarea.value.trim()) {
         csvData = textarea.value;
     }
+    
+    if (!csvData.trim()) return toast('⚠️ No data detected for parsing.', 'warning');
+    
+    toast('🔍 Executing intelligent parsing...', 'info');
+    
+    const students = StudentRegistration.parseCSV(csvData, classId);
+    if (students.length === 0) return toast('❌ No student nodes detected in input.', 'error');
+    
+    const validation = StudentRegistration.validateBatch(students);
+    currentImportBatch = validation.validatedStudents;
+    
+    // Render Preview UI
+    document.getElementById('import-step-1').style.display = 'none';
+    document.getElementById('import-preview-section').style.display = 'block';
+    
+    const tbody = document.getElementById('import-preview-tbody');
+    const summary = document.getElementById('import-preview-summary');
+    const warning = document.getElementById('import-error-warning');
+    const commitBtn = document.getElementById('btn-confirm-import');
+    
+    summary.textContent = `${validation.totalValid} Valid / ${validation.totalProcessed} Total`;
+    warning.style.display = validation.totalErrors > 0 ? 'block' : 'none';
+    commitBtn.disabled = validation.totalValid === 0;
+    commitBtn.style.opacity = validation.totalValid === 0 ? '0.5' : '1';
+    
+    tbody.innerHTML = validation.report.map(r => `
+        <tr>
+            <td>
+                <span class="badge ${r.status === 'valid' ? 'badge-active' : 'badge-danger'}">
+                    <span class="dot"></span> ${r.status.toUpperCase()}
+                </span>
+            </td>
+            <td style="font-size: 0.8rem; font-weight: 800;">${r.name}</td>
+            <td style="font-size: 0.8rem;"><code>${students[r.index-1].sid || '—'}</code></td>
+            <td style="font-size: 0.8rem; text-align:center;">${students[r.index-1].gender || '—'}</td>
+            <td style="color: ${r.status === 'valid' ? '#059669' : '#dc2626'}; font-size: 0.7rem; font-style: italic;">
+                ${r.errors.length > 0 ? r.errors.join(', ') : 'Ready for Registry'}
+            </td>
+        </tr>
+    `).join('');
+}
 
-    if (!csvData || csvData.trim().length === 0) {
-        toast('⚠️ No student data provided. Paste data or upload a CSV file.', 'warning');
-        return;
-    }
+function resetImportStep() {
+    document.getElementById('import-step-1').style.display = 'block';
+    document.getElementById('import-preview-section').style.display = 'none';
+    currentImportBatch = [];
+}
 
+async function processStudentImport() {
+    if (currentImportBatch.length === 0) return toast('❌ No valid records to commit.', 'error');
+    
+    toast(`🚀 Registering ${currentImportBatch.length} student nodes...`, 'info');
+    
     try {
-        // Parse CSV data
-        const students = StudentRegistration.parseCSV(csvData, classId);
+        const { data, error } = await DB.addStudentsBatch(currentImportBatch);
+        if (error) throw error;
         
-        if (students.length === 0) {
-            toast('❌ No valid students found in the data.', 'error');
-            return;
-        }
-
-        toast(`📋 Processing ${students.length} students...`, 'info');
-
-        // Bulk import with validation
-        const result = await StudentRegistration.bulkImport(students, classId);
-
-        if (result.success) {
-            toast(`✅ Successfully imported ${result.imported}/${result.totalProcessed} students!`, 'success');
-            closeModal('import-students-modal');
-            
-            // Refresh the display
-            if (typeof renderCohortRegistry === 'function') {
-                await renderCohortRegistry();
-            }
-        } else {
-            // Partial or full failure
-            if (result.errors.length > 0) {
-                const errorMsg = result.errors.slice(0, 3).join('\n');
-                console.error('[IMPORT] Errors:', result.errors);
-                toast(`❌ Import failed:\n${errorMsg}${result.errors.length > 3 ? '\n...' : ''}`, 'error');
-            } else {
-                toast(`⚠️ No students were imported.`, 'warning');
-            }
-        }
-    } catch (e) {
-        console.error('[IMPORT] Error:', e);
-        toast('❌ Partial import failure. Check network.', 'error');
+        toast(`✅ Successfully registered ${currentImportBatch.length} students!`, 'success');
+        closeModal('import-students-modal');
+        resetImportStep();
+        
+        // Clear inputs
+        const textarea = document.getElementById('import-students-textarea');
+        const fileInput = document.getElementById('import-students-file');
+        if (textarea) textarea.value = '';
+        if (fileInput) fileInput.value = '';
+        
+        await renderCohortRegistry();
+        await updateInstitutionalStats();
+    } catch (err) {
+        console.error('[IMPORT] Commitment failed:', err);
+        toast('❌ Database synchronization error.', 'error');
     }
 }
 

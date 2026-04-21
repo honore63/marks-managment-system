@@ -318,12 +318,57 @@
           <div class="loader" id="btn-loader"></div>
         </button>
 
+        <div style="margin-top: 2rem; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 1.5rem;">
+          <p style="font-size: 0.85rem; color: #64748B; font-weight: 600;">Institutions with no account?</p>
+          <a href="#" onclick="switchLoginMode('new-admin')" style="display: block; margin-top: 0.5rem; color: var(--primary-brand); font-weight: 800; text-decoration: none;">Register Your School Node</a>
+        </div>
+
         <div class="role-hint">Automatic Role Detection Enabled</div>
       </form>
     </div>
   </div>
 
 </div>
+
+<!-- ============================================================
+ADMIN REGISTRATION MODALS (Institutional Setup)
+============================================================ -->
+<div id="admin-register-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="modal-content" style="background: white; padding: 2.5rem; border-radius: 20px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <h2 style="font-family: var(--font-heading); font-weight: 900; margin-bottom: 1rem;">School Node Registration</h2>
+        <p style="color: #64748B; font-size: 0.9rem; margin-bottom: 1.5rem;">Create a primary administrator account to manage your institution's marks and reports.</p>
+        
+        <form id="admin-registration-form" onsubmit="handleAdminRegistration(event)">
+            <div class="input-group">
+                <label class="input-label">Institutional SDMS Code <span style="color:red;">*</span></label>
+                <input type="text" id="admin-school-code" class="form-input" placeholder="6-digit SDMS Code" required style="padding-left: 1rem;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Full Name <span style="color:red;">*</span></label>
+                <input type="text" id="admin-full-name" class="form-input" placeholder="e.g. Principal John Doe" required style="padding-left: 1rem;">
+            </div>
+            <div class="input-group">
+                <label class="input-label">Email Address <span style="color:red;">*</span></label>
+                <input type="email" id="admin-email" class="form-input" placeholder="admin@school.rw" required style="padding-left: 1rem;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label class="input-label">Password <span style="color:red;">*</span></label>
+                    <input type="password" id="admin-password" class="form-input" required style="padding-left: 1rem;">
+                </div>
+                <div>
+                    <label class="input-label">Confirm <span style="color:red;">*</span></label>
+                    <input type="password" id="admin-confirm-password" class="form-input" required style="padding-left: 1rem;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="submit-btn" style="flex: 2;">Confirm Setup</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('admin-register-modal')" style="flex: 1; height: 100%; min-height: 50px; border-radius: 20px; font-weight: 700; border: none; cursor: pointer;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <div class="toast-container" id="toast-container"></div>
 
@@ -400,11 +445,57 @@
     c.appendChild(t);
     setTimeout(() => t.remove(), 4000);
   }
+
+  // --- ADMIN REGISTRATION HANDLERS ---
+  function closeModal(id) {
+    const modal = el(id);
+    if (modal) modal.style.display = 'none';
+  }
+
+  function switchLoginMode(mode) {
+    closeModal('admin-register-modal');
+    if (mode === 'new-admin') {
+      el('admin-register-modal').style.display = 'flex';
+    }
+  }
+
+  async function handleAdminRegistration(event) {
+    event.preventDefault();
+    const code = el('admin-school-code').value.trim();
+    const name = el('admin-full-name').value.trim();
+    const email = el('admin-email').value.trim();
+    const pass = el('admin-password').value;
+    const confirm = el('admin-confirm-password').value;
+
+    if (pass !== confirm) return toast('Passwords do not match.', 'error');
+    if (code.length !== 6) return toast('SDMS code must be 6 digits.', 'error');
+
+    toast('Provisioning institutional node...', 'info');
+
+    try {
+      // Direct call to DB's registration logic (needs to be available in global scope)
+      // Check if registerUserWithSchoolCode exists in multisync or registration.js
+      if (typeof registerUserWithSchoolCode === 'function') {
+        const res = await registerUserWithSchoolCode(name, 'My School', code, code);
+        if (res.success) {
+          toast('✅ Institution registered successfully!', 'success');
+          closeModal('admin-register-modal');
+          setTimeout(() => window.location.href = 'admin-portal.html', 1500);
+        }
+      } else {
+        // Fallback or debug
+        console.warn('registerUserWithSchoolCode not found in loaded scripts.');
+        toast('Registration system loading. Try again in 5s.', 'warning');
+      }
+    } catch (e) {
+      toast(e.message || 'Registration failed.', 'error');
+    }
+  }
 </script>
 
-<script src="js/font-switcher.js"></script>
+
 <script src="js/ai-assistant.js"></script>
 
-<script src="js/fullscreen.js"></script>
+
 </body>
 </html>

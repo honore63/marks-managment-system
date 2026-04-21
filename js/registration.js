@@ -16,23 +16,25 @@
  * Register a single student
  * @param {string} firstName - Student first name
  * @param {string} lastName - Student last name
- * @param {string} sdms - Student SDMS code (optional)
- * @param {string} classId - Class ID
- * @param {string} gender - Gender (M/F)
+ * @param {string} sdms - Student SDMS code (Mandatory)
+ * @param {string} classId - Class ID (Mandatory)
+ * @param {string} gender - Gender (M/F) (Mandatory)
  * @returns {Object} { success, student, error }
  */
-async function registerStudentIndividual(firstName, lastName, sdms, classId, gender = 'M') {
+async function registerStudentIndividual(firstName, lastName, sdms, classId, gender) {
   try {
     // Validation
     if (!firstName || !firstName.trim()) throw new Error('First name is required');
     if (!lastName || !lastName.trim()) throw new Error('Last name is required');
-    if (!classId) throw new Error('Class is required');
+    if (!sdms || !sdms.trim()) throw new Error('Student SDMS Code is required');
+    if (!classId) throw new Error('Class Assignment is required');
+    if (!gender) throw new Error('Gender is required');
 
     const studentObj = {
       first_name: firstName.trim().toUpperCase(),
       last_name: lastName.trim().toUpperCase(),
       full_name: `${firstName.trim()} ${lastName.trim()}`.toUpperCase(),
-      sid: sdms ? sdms.trim() : null,
+      sid: sdms.trim().toUpperCase(),
       gender: gender.toUpperCase(),
       class_id: classId,
       is_active: true,
@@ -59,11 +61,13 @@ async function registerStudentIndividual(firstName, lastName, sdms, classId, gen
 /**
  * Validate student data before bulk import
  * @param {Array} students - Array of student objects
- * @returns {Object} { valid, errors, validatedStudents }
+ * @returns {Object} { valid, errors, validatedStudents, summary }
  */
 function validateStudentBatch(students) {
   const errors = [];
   const validatedStudents = [];
+  const invalidRecords = [];
+  const report = [];
 
   if (!Array.isArray(students) || students.length === 0) {
     return { valid: false, errors: ['No students provided'], validatedStudents: [] };
@@ -71,36 +75,37 @@ function validateStudentBatch(students) {
 
   students.forEach((student, index) => {
     const rowErrors = [];
+    const studentName = (student.first_name || '') + ' ' + (student.last_name || '');
 
-    // Required fields
-    if (!student.first_name || !student.first_name.trim()) {
-      rowErrors.push(`Row ${index + 1}: First name is required`);
-    }
-    if (!student.last_name || !student.last_name.trim()) {
-      rowErrors.push(`Row ${index + 1}: Last name is required`);
-    }
-    if (!student.class_id) {
-      rowErrors.push(`Row ${index + 1}: Class ID is required`);
-    }
+    // Required fields check (Mandatory per policy)
+    if (!student.first_name || !student.first_name.trim()) rowErrors.push('Missing First Name');
+    if (!student.last_name || !student.last_name.trim()) rowErrors.push('Missing Last Name');
+    if (!student.sid || !student.sid.trim()) rowErrors.push('Missing SDMS Code');
+    if (!student.class_id) rowErrors.push('Missing Class Assignment');
+    if (!student.gender) rowErrors.push('Missing Gender');
 
     // Valid gender
     if (student.gender && !['M', 'F', 'O'].includes(student.gender.toUpperCase())) {
-      rowErrors.push(`Row ${index + 1}: Gender must be M, F, or O`);
+      rowErrors.push(`Invalid Gender: ${student.gender}`);
     }
 
     if (rowErrors.length === 0) {
-      validatedStudents.push({
+      const validated = {
         first_name: student.first_name.trim().toUpperCase(),
         last_name: student.last_name.trim().toUpperCase(),
         full_name: `${student.first_name.trim()} ${student.last_name.trim()}`.toUpperCase(),
-        sid: student.sid ? student.sid.trim() : null,
-        gender: (student.gender || 'M').toUpperCase(),
+        sid: student.sid.trim().toUpperCase(),
+        gender: student.gender.toUpperCase(),
         class_id: student.class_id,
         is_active: true,
         enrollment_date: new Date().toISOString()
-      });
+      };
+      validatedStudents.push(validated);
+      report.push({ index: index + 1, name: validated.full_name, status: 'valid', errors: [] });
     } else {
-      errors.push(...rowErrors);
+      errors.push(`Row ${index + 1} (${studentName.trim() || 'No Name'}): ${rowErrors.join(', ')}`);
+      invalidRecords.push({ ...student, row: index + 1, errors: rowErrors });
+      report.push({ index: index + 1, name: studentName.trim() || 'Unknown', status: 'invalid', errors: rowErrors });
     }
   });
 
@@ -108,16 +113,19 @@ function validateStudentBatch(students) {
     valid: errors.length === 0,
     errors,
     validatedStudents,
+    invalidRecords,
+    report,
     totalProcessed: students.length,
     totalValid: validatedStudents.length,
-    totalErrors: errors.length
+    totalErrors: invalidRecords.length
   };
 }
 
 /**
- * Parse CSV data into student objects
- * Expected format: firstName,lastName,SDMS,Gender (or firstName,lastName,Gender)
- * @param {string} csvData - CSV text data
+ * Parse CSV/Bulk data into student objects
+ * Intelligent parsing: handles commas, tabs, semicolons. Skips headers.
+ * Expected format: firstName, lastName, SDMS, Gender 
+ * @param {string} csvData - Data from textarea or file
  * @param {string} classId - Target class ID
  * @returns {Array} Array of student objects
  */
@@ -125,40 +133,46 @@ function parseStudentCSV(csvData, classId) {
   const lines = csvData.split(/\r?\n/).filter(l => l.trim().length > 0);
   const students = [];
 
+  // Common headers to ignore
+  const headers = ['first name', 'last name', 'sdms', 'gender', 'code', 'sid', 'fullname'];
+
   lines.forEach((line, index) => {
-    const parts = line.split(',').map(p => p.trim());
+    // Detect separator (comma, tab, or semicolon)
+    let separator = ',';
+    if (line.includes('\t')) separator = '\t';
+    else if (line.includes(';')) separator = ';';
+
+    const parts = line.split(separator).map(p => p.trim());
 
     // Skip empty or comment lines
     if (parts.length === 0 || parts[0].startsWith('#')) return;
 
-    // Handle different CSV formats
+    // Check if it's a header line
+    const isHeader = parts.some(p => headers.includes(p.toLowerCase()));
+    if (isHeader) return;
+
     let firstName, lastName, sdms, gender;
 
+    // Intelligent mapping based on part count
     if (parts.length === 2) {
-      // Format: FirstName, LastName
       [firstName, lastName] = parts;
-      gender = 'M';
     } else if (parts.length === 3) {
-      // Format: FirstName, LastName, Gender OR FirstName, LastName, SDMS
       [firstName, lastName, sdms] = parts;
-      // Try to detect if third field is gender
+      // If 3rd field looks like gender, swap
       if (['M', 'F', 'O'].includes(sdms.toUpperCase())) {
         gender = sdms;
         sdms = null;
-      } else {
-        gender = 'M';
       }
     } else if (parts.length >= 4) {
-      // Format: FirstName, LastName, SDMS, Gender
       [firstName, lastName, sdms, gender] = parts;
     }
 
-    if (firstName && lastName) {
+    if (firstName || lastName) {
       students.push({
-        first_name: firstName,
-        last_name: lastName,
-        sid: sdms,
-        gender: gender || 'M',
+        first_name: firstName || '',
+        last_name: lastName || '',
+        sid: sdms || '',
+        gender: gender || '',
         class_id: classId
       });
     }

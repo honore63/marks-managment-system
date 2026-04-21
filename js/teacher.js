@@ -301,12 +301,35 @@ document.addEventListener('DOMContentLoaded', initTeacherPortal);
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
+    const mobileBtn = document.getElementById('mobile-toggle-btn');
     if (!sb) return;
     
-    sb.classList.toggle('open');
-    if (overlay) {
-        overlay.classList.toggle('active');
-        overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
+    if (window.innerWidth > 1024) {
+        // Desktop: Toggle Collapse
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+        
+        // Adjust main wrapper margin if necessary
+        const main = document.querySelector('.main-wrapper');
+        if (main) {
+            main.style.marginLeft = sb.classList.contains('collapsed') ? '80px' : 'var(--sidebar-w)';
+        }
+    } else {
+        // Mobile: Toggle Open Overlay
+        const isOpen = sb.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('active');
+            overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
+        }
+
+        // Dynamic icon toggle for mobile btn
+        if (mobileBtn) {
+            const icon = mobileBtn.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
+                if (window.lucide) lucide.createIcons();
+            }
+        }
     }
 }
 
@@ -1555,7 +1578,7 @@ async function generateProclamationList() {
                     <td style="text-align:center; vertical-align:middle;">
                         <div style="font-size:0.65rem; font-weight:900; color:#000; letter-spacing:2px; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
                         <div style="font-size:0.6rem; font-weight:700; margin-bottom:3px; color:#000;">MINISTRY OF EDUCATION</div>
-                        <div style="font-size:1.3rem; font-weight:900; text-transform:uppercase; margin-bottom:5px; color:#000;">${(SCHOOL_INFO.school||'EDUMARKS ACADEMY').toUpperCase()}</div>
+                        <div style="font-size:1.3rem; font-weight:900; text-transform:uppercase; margin-bottom:5px; color:#000;">${(SCHOOL_INFO.school||'MMS PORTAL').toUpperCase()}</div>
                         <div style="display:inline-block; background:#000; color:#fff; font-size:0.7rem; font-weight:900; padding:5px 18px; letter-spacing:1px; text-transform:uppercase;">
                             CLASS: ${classLabel} &bull; TERM ${term} PROCLAMATION
                         </div>
@@ -2285,7 +2308,7 @@ async function renderProfile() {
 }
 
 async function handleLogout() {
-    if (confirm('Disconnect from CAMIS Node? All active institutional data will be wiped.')) {
+    if (confirm('Disconnect from MMS Node? All active institutional data will be wiped.')) {
         try {
             if (window.SYNC && SYNC.stop) SYNC.stop();
             if (typeof DB !== 'undefined' && DB.clearCache) DB.clearCache();
@@ -2344,7 +2367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     
-    console.log('[CAMIS] Faculty Node fully synchronized.');
+    console.log('[MMS] Faculty Node fully synchronized.');
 });
 
 async function renderStudentRegistry() {
@@ -3723,7 +3746,7 @@ function getInstitutionalExportHeader(title, classLabel, roleLabel, userName) {
                 <td style="text-align:center; vertical-align:middle;">
                     <div style="font-size:0.7rem; font-weight:900; color:#1e40af; text-transform:uppercase;">REPUBLIC OF RWANDA</div>
                     <div style="font-size:0.65rem; font-weight:700; margin-bottom:5px;">MINISTRY OF EDUCATION</div>
-                    <div style="font-size:1.4rem; font-weight:900; text-transform:uppercase; color:#1e293b;">${(SCHOOL_INFO.school || "EDUMARKS ACADEMY").toUpperCase()}</div>
+                    <div style="font-size:1.4rem; font-weight:900; text-transform:uppercase; color:#1e293b;">${(SCHOOL_INFO.school || "MMS PORTAL").toUpperCase()}</div>
                     <div style="font-size:0.9rem; font-weight:800; color:#3b82f6; text-transform:uppercase; letter-spacing:1px; margin-top:5px;">
                         ${title} — ${classLabel}
                     </div>

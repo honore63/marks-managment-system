@@ -254,9 +254,29 @@ function toast(msg, type = 'info') {
 function toggleSidebar() {
     const sb = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
-    if (sb) {
-        sb.classList.toggle('open');
-        if (overlay) overlay.style.display = sb.classList.contains('open') ? 'block' : 'none';
+    const mobileBtn = document.getElementById('mobile-toggle-btn');
+    if (!sb) return;
+    
+    if (window.innerWidth > 1024) {
+        // Desktop: Toggle Collapse
+        sb.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
+    } else {
+        // Mobile: Toggle Open Overlay
+        const isOpen = sb.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('active');
+            overlay.style.display = overlay.classList.contains('active') ? 'block' : 'none';
+        }
+
+        // Dynamic icon toggle
+        if (mobileBtn) {
+            const icon = mobileBtn.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
+                if (window.lucide) lucide.createIcons();
+            }
+        }
     }
 }
 

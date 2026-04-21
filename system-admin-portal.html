@@ -1,680 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MMS SYS — Global Control Center</title>
-  <meta name="description" content="MMS System Administrator — Sovereign Platform Governance Interface"/>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MMS (Marks Management System) — Global Command</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/system-admin.css">
+  <link rel="stylesheet" href="css/modern-design.css">
+  <link rel="stylesheet" href="css/responsive.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
-    /* ══════════════════════════════════════════════════════════
-       MMS SYSTEM CONTROLLER — EXECUTIVE DARK GOVERNANCE THEME
-       ══════════════════════════════════════════════════════════ */
     :root {
-      --midnight: #0f0e2a;
-      --navy: #1e1b4b;
-      --indigo: #4338ca;
-      --indigo-light: #6366f1;
-      --gold: #f59e0b;
-      --gold-light: #fbbf24;
-      --gold-glow: rgba(245, 158, 11, 0.15);
-      --emerald: #10b981;
-      --rose: #f43f5e;
-      --violet: #8b5cf6;
+      --primary: #2563eb;
       --sidebar-w: 280px;
-      --header-h: 72px;
-      --radius-xl: 24px;
-      --radius-2xl: 32px;
-      --shadow-gold: 0 20px 60px -10px rgba(245, 158, 11, 0.2);
-      --shadow-card: 0 4px 24px rgba(15, 14, 42, 0.08);
-      --transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+      --radius-xl: 16px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #f1f5f9;
-      color: #1e1b4b;
-      height: 100vh;
-      overflow: hidden;
-      font-weight: 600;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    h1, h2, h3, h4, .logo-text, .stat-val {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 800;
-    }
-
-    /* ── LAYOUT ─────────────────────────────────────── */
-    .layout { display: flex; height: 100vh; overflow: hidden; }
-
-    /* ── SIDEBAR ────────────────────────────────────── */
-    .sidebar {
-      width: var(--sidebar-w);
-      background: #ffffff;
-      border-right: 1.5px solid #e8ecf0;
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      z-index: 200;
-      padding: 0;
-      overflow: hidden;
-      transition: var(--transition);
-      position: relative;
-      box-shadow: 4px 0 24px rgba(15, 14, 42, 0.04);
-    }
-
-    /* No overlay needed on white */
-    .sidebar::before { display: none; }
-
-    /* Gold top accent bar */
-    .sidebar::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--indigo-light));
-    }
-
-    .sidebar-inner {
-      position: relative; z-index: 1;
-      display: flex; flex-direction: column;
-      height: 100%; overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: #e2e8f0 transparent;
-      padding: 2rem 1.25rem;
-      gap: 0;
-    }
-    .sidebar-inner::-webkit-scrollbar { width: 4px; }
-    .sidebar-inner::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-
-    /* Brand */
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.875rem;
-      padding-bottom: 1.75rem;
-      border-bottom: 1.5px solid #f1f5f9;
-      margin-bottom: 1.75rem;
-    }
-
-    .brand-icon {
-      width: 52px; height: 52px;
-      border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-      flex-shrink: 0;
-      background: transparent;
-    }
-    .brand-icon img {
-      width: 100%; height: 100%;
-      object-fit: contain;
-      filter: drop-shadow(0 4px 10px rgba(15,14,42,0.15));
-    }
-
-    .brand-text { line-height: 1; }
-    .brand-title { font-size: 1.35rem; font-weight: 900; color: var(--midnight); letter-spacing: -0.5px; }
-    .brand-title span { color: var(--gold); }
-    .brand-sub { font-size: 0.62rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; display: block; }
-
-    /* Nav Labels */
-    .nav-label {
-      font-size: 0.62rem; font-weight: 900;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 2.5px;
-      padding: 0 0.75rem;
-      margin: 1.5rem 0 0.4rem;
-    }
-
-    /* Nav Items */
-    .nav-item {
-      display: flex; align-items: center; gap: 0.875rem;
-      padding: 0.8rem 0.875rem;
-      border-radius: 14px;
-      font-weight: 700; font-size: 0.875rem;
-      color: #475569;
-      cursor: pointer;
-      transition: var(--transition);
-      text-decoration: none;
-      position: relative;
-      border: 1px solid transparent;
-    }
-
-    .nav-item i { width: 18px; height: 18px; flex-shrink: 0; transition: all 0.3s; color: #94a3b8; }
-
-    .nav-item:hover {
-      background: #f8fafc;
-      color: var(--midnight);
-      border-color: #e8ecf0;
-    }
-
-    .nav-item:hover i { transform: translateX(3px); color: var(--indigo); }
-
-    .nav-item.active {
-      background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06));
-      color: var(--midnight);
-      border-color: rgba(245, 158, 11, 0.35);
-      font-weight: 800;
-    }
-
-    .nav-item.active i { color: var(--gold); }
-
-    /* Active left indicator */
-    .nav-item.active::before {
-      content: '';
-      position: absolute;
-      left: -5px; top: 20%; bottom: 20%;
-      width: 4px; border-radius: 4px;
-      background: var(--gold);
-    }
-
-    .nav-item.danger { color: #ef4444; }
-    .nav-item.danger i { color: #fca5a5; }
-    .nav-item.danger:hover { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-    .nav-item.danger:hover i { color: #dc2626; transform: translateX(3px); }
-
-    /* Sidebar Footer */
-    .sidebar-footer {
-      margin-top: auto;
-      padding-top: 1.25rem;
-      border-top: 1.5px solid #f1f5f9;
-    }
-
-    .session-pill {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.875rem 1rem;
-      background: #f8fafc;
-      border-radius: 14px;
-      border: 1.5px solid #e8ecf0;
-      transition: var(--transition);
-    }
-    .session-pill:hover { background: #f1f5f9; border-color: #d1d5db; }
-
-    .session-avatar {
-      width: 36px; height: 36px;
-      background: linear-gradient(135deg, var(--midnight), var(--indigo));
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; font-weight: 900; color: #fff;
-      flex-shrink: 0;
-      border: 2px solid var(--gold);
-    }
-
-    .session-info { flex: 1; overflow: hidden; }
-    .session-name { font-size: 0.82rem; font-weight: 800; color: var(--midnight); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .session-role { font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; display: block; }
-
-    .session-dot { width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px var(--emerald); animation: pulse-dot 2s infinite; }
-    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    /* ── MAIN AREA ───────────────────────────────────── */
-    .main-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: #f1f5f9;
-    }
-
-    /* ── TOPBAR ─────────────────────────────────────── */
-    .topbar {
-      height: var(--header-h);
-      background: rgba(255,255,255,0.9);
-      backdrop-filter: blur(20px) saturate(1.8);
-      -webkit-backdrop-filter: blur(20px) saturate(1.8);
-      border-bottom: 1px solid rgba(30, 27, 75, 0.06);
-      padding: 0 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      transition: var(--transition);
-      flex-shrink: 0;
-    }
-
-    .topbar.scrolled {
-      box-shadow: 0 4px 30px rgba(15, 14, 42, 0.08);
-      border-bottom-color: rgba(245, 158, 11, 0.3);
-    }
-
-    .topbar-left { display: flex; align-items: center; gap: 1.25rem; flex: 1; }
-
-    .mobile-toggle {
-      display: none;
-      width: 44px; height: 44px;
-      background: var(--midnight);
-      color: var(--gold);
-      border: none; border-radius: 14px;
-      align-items: center; justify-content: center;
-      cursor: pointer;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(15, 14, 42, 0.2);
-    }
-
-    .breadcrumb-group { line-height: 1.2; }
-    .breadcrumb {
-      font-size: 0.65rem; font-weight: 800;
-      color: rgba(100, 116, 139, 0.7);
-      text-transform: uppercase; letter-spacing: 1.5px;
-    }
-    .breadcrumb span { color: var(--gold); }
-
-    #page-title {
-      font-size: 1.5rem; font-weight: 900;
-      color: var(--midnight);
-      letter-spacing: -0.75px;
-      line-height: 1;
-      margin-top: 2px;
-    }
-
-    /* Search */
-    .search-bar {
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.65rem 1.25rem;
-      background: #f8fafc;
-      border: 2px solid #e2e8f0;
-      border-radius: 14px;
-      transition: var(--transition);
-      max-width: 380px; flex: 1;
-      margin-left: 2rem;
-    }
-    .search-bar:focus-within {
-      border-color: var(--gold);
-      background: #fff;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
-    }
-    .search-bar input {
-      background: none; border: none; outline: none;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.875rem; font-weight: 600;
-      color: var(--midnight);
-      width: 100%;
-    }
-    .search-bar input::placeholder { color: #94a3b8; }
-    .search-bar i { color: #94a3b8; width: 16px; height: 16px; flex-shrink: 0; }
-
-    /* Topbar Right */
-    .topbar-right { display: flex; align-items: center; gap: 0.875rem; }
-
-    .status-badge {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: var(--midnight);
-      border-radius: 100px;
-      font-size: 0.65rem; font-weight: 900;
-      color: #fff;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .status-dot { width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; box-shadow: 0 0 10px var(--emerald); animation: pulse-dot 2s infinite; }
-
-    .topbar-avatar {
-      width: 42px; height: 42px;
-      background: linear-gradient(135deg, var(--midnight), var(--indigo));
-      color: #fff;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 900; font-size: 0.8rem;
-      border: 2.5px solid var(--gold);
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
-      cursor: pointer;
-    }
-
-    /* ── CONTENT ─────────────────────────────────────── */
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 2rem;
-      scrollbar-width: thin;
-      scrollbar-color: #cbd5e1 transparent;
-    }
-    .content::-webkit-scrollbar { width: 6px; }
-    .content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-
-    /* ── VIEWS ──────────────────────────────────────── */
-    .view { display: none; }
-    .view.active {
-      display: block;
-      animation: fadeUp 0.45s cubic-bezier(0.19, 1, 0.22, 1) both;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── STAT CARDS ─────────────────────────────────── */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .kpi-card {
-      background: #fff;
-      border-radius: var(--radius-xl);
-      padding: 1.75rem 2rem;
-      display: flex; align-items: center; gap: 1.5rem;
-      border: 1.5px solid #e2e8f0;
-      box-shadow: var(--shadow-card);
-      transition: var(--transition);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Colored left accent bar */
-    .kpi-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 10%; bottom: 10%;
-      width: 4px;
-      border-radius: 0 4px 4px 0;
-      background: var(--card-accent, var(--gold));
-    }
-
-    /* Subtle radial glow */
-    .kpi-card::after {
-      content: '';
-      position: absolute;
-      top: -30px; right: -30px;
-      width: 120px; height: 120px;
-      background: radial-gradient(circle, var(--card-glow, rgba(245,158,11,0.08)), transparent 70%);
-      pointer-events: none;
-    }
-
-    .kpi-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 40px rgba(15, 14, 42, 0.1);
-      border-color: rgba(245, 158, 11, 0.3);
-    }
-
-    .kpi-icon {
-      width: 60px; height: 60px;
-      border-radius: 18px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: var(--transition);
-    }
-
-    .kpi-card:hover .kpi-icon { transform: scale(1.1) rotate(-5deg); }
-
-    .kpi-info { flex: 1; }
-    .kpi-val {
-      font-size: 2.25rem; font-weight: 900;
-      line-height: 1; letter-spacing: -1.5px;
-      color: var(--midnight);
-    }
-    .kpi-label {
-      font-size: 0.7rem; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 1.5px;
-      color: #94a3b8;
-      margin-top: 0.4rem;
-    }
-    .kpi-sub {
-      font-size: 0.75rem; font-weight: 700;
-      color: #64748b;
-      margin-top: 0.2rem;
-    }
-
-    /* ── MAIN CARD ──────────────────────────────────── */
-    .panel {
-      background: #fff;
-      border-radius: var(--radius-xl);
-      border: 1.5px solid #e2e8f0;
-      box-shadow: var(--shadow-card);
-      overflow: hidden;
-      margin-bottom: 2rem;
-      animation: fadeUp 0.5s cubic-bezier(0.19, 1, 0.22, 1) both;
-    }
-
-    .panel-header {
-      padding: 1.5rem 2rem;
-      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-      border-bottom: 1.5px solid #f1f5f9;
-      background: linear-gradient(135deg, #fafafa, #fff);
-      flex-wrap: wrap;
-    }
-
-    .panel-title { display: flex; align-items: center; gap: 0.75rem; }
-    .panel-title h3 { font-size: 1.1rem; font-weight: 800; color: var(--midnight); letter-spacing: -0.3px; }
-    .panel-badge { padding: 3px 10px; background: var(--gold-glow); color: var(--gold); border-radius: 8px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(245,158,11,0.2); }
-
-    .panel-body { padding: 0; }
-
-    /* ── TABLE ──────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-    table { width: 100%; border-collapse: collapse; min-width: 700px; }
-
-    thead tr { background: #fafafa; border-bottom: 2px solid #f1f5f9; }
-
-    th {
-      padding: 1rem 1.5rem;
-      font-size: 0.68rem; font-weight: 900;
-      text-transform: uppercase; letter-spacing: 2px;
-      color: #94a3b8;
-      white-space: nowrap;
-      text-align: left;
-    }
-
-    td {
-      padding: 1.25rem 1.5rem;
-      font-size: 0.9rem; font-weight: 700;
-      color: var(--midnight);
-      border-bottom: 1px solid #f8fafc;
-      transition: background 0.2s;
-    }
-
-    tr:last-child td { border-bottom: none; }
-
-    tbody tr:hover td { background: #fafcff; }
-
-    /* ── BUTTONS ─────────────────────────────────────── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 14px;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.82rem; font-weight: 800;
-      cursor: pointer;
-      border: 2px solid transparent;
-      letter-spacing: 0.3px;
-      transition: var(--transition);
-      white-space: nowrap;
-      text-transform: uppercase;
-    }
-
-    .btn-gold {
-      background: linear-gradient(135deg, var(--gold), var(--gold-light));
-      color: var(--midnight);
-      border-color: transparent;
-      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
-    }
-    .btn-gold:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(245, 158, 11, 0.4); }
-
-    .btn-dark {
-      background: var(--midnight);
-      color: #fff;
-      border-color: transparent;
-      box-shadow: 0 4px 12px rgba(15, 14, 42, 0.15);
-    }
-    .btn-dark:hover { background: var(--navy); transform: translateY(-2px); }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--midnight);
-      border-color: #e2e8f0;
-    }
-    .btn-ghost:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
-
-    .btn-sm { padding: 0.5rem 1rem; font-size: 0.75rem; border-radius: 10px; }
-
-    /* ── BADGES ─────────────────────────────────────── */
-    .badge-status {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      padding: 0.35rem 0.875rem;
-      border-radius: 100px;
-      font-size: 0.7rem; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-
-    .badge-status .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .badge-active { background: #ecfdf5; color: #059669; }
-    .badge-active .dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
-    .badge-inactive { background: #f1f5f9; color: #64748b; }
-    .badge-inactive .dot { background: #94a3b8; }
-    .badge-pending { background: #fffbeb; color: #d97706; }
-    .badge-pending .dot { background: var(--gold); }
-
-    /* ── MODAL ──────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(15, 14, 42, 0.8);
-      backdrop-filter: blur(12px);
-      display: none; align-items: center; justify-content: center;
-      z-index: 10000; padding: 1.5rem;
-    }
-    .modal-overlay.open { display: flex; }
-
-    .modal-box {
-      background: #fff;
-      width: 100%; max-width: 580px;
-      border-radius: var(--radius-2xl);
-      padding: 3rem;
-      border: 2px solid rgba(245, 158, 11, 0.3);
-      box-shadow: 0 50px 100px -20px rgba(15, 14, 42, 0.4), 0 0 0 1px rgba(245,158,11,0.1);
-      position: relative;
-      animation: modalPop 0.45s cubic-bezier(0.19, 1, 0.22, 1) both;
-    }
-    @keyframes modalPop {
-      from { opacity: 0; transform: scale(0.92) translateY(20px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    .modal-close {
-      position: absolute; top: 1.5rem; right: 1.5rem;
-      width: 40px; height: 40px;
-      background: #f1f5f9;
-      border: none; border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.2rem; color: #64748b;
-      transition: var(--transition);
-    }
-    .modal-close:hover { background: var(--midnight); color: #fff; transform: rotate(90deg); }
-
-    .modal-title { font-size: 1.5rem; font-weight: 900; color: var(--midnight); letter-spacing: -0.75px; margin-bottom: 0.4rem; }
-    .modal-sub { font-size: 0.85rem; color: #64748b; font-weight: 600; margin-bottom: 2rem; }
-
-    /* ── FORMS ──────────────────────────────────────── */
-    .form-group { margin-bottom: 1.5rem; }
-    .form-group label {
-      display: block;
-      font-size: 0.72rem; font-weight: 900;
-      color: var(--navy);
-      text-transform: uppercase; letter-spacing: 1.5px;
-      margin-bottom: 0.6rem;
-    }
-
-    .input-field {
-      width: 100%;
-      padding: 0.9rem 1.25rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 14px;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.95rem; font-weight: 700;
-      color: var(--midnight);
-      background: #fafafa;
-      transition: var(--transition);
-      outline: none;
-    }
-
-    .input-field:focus {
-      border-color: var(--gold);
-      background: #fff;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
-    }
-
-    .form-divider {
-      border: none;
-      border-top: 2px dashed #e2e8f0;
-      margin: 1.75rem 0;
-    }
-    .form-section-title {
-      font-size: 0.72rem; font-weight: 900;
-      color: var(--gold);
-      text-transform: uppercase; letter-spacing: 1.5px;
-      margin-bottom: 1rem;
-    }
-
-    /* ── TOAST ──────────────────────────────────────── */
-    #toast-container {
-      position: fixed; bottom: 2rem; right: 2rem;
-      z-index: 20000;
-      display: flex; flex-direction: column; gap: 0.75rem;
-    }
-
-    .toast {
-      padding: 1rem 1.5rem;
-      background: var(--midnight);
-      color: #fff;
-      border-radius: 16px;
-      font-size: 0.9rem; font-weight: 800;
-      box-shadow: 0 20px 40px rgba(15,14,42,0.25);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-left: 4px solid var(--gold);
-      display: flex; align-items: center; gap: 0.75rem;
-      animation: toastIn 0.4s ease both;
-      min-width: 280px;
-    }
-
-    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-
-    /* ── EMPTY STATES ────────────────────────────────── */
-    .empty-state {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 4rem 2rem;
-      color: #94a3b8;
-      gap: 1rem;
-    }
-    .empty-state i { width: 48px; height: 48px; opacity: 0.3; }
-    .empty-state p { font-weight: 700; font-size: 0.9rem; }
-
-    /* ── CHARTS GRID ────────────────────────────────── */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    /* ── RESPONSIVE ─────────────────────────────────── */
-    @media (max-width: 1200px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .charts-grid { grid-template-columns: 1fr; }
-    }
+    body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; overflow: hidden; }
+    .layout { display: flex; height: 100vh; width: 100vw; }
+
+    /* Sidebar */
+    .sidebar { width: var(--sidebar-w); background: #fff; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; flex-shrink: 0; z-index: 1000; position: relative; transition: var(--transition); }
+    
+    /* ── COLLAPSED SIDEBAR (DESKTOP) ──────────────── */
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed .brand-text,
+    .sidebar.collapsed .nav-item span, 
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .session-info,
+    .sidebar.collapsed .session-pill span { display: none !important; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding: 0.8rem !important; }
+    .sidebar.collapsed .brand { justify-content: center; padding: 1.5rem 0.5rem; }
+    .sidebar.collapsed .brand-icon img { height: 32px !important; }
+    .sidebar.collapsed .session-pill { padding: 0.875rem 0.5rem; justify-content: center; }
+    
+    .sidebar-inner { display: flex; flex-direction: column; height: 100%; padding: 1.5rem 1rem; }
+    
+    .brand { display: flex; align-items: center; gap: 0.75rem; padding: 0 0.5rem 2rem; }
+    .brand-icon img { height: 40px; width: auto; }
+    .brand-title { font-size: 1.4rem; font-weight: 900; color: var(--primary); letter-spacing: -0.5px; }
+    .brand-title span { color: #64748b; }
+    .brand-sub { font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; display: block; margin-top: -2px; }
+
+    .nav-label { font-size: 0.65rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; padding: 1.5rem 0.5rem 0.5rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 10px; color: #475569; font-weight: 600; cursor: pointer; transition: var(--transition); text-decoration: none; font-size: 0.9rem; }
+    .nav-item i { width: 18px; height: 18px; color: #94a3b8; }
+    .nav-item:hover { background: #f1f5f9; color: #0f172a; }
+    .nav-item.active { background: #eff6ff; color: var(--primary); }
+    .nav-item.active i { color: var(--primary); }
+
+    .main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
+    .topbar { height: 72px; background: #fff; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; sticky: top; z-index: 900; }
+    .topbar-left { display: flex; align-items: center; gap: 1.5rem; flex: 1; }
+    .mobile-toggle { display: none; background: none; border: none; cursor: pointer; color: #64748b; }
+    
+    .search-bar { position: relative; width: 320px; }
+    .search-bar i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8; }
+    .search-bar input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.75rem; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; font-weight: 500; outline: none; transition: var(--transition); }
+    .search-bar input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
+
+    .topbar-right { display: flex; align-items: center; gap: 1.25rem; }
+    .status-badge { display: flex; align-items: center; gap: 0.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.65rem; font-weight: 700; }
+    .status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; box-shadow: 0 0 8px #22c55e; }
+    .topbar-avatar { width: 36px; height: 36px; background: var(--primary); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; }
+
+    .content { flex: 1; overflow-y: auto; padding: 2rem; }
 
     @media (max-width: 1024px) {
+      .sidebar-toggle { display: flex !important; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0; width: 32px; height: 32px; position: absolute; right: 1rem; top: 1.5rem; color: #64748b; }
+      .sidebar-toggle i { width: 18px; height: 18px; }
       .sidebar {
         position: fixed;
         left: -100%;
         height: 100vh;
         top: 0;
+        z-index: 9999;
         transition: left 0.4s cubic-bezier(0.19, 1, 0.22, 1);
         box-shadow: none;
       }
@@ -685,6 +86,9 @@
       .mobile-toggle { display: flex !important; }
       .search-bar { display: none; }
       .main-area { width: 100%; }
+    }
+    @media (min-width: 1025px) {
+      .topbar-avatar { display: none !important; }
     }
 
     @media (max-width: 768px) {
@@ -704,6 +108,9 @@
 
   <!-- ╔══ SIDEBAR ══╗ -->
   <aside class="sidebar" id="main-sidebar">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Close Sidebar" style="background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 10px; color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; transition: all 0.2s; position: absolute; right: 1rem; top: 1.5rem;">
+       <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+    </button>
     <div class="sidebar-inner">
 
       <!-- Brand -->
@@ -746,20 +153,23 @@
       <a class="nav-item" id="nav-security" onclick="switchView('security', this)">
         <i data-lucide="shield-check"></i> Security Governance
       </a>
-      <a class="nav-item danger" onclick="handleLogout()">
-        <i data-lucide="log-out"></i> Terminate Session
-      </a>
+
 
       <!-- Footer -->
-      <div class="sidebar-footer">
-        <div class="session-pill">
-          <div class="session-avatar" id="sidebar-avatar">SA</div>
-          <div class="session-info">
-            <div class="session-name" id="sidebar-name">System Root</div>
-            <div class="session-role">Master Controller</div>
-          </div>
-          <div class="session-dot"></div>
-        </div>
+      <div class="sidebar-footer" style="padding: 1.5rem 0 0;">
+         <div class="session-pill" style="display: flex; flex-direction: column; gap: 0.75rem; background: #f3f4f6; padding: 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;" onclick="switchView('profile')">
+               <div class="session-avatar" id="sidebar-avatar" style="width: 36px; height: 36px; border-radius: 8px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">SA</div>
+               <div class="session-info" style="display: flex; flex-direction: column; overflow: hidden; white-space: nowrap;">
+                  <span class="session-name" id="sidebar-name" style="font-weight: 700; font-size: 0.85rem; color: #111827; overflow: hidden; text-overflow: ellipsis;">System Root</span>
+                  <span class="session-role" style="font-weight: 700; font-size: 0.65rem; color: #6b7280; text-transform: uppercase;">Master Controller</span>
+               </div>
+            </div>
+            <div title="Terminate Session" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; color: #ef4444; border: 1px solid #fee2e2; border-radius: 8px; transition: all 0.2s; font-size: 0.75rem; font-weight: 700;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='transparent'" onclick="handleLogout()">
+               <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+               <span>Sign Out from Portal</span>
+            </div>
+         </div>
       </div>
     </div>
   </aside>
@@ -770,7 +180,7 @@
     <!-- ── TOPBAR ── -->
     <header class="topbar" id="main-topbar">
       <div class="topbar-left">
-        <button class="mobile-toggle" id="mobile-menu-btn" onclick="toggleSidebar()">
+        <button class="mobile-toggle" id="mobile-toggle-btn" onclick="toggleSidebar()">
           <i data-lucide="menu" style="width:20px;height:20px;"></i>
         </button>
         <div class="breadcrumb-group">
@@ -787,427 +197,28 @@
           <div class="status-dot"></div>
           Platform Core Active
         </div>
+        <div style="cursor:pointer; width:36px; height:36px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:var(--transition);" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'" onclick="toggleDarkMode()">
+          <i data-lucide="moon" style="width:16px; height:16px; color:#4b5563;"></i>
+        </div>
         <div class="topbar-avatar" id="header-avatar" title="System Root">SA</div>
       </div>
     </header>
 
     <!-- ── CONTENT AREA ── -->
     <div class="content" id="main-content">
-
-      <!-- ▶ DASHBOARD VIEW -->
-      <div id="view-dashboard" class="view active">
-
-        <!-- KPI Row -->
-        <div class="stats-grid">
-          <div class="kpi-card" style="--card-accent:#6366f1; --card-glow:rgba(99,102,241,0.08);">
-            <div class="kpi-icon" style="background:rgba(99,102,241,0.1); color:#6366f1;"><i data-lucide="building-2" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="stat-total-schools">0</div>
-              <div class="kpi-label">Active School Nodes</div>
-              <div class="kpi-sub">Verified SDMS Environments</div>
-            </div>
-          </div>
-          <div class="kpi-card" style="--card-accent:#d946ef; --card-glow:rgba(217,70,239,0.08);">
-            <div class="kpi-icon" style="background:rgba(217,70,239,0.1); color:#d946ef;"><i data-lucide="shield-check" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="stat-total-admins">0</div>
-              <div class="kpi-label">Registered Admins</div>
-              <div class="kpi-sub">Institutional Operators</div>
-            </div>
-          </div>
-          <div class="kpi-card" style="--card-accent:#10b981; --card-glow:rgba(16,185,129,0.08);">
-            <div class="kpi-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><i data-lucide="database" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="stat-total-records">0</div>
-              <div class="kpi-label">Platform Records</div>
-              <div class="kpi-sub">Marks &amp; Academic Data</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Schools Table -->
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <h3>Institutional Environment Registry</h3>
-              <span class="panel-badge">Live</span>
-            </div>
-            <button class="btn btn-gold" onclick="openModal('register-school-modal')">
-              <i data-lucide="plus" style="width:16px;height:16px;"></i> Provision New School
-            </button>
-          </div>
-          <div class="panel-body">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>School Name</th>
-                    <th>SDMS Code</th>
-                    <th>Institutional Head</th>
-                    <th>Node Status</th>
-                    <th style="text-align:right;">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="schools-tbody">
-                  <tr><td colspan="5"><div class="empty-state"><i data-lucide="loader-2"></i><p>Initializing platform nodes...</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ USERS VIEW -->
-      <div id="view-users" class="view">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <h3>Global Account Registry</h3>
-              <span class="panel-badge">Admins &amp; Teachers</span>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Full Name</th>
-                    <th>Institutional Email</th>
-                    <th>Assigned Role</th>
-                    <th>School Node</th>
-                    <th>Account Status</th>
-                    <th style="text-align:right;">Command</th>
-                  </tr>
-                </thead>
-                <tbody id="users-tbody">
-                  <tr><td colspan="6"><div class="empty-state"><i data-lucide="loader-2"></i><p>Fetching global user registry...</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ SEARCH RESULTS VIEW -->
-      <div id="view-search-results" class="view">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title"><h3>Global Intelligence Results</h3></div>
-            <button class="btn btn-ghost btn-sm" onclick="switchView('dashboard')">
-              <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Return
-            </button>
-          </div>
-          <div class="panel-body">
-            <div class="table-wrap">
-              <table id="search-results-table">
-                <thead>
-                  <tr>
-                    <th>Match Type</th>
-                    <th>Identity / Node</th>
-                    <th>Reference Code</th>
-                    <th>Context</th>
-                    <th style="text-align:right;">Action</th>
-                  </tr>
-                </thead>
-                <tbody id="search-results-tbody">
-                  <tr><td colspan="5"><div class="empty-state"><i data-lucide="search"></i><p>Enter query to initiate global scan...</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ ANALYTICS VIEW -->
-      <div id="view-analytics" class="view">
-        <div class="stats-grid">
-          <div class="kpi-card" style="--card-accent:#0ea5e9; --card-glow:rgba(14,165,233,0.08);">
-            <div class="kpi-icon" style="background:rgba(14,165,233,0.1); color:#0ea5e9;"><i data-lucide="award" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="top-school-name" style="font-size:1.2rem;">—</div>
-              <div class="kpi-label">Top Performing Node</div>
-            </div>
-          </div>
-          <div class="kpi-card" style="--card-accent:#f43f5e; --card-glow:rgba(244,63,94,0.08);">
-            <div class="kpi-icon" style="background:rgba(244,63,94,0.1); color:#f43f5e;"><i data-lucide="percent" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="system-avg-marks">0%</div>
-              <div class="kpi-label">Global Average Marks</div>
-            </div>
-          </div>
-          <div class="kpi-card" style="--card-accent:#10b981; --card-glow:rgba(16,185,129,0.08);">
-            <div class="kpi-icon" style="background:rgba(16,185,129,0.1); color:#10b981;"><i data-lucide="users-2" style="width:28px;height:28px;"></i></div>
-            <div class="kpi-info">
-              <div class="kpi-val" id="total-platform-students">0</div>
-              <div class="kpi-label">Total Evaluated Students</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="charts-grid">
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><h3>Inter-Institutional Performance Trends</h3></div></div>
-            <div style="padding: 1.5rem; height: 320px; display:flex; align-items:center; justify-content:center;">
-              <canvas id="global-performance-chart"></canvas>
-            </div>
-          </div>
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><h3>School Performance Ranking</h3></div></div>
-            <div class="table-wrap" style="max-height:320px; overflow-y:auto;">
-              <table id="school-ranking-table">
-                <thead><tr><th>School Node</th><th>Avg %</th><th>Trend</th></tr></thead>
-                <tbody id="school-ranking-tbody">
-                  <tr><td colspan="3"><div class="empty-state"><i data-lucide="bar-chart-2"></i><p>Loading rankings...</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ COMMUNICATION HUB VIEW -->
-      <div id="view-support" class="view">
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
-          <div class="panel">
-            <div class="panel-header"><div class="panel-title"><h3>Broadcast Center</h3></div></div>
-            <div style="padding: 1.5rem;">
-              <form id="broadcast-form" onsubmit="handleGlobalBroadcast(event)">
-                <div class="form-group">
-                  <label>Target Scope</label>
-                  <select id="broadcast-scope" class="input-field">
-                    <option value="global">All Schools (System-Wide)</option>
-                    <option value="school">Specific SDMS Node</option>
-                  </select>
-                </div>
-                <div class="form-group" id="scope-school-field" style="display:none;">
-                  <label>Target SDMS Code</label>
-                  <input type="text" id="broadcast-sdms" class="input-field" maxlength="6" placeholder="e.g. 541023">
-                </div>
-                <div class="form-group">
-                  <label>Message Payload</label>
-                  <textarea id="broadcast-msg" class="input-field" style="height:120px; resize:vertical;" placeholder="Enter strategic notice or guidance..." required></textarea>
-                </div>
-                <div class="form-group">
-                  <label>Urgency Level</label>
-                  <div style="display:flex; gap:0.75rem;">
-                    <label style="flex:1; border:2px solid #e2e8f0; padding:0.65rem; border-radius:10px; text-align:center; cursor:pointer; font-size:0.8rem; font-weight:800;">
-                      <input type="radio" name="urgency" value="info" checked style="display:none;"> ℹ INFO
-                    </label>
-                    <label style="flex:1; border:2px solid #e2e8f0; padding:0.65rem; border-radius:10px; text-align:center; cursor:pointer; font-size:0.8rem; font-weight:800;">
-                      <input type="radio" name="urgency" value="warning" style="display:none;"> ⚠ ALERT
-                    </label>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-gold" style="width:100%; justify-content:center;">
-                  <i data-lucide="send" style="width:14px;height:14px;"></i> Dispatch Intelligence
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <div class="panel-title"><h3>Institutional Inbound Messages</h3></div>
-              <span class="panel-badge" id="unread-count">0 NEW</span>
-            </div>
-            <div class="table-wrap" style="max-height:500px; overflow-y:auto;">
-              <table id="messages-table">
-                <thead><tr><th>SDMS Code</th><th>Admin Identity</th><th>Message Fragment</th><th>Timestamp</th><th style="text-align:right;">Command</th></tr></thead>
-                <tbody id="inbound-messages-tbody">
-                  <tr><td colspan="5"><div class="empty-state"><i data-lucide="inbox"></i><p>Scanning for inbound support requests...</p></div></td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ AUDIT VIEW -->
-      <div id="view-audit" class="view">
-        <div class="panel">
-          <div class="panel-header"><div class="panel-title"><h3>System-Wide Forensic Activity Logs</h3><span class="panel-badge">Real-time</span></div></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Timestamp</th><th>Actor Identity</th><th>Action Performed</th><th>Institutional Scope</th><th>Payload / Result</th></tr></thead>
-              <tbody id="audit-logs-tbody">
-                <tr><td colspan="5"><div class="empty-state"><i data-lucide="file-search"></i><p>Scanning forensic logs...</p></div></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ SECURITY VIEW -->
-      <div id="view-security" class="view">
-        <div class="panel" style="padding: 3rem; text-align:center;">
-          <div style="width:72px; height:72px; background:rgba(99,102,241,0.1); border-radius:24px; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:#6366f1;">
-            <i data-lucide="shield-check" style="width:36px;height:36px;"></i>
-          </div>
-          <h2 style="font-size:1.75rem; font-weight:900; letter-spacing:-1px; color:var(--midnight); margin-bottom:0.75rem;">Global Security Governance</h2>
-          <p style="color:#64748b; font-weight:600; max-width:520px; margin:0 auto 2rem; line-height:1.7;">
-            Row-Level Security (RLS) is currently enforcing strict SDMS-based isolation. Only the System Root can bypass these filters for support and forensic review.
-          </p>
-          <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
-            <button class="btn btn-gold"><i data-lucide="shield" style="width:16px;height:16px;"></i> Audit RLS Policies</button>
-            <button class="btn btn-ghost"><i data-lucide="key" style="width:16px;height:16px;"></i> Rotate Global Salts</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ▶ SCHOOLS VIEW (Node Detail) -->
-      <div id="view-schools" class="view">
-        <div class="panel" style="padding:3rem; text-align:center;">
-          <div style="width:72px; height:72px; background:rgba(245,158,11,0.1); border-radius:24px; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:var(--gold);">
-            <i data-lucide="building-2" style="width:36px;height:36px;"></i>
-          </div>
-          <h2 style="font-weight:900; color:var(--midnight); margin-bottom:0.75rem;">Infrastructure Nodes</h2>
-          <p style="color:#64748b; font-weight:600;">Select a school node from the Master Registry to manage its isolated environment and academic records.</p>
-        </div>
-      </div>
-
-    </div><!-- /content -->
-  </div><!-- /main-area -->
-</div><!-- /layout -->
-
-<!-- MOBILE OVERLAY -->
-<div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none; position:fixed; inset:0; background:rgba(15,14,42,0.5); z-index:199; backdrop-filter:blur(4px);"></div>
-
-<!-- ── MODAL: REGISTER SCHOOL ── -->
-<div id="register-school-modal" class="modal-overlay">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('register-school-modal')">✕</button>
-    <div class="modal-title">Provision Institutional Node</div>
-    <div class="modal-sub">Setup a new isolated scholastic data environment within the MMS network.</div>
-    <form onsubmit="handleRegisterSchool(event)">
-      <div class="form-group">
-        <label>Institutional Name</label>
-        <input type="text" id="node-school-name" class="input-field" placeholder="e.g. GS Nyagahandagaza" required>
-      </div>
-      <div class="form-group">
-        <label>SDMS Code (6 Digits)</label>
-        <input type="text" id="node-sdms-code" class="input-field" placeholder="e.g. 541023" maxlength="6" required>
-      </div>
-      <hr class="form-divider">
-      <div class="form-section-title">Primary Institutional Head</div>
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="node-admin-name" class="input-field" placeholder="Headteacher Full Name" required>
-      </div>
-      <button type="submit" class="btn btn-gold" style="width:100%; justify-content:center; padding:1rem;">
-        <i data-lucide="zap" style="width:16px;height:16px;"></i> Initialize Node &amp; Provision Admin
-      </button>
-    </form>
+      <!-- Content injected by JS -->
+    </div>
   </div>
 </div>
 
-<!-- ── MODAL: EDIT USER ── -->
-<div id="edit-user-modal" class="modal-overlay">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('edit-user-modal')">✕</button>
-    <div class="modal-title">Modify Institutional Account</div>
-    <div class="modal-sub">Update global user credentials and node assignments.</div>
-    <form id="edit-user-form">
-      <input type="hidden" id="edit-user-id">
-      <div class="form-group">
-        <label>Full Identity Name</label>
-        <input type="text" id="edit-user-name" class="input-field" required>
-      </div>
-      <div class="form-group">
-        <label>Institutional Email</label>
-        <input type="email" id="edit-user-email" class="input-field" required>
-      </div>
-      <div class="form-group">
-        <label>SDMS Node Assignment</label>
-        <input type="text" id="edit-user-sdms" class="input-field" maxlength="6">
-      </div>
-      <div class="form-group">
-        <label>System Role</label>
-        <select id="edit-user-role" class="input-field">
-          <option value="teacher">Teacher</option>
-          <option value="admin">Institutional Admin</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-gold" style="width:100%; justify-content:center; padding:1rem; margin-top:0.5rem;">
-        <i data-lucide="save" style="width:16px;height:16px;"></i> Commit Account Updates
-      </button>
-    </form>
-  </div>
-</div>
+<div id="sidebar-overlay" onclick="toggleSidebar()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,14,42,0.4); z-index:9998; backdrop-filter:blur(4px);"></div>
 
-<div id="toast-container"></div>
-
-<script src="js/db.js"></script>
+<script src="js/supabase-config.js"></script>
 <script src="js/system-admin.js"></script>
 <script>
-  /* ── INIT LUCIDE ── */
+  // Initialize Lucide icons
   lucide.createIcons();
-
-  /* ── MODALS ── */
-  function openModal(id) {
-    const el = document.getElementById(id);
-    if (el) { el.classList.add('open'); el.style.display = 'flex'; }
-  }
-  function closeModal(id) {
-    const el = document.getElementById(id);
-    if (el) { el.classList.remove('open'); el.style.display = 'none'; }
-  }
-
-  /* ── SIDEBAR TOGGLE ── */
-  function toggleSidebar() {
-    const sb = document.getElementById('main-sidebar');
-    const ov = document.getElementById('sidebar-overlay');
-    if (!sb) return;
-    const open = sb.classList.toggle('open');
-    if (ov) ov.style.display = open ? 'block' : 'none';
-  }
-
-  /* ── SCROLL TOPBAR EFFECT ── */
-  document.getElementById('main-content').addEventListener('scroll', function() {
-    const tb = document.getElementById('main-topbar');
-    if (tb) tb.classList.toggle('scrolled', this.scrollTop > 10);
-  });
-
-  /* ── VIEW SWITCHER ── */
-  const viewMeta = {
-    dashboard:      { title: 'System Controller',      breadcrumb: 'Master Registry' },
-    analytics:      { title: 'Performance Analysis',   breadcrumb: 'Performance Analysis' },
-    schools:        { title: 'Infrastructure Nodes',   breadcrumb: 'Institutional Nodes' },
-    users:          { title: 'Global User Registry',   breadcrumb: 'Global User Registry' },
-    support:        { title: 'Communication Hub',      breadcrumb: 'Strategic Command' },
-    audit:          { title: 'Forensic Audit Logs',    breadcrumb: 'Strategic Command' },
-    security:       { title: 'Security Governance',    breadcrumb: 'Platform Security' },
-    'search-results': { title: 'Search Results',       breadcrumb: 'Global Intelligence' },
-  };
-
-  function switchView(viewId, navEl) {
-    /* Hide all views */
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    /* Show target */
-    const target = document.getElementById('view-' + viewId);
-    if (target) target.classList.add('active');
-
-    /* Update header */
-    const meta = viewMeta[viewId] || { title: viewId, breadcrumb: viewId };
-    const pt = document.getElementById('page-title');
-    const bc = document.getElementById('breadcrumb-view');
-    if (pt) pt.textContent = meta.title;
-    if (bc) bc.textContent = meta.breadcrumb;
-
-    /* Update nav state */
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const navTarget = document.getElementById('nav-' + viewId);
-    if (navTarget) navTarget.classList.add('active');
-    else if (navEl) navEl.classList.add('active');
-
-    /* Auto-close mobile sidebar */
-    if (window.innerWidth <= 1024) {
-      const sb = document.getElementById('main-sidebar');
-      if (sb && sb.classList.contains('open')) toggleSidebar();
-    }
-
-    /* Reinit lucide in new view */
-    lucide.createIcons();
-  }
 </script>
+
 </body>
 </html>
