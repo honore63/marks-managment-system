@@ -43,14 +43,14 @@
       flex: 1.2;
       background: #020617;
       background-image: 
-        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.25) 0, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.15) 0, transparent 50%);
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.3) 0, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.2) 0, transparent 50%);
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 6rem;
+      padding: 4rem 6rem;
       color: white;
     }
 
@@ -137,12 +137,12 @@
 
     .login-card {
       width: 100%;
-      max-width: 480px;
-      background: var(--glass-bg);
-      padding: 4rem;
-      border-radius: 40px;
-      box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.1);
-      border: 1px solid rgba(255,255,255,0.8);
+      max-width: 440px;
+      background: #ffffff;
+      padding: 3.5rem;
+      border-radius: 32px;
+      box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.12);
+      border: 1px solid #f1f5f9;
       position: relative;
       z-index: 10;
       animation: cardSlide 0.8s cubic-bezier(0.19, 1, 0.22, 1);
@@ -249,8 +249,10 @@
   <div class="branding-section">
     <div class="branding-content">
       <div class="mms-logo">
-        <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 110px; width: auto; object-fit: contain;">
-        <div style="font-family: var(--font-heading); font-weight: 950; font-size: 2.2rem; color: white; letter-spacing: -1px;">MMS Portal</div>
+        <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 80px; width: auto; object-fit: contain;">
+        <div style="font-family: var(--font-heading); font-weight: 950; font-size: 2.2rem; color: white; letter-spacing: -1px; display: flex; align-items: center; gap: 0.5rem;">
+          MMS<span style="color: #60a5fa;">Portal</span>
+        </div>
       </div>
 
       <h1 class="branding-heading">Empowering School <br>Performance Management</h1>
@@ -277,13 +279,8 @@
   <div class="form-section">
     <div class="login-card">
       <div class="form-header">
-        <div style="display:flex; justify-content:center; margin-bottom:1.5rem;">
-          <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png"
-               alt="MMS Logo"
-               style="height: 80px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(37,99,235,0.15));">
-        </div>
-        <h2>Welcome Back</h2>
-        <p>Enter your institutional credentials to access your dashboard.</p>
+        <h2 style="margin-top: 0;">Welcome Back</h2>
+        <p>Access your institutional dashboard and student records securely.</p>
       </div>
 
       <form id="auth-form">
