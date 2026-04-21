@@ -11,7 +11,7 @@ async function initSystemAdmin() {
     try {
         const { data: { user } } = await _supabase.auth.getUser();
         if (!user) {
-            window.location.href = '/Login.html';
+            window.location.href = 'Login.html';
             return;
         }
 
@@ -23,8 +23,14 @@ async function initSystemAdmin() {
 
         if (!profile || profile.role !== 'system_admin') {
             console.warn('[SECURITY] Unauthorized access to System Admin portal.');
-            window.location.href = '/Login.html';
+            window.location.href = 'Login.html';
             return;
+        }
+
+        // Initialize Sidebar state from persistence
+        const sb = document.querySelector('.sidebar');
+        if (sb && localStorage.getItem('sidebar_collapsed') === 'true') {
+            sb.classList.add('collapsed');
         }
 
         await updateStats();
@@ -34,16 +40,13 @@ async function initSystemAdmin() {
         await renderInboundMessages();
         
         // Dynamic Header Scroll Controller
-        const mainContent = document.querySelector('.main-content');
+        const mainContent = document.querySelector('.content');
         if (mainContent) {
             mainContent.addEventListener('scroll', () => {
-                const header = document.querySelector('.sub-header');
+                const header = document.querySelector('.topbar');
                 if (header) {
-                    if (mainContent.scrollTop > 50) {
-                        header.classList.add('scrolled');
-                    } else {
-                        header.classList.remove('scrolled');
-                    }
+                    if (mainContent.scrollTop > 50) header.classList.add('scrolled');
+                    else header.classList.remove('scrolled');
                 }
             });
         }
@@ -680,6 +683,16 @@ async function replyToAdmin(adminId, originalMsg) {
         toast('Response dispatched.', 'success');
     } catch (e) {
         toast('Reply failed.', 'error');
+    }
+}
+
+async function handleLogout() {
+    try {
+        await DB.signOut();
+        window.location.href = 'Login.html';
+    } catch (e) {
+        console.error('[AUTH] Logout failed:', e);
+        window.location.href = 'Login.html';
     }
 }
 
