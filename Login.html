@@ -15,194 +15,118 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style id="mms-elite-gatekeeper-style">
     :root {
-      --primary-brand: #2563EB;
-      --secondary-brand: #0F172A;
-      --accent-glow: rgba(37, 99, 235, 0.15);
-      --font-heading: 'Plus Jakarta Sans', sans-serif;
-      --font-body: 'Inter', sans-serif;
-      --glass-bg: rgba(255, 255, 255, 0.95);
-      --glass-border: rgba(255, 255, 255, 0.2);
+      --primary: #2563eb;
+      --secondary: #0f172a;
+      --font-main: 'Inter', sans-serif;
+      --font-header: 'Plus Jakarta Sans', sans-serif;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: var(--font-body); 
-      background: #F8FAFC; 
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    body { font-family: var(--font-main); background: #fff; height: 100vh; overflow: hidden; }
 
-    .login-container {
+    .login-container { display: flex; height: 100vh; width: 100%; }
+
+    /* LEFT PANEL */
+    .branding-panel {
+      flex: 1;
+      background: #0a1122;
+      padding: 3rem 4rem;
       display: flex;
-      min-height: 100vh;
-      width: 100%;
-    }
-
-    /* LEFT: BRANDING SECTION (Kinetic Depth) */
-    .branding-section {
-      flex: 1.2;
-      background: #020617;
-      background-image: 
-        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.3) 0, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(124, 58, 237, 0.2) 0, transparent 50%);
+      flex-direction: column;
+      color: white;
       position: relative;
-      overflow: hidden;
+    }
+    .brand-top { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 5rem; }
+    .brand-top img { height: 40px; border-radius: 8px; }
+    .brand-top span { font-weight: 800; font-size: 1.1rem; color: #94a3b8; }
+
+    .hero-text { margin-top: auto; margin-bottom: auto; }
+    .hero-text h1 { 
+      font-family: var(--font-header); 
+      font-size: 4rem; 
+      font-weight: 900; 
+      line-height: 1.1; 
+      letter-spacing: -2px;
+      margin-bottom: 2rem;
+    }
+    .hero-text h1 span { color: #3b82f6; }
+    .hero-text p { font-size: 1.2rem; color: #94a3b8; line-height: 1.6; max-width: 480px; }
+
+    /* RIGHT PANEL */
+    .form-panel {
+      flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: center;
       padding: 4rem 6rem;
-      color: white;
+      background: #fff;
     }
+    .form-header { margin-bottom: 3rem; }
+    .form-header h2 { font-family: var(--font-header); font-size: 2.2rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem; }
+    .form-header p { color: #64748b; font-size: 1rem; font-weight: 500; }
 
-    @media (max-width: 1024px) {
-      .branding-section { display: none; }
-    }
-
-    .branding-section::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-      opacity: 0.1;
-      pointer-events: none;
-    }
-
-    .branding-content { 
-      position: relative; z-index: 10;
-      animation: floatIn 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes floatIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .mms-logo {
-      display: flex; align-items: center; gap: 1.5rem; margin-bottom: 4rem;
-      animation: logoPulse 4s ease-in-out infinite;
-    }
-    @keyframes logoPulse { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-
-    .logo-box {
-      width: 64px; height: 64px;
-      background: linear-gradient(135deg, #3B82F6, #1D4ED8);
-      border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 950; font-size: 1.8rem;
-      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.4);
-    }
-
-    .branding-heading {
-      font-family: var(--font-heading);
-      font-size: 4.5rem;
-      font-weight: 850;
-      line-height: 1;
-      letter-spacing: -0.05em;
-      margin-bottom: 2rem;
-      background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .branding-sub {
-      font-size: 1.25rem;
-      line-height: 1.7;
-      color: #94A3B8;
-      max-width: 550px;
-      font-weight: 500;
-    }
-
-    .visual-footer {
-      margin-top: auto;
-      display: flex; gap: 3rem;
-      padding-top: 5rem;
-    }
-    .stat-item { display: flex; flex-direction: column; gap: 0.5rem; }
-    .stat-val { font-size: 1.75rem; font-weight: 900; color: #fff; letter-spacing: -1px; }
-    .stat-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
-
-    /* RIGHT: FORM SECTION (Masterclass Glassmorphism) */
-    .form-section {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      position: relative;
-    }
-    .form-section::before {
-      content: '';
-      position: absolute;
-      top: 10%; right: 10%; width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
-      filter: blur(50px);
-    }
-
-    .login-card {
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label { display: block; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.75rem; }
+    .input-wrap { position: relative; }
+    .input-wrap i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; width: 18px; }
+    .input-field {
       width: 100%;
-      max-width: 440px;
-      background: #ffffff;
-      padding: 3.5rem;
-      border-radius: 32px;
-      box-shadow: 0 40px 100px -20px rgba(15, 23, 42, 0.12);
-      border: 1px solid #f1f5f9;
-      position: relative;
-      z-index: 10;
-      animation: cardSlide 0.8s cubic-bezier(0.19, 1, 0.22, 1);
-    }
-    @keyframes cardSlide { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-
-    .form-header { margin-bottom: 3rem; text-align: center; }
-    .form-header h2 { font-family: var(--font-heading); font-size: 2.25rem; font-weight: 850; color: #0F172A; letter-spacing: -1px; }
-    .form-header p { color: #64748B; font-size: 1rem; margin-top: 0.75rem; font-weight: 500; }
-
-    .input-group { margin-bottom: 1.75rem; }
-    .input-label { display: block; font-size: 0.75rem; font-weight: 850; color: #475569; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; }
-    
-    .input-wrapper { position: relative; }
-    .input-icon { position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: #94A3B8; transition: color 0.3s; }
-    
-    .form-input {
-      width: 100%;
-      padding: 1.15rem 1.25rem 1.15rem 3.5rem;
-      border: 2.5px solid #F1F5F9;
-      border-radius: 20px;
-      font-family: var(--font-body);
+      padding: 1rem 1rem 1rem 3rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
       font-size: 1rem;
       font-weight: 600;
-      color: #0F172A;
-      transition: all 0.3s;
-      background: #F8FAFC;
+      color: #0f172a;
+      transition: all 0.2s;
     }
-    .form-input:focus {
-      outline: none;
-      border-color: var(--primary-brand);
-      background: #fff;
-      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.08);
-    }
-    .input-wrapper:focus-within .input-icon { color: var(--primary-brand); }
+    .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.05); }
 
-    .form-options {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 2.5rem; font-size: 0.9rem;
-    }
-    .remember-me { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; color: #64748B; cursor: pointer; transition: color 0.2s; }
-    .remember-me:hover { color: #0F172A; }
-    .forgot-link { text-decoration: none; color: var(--primary-brand); font-weight: 800; border-bottom: 2px solid transparent; transition: all 0.2s; }
-    .forgot-link:hover { border-bottom-color: var(--primary-brand); }
+    .form-utils { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .forgot-pass { color: #3b82f6; font-weight: 800; font-size: 0.85rem; text-decoration: none; }
 
-    .submit-btn {
+    .btn-primary {
       width: 100%;
-      padding: 1.25rem;
-      border: none;
-      border-radius: 20px;
-      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      padding: 1.15rem;
+      background: #2563eb;
       color: white;
-      font-family: var(--font-heading);
-      font-size: 1.05rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
       font-weight: 800;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      display: flex; align-items: center; justify-content: center; gap: 1rem;
-      box-shadow: 0 15px 30px rgba(37, 99, 235, 0.3);
+      display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+      transition: all 0.2s;
     }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+    .divider { display: flex; align-items: center; gap: 1rem; margin: 2rem 0; color: #94a3b8; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+
+    .btn-google {
+      width: 100%;
+      padding: 1rem;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      color: #334155;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-google:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+    @media (max-width: 1024px) {
+      .branding-panel { display: none; }
+      .form-panel { padding: 4rem 2rem; }
+    }
+    
+    .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
+    .toast { padding: 1rem 1.5rem; border-radius: 12px; background: #0f172a; color: white; font-weight: 700; font-size: 0.9rem; animation: slideIn 0.3s ease-out; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .toast.error { background: #ef4444; }
+    .toast.success { background: #10b981; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .submit-btn:hover {
       transform: translateY(-4px);
       box-shadow: 0 25px 50px rgba(37, 99, 235, 0.4);
@@ -245,84 +169,64 @@
 
 <div class="login-container">
   
-  <!-- LEFT: BRANDING SECTION -->
-  <div class="branding-section">
-    <div class="branding-content">
-      <div class="mms-logo">
-        <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" style="height: 80px; width: auto; object-fit: contain;">
-        <div style="font-family: var(--font-heading); font-weight: 950; font-size: 2.2rem; color: white; letter-spacing: -1px; display: flex; align-items: center; gap: 0.5rem;">
-          MMS<span style="color: #60a5fa;">Portal</span>
-        </div>
-      </div>
+  <!-- LEFT PANEL -->
+  <div class="branding-panel">
+    <div class="brand-top">
+      <img src="js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" alt="MMS">
+      <span>MMS Institutional Portal</span>
+    </div>
 
-      <h1 class="branding-heading">Empowering School <br>Performance Management</h1>
-      <p class="branding-sub">A smart, secure, and intuitive system designed for modern Rwandan educators to record marks, generate reports, and analyze student progress with precision.</p>
-
-      <div class="visual-footer">
-        <div class="stat-item">
-          <span class="stat-val">100%</span>
-          <span class="stat-lbl">Secure Sync</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-val">A4+</span>
-          <span class="stat-lbl">Print Optimized</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-val">SDMS</span>
-          <span class="stat-lbl">Integrated</span>
-        </div>
-      </div>
+    <div class="hero-text">
+      <h1>Empowering <br><span>Rwandan Educators.</span></h1>
+      <p>The ultimate institutional workspace for mastering academic records, automating reports, and securing student intelligence.</p>
     </div>
   </div>
 
-  <!-- RIGHT: FORM SECTION -->
-  <div class="form-section">
-    <div class="login-card">
-      <div class="form-header">
-        <h2 style="margin-top: 0;">Welcome Back</h2>
-        <p>Access your institutional dashboard and student records securely.</p>
+  <!-- RIGHT PANEL -->
+  <div class="form-panel">
+    <div class="form-header">
+      <h2>Welcome Back</h2>
+      <p>Continue your institutional journey with precision.</p>
+    </div>
+
+    <form id="auth-form">
+      <div class="form-group">
+        <label class="form-label">Email or Phone Number</label>
+        <div class="input-wrap">
+          <i data-lucide="user"></i>
+          <input type="text" id="email" class="input-field" placeholder="institutional@email.rw" required>
+        </div>
       </div>
 
-      <form id="auth-form">
-        <div class="input-group">
-          <label class="input-label">Identification</label>
-          <div class="input-wrapper">
-            <i data-lucide="user" class="input-icon" style="color: #94a3b8; width: 18px; height: 18px;"></i>
-            <input type="text" id="email" class="form-input" placeholder="SDMS Code or Email" required autocomplete="username">
-          </div>
+      <div class="form-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <label class="form-label" style="margin:0;">Password</label>
+          <a href="#" class="forgot-pass" style="font-size: 0.65rem;">Support?</a>
         </div>
-
-        <div class="input-group">
-          <label class="input-label">Authorization Key</label>
-          <div class="input-wrapper">
-            <i data-lucide="lock" class="input-icon" style="color: #94a3b8; width: 18px; height: 18px;"></i>
-            <input type="password" id="pass" class="form-input" placeholder="Password" autocomplete="current-password" required>
-            <button type="button" class="eye-toggle" onclick="togglePasswordVisibility()" style="position:absolute; right:1.25rem; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; padding:0; display:flex; align-items:center; z-index:100;">
-               <i data-lucide="eye" id="eye-icon" style="width: 18px; height: 18px;"></i>
-            </button>
-          </div>
+        <div class="input-wrap">
+          <i data-lucide="lock"></i>
+          <input type="password" id="pass" class="input-field" placeholder="••••••••" required>
         </div>
+      </div>
 
-        <div class="form-options">
-          <label class="remember-me">
-            <input type="checkbox"> Remember me
-          </label>
-          <a href="#" onclick="toast('Please contact your School Registrar to reset your security key.', 'info')" class="forgot-link">Forgot Password?</a>
-        </div>
+      <div class="form-utils">
+        <div></div>
+        <a href="#" onclick="toast('Please contact your administrator.', 'info')" class="forgot-pass">Forgot Password?</a>
+      </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn">
-          <span id="btn-text">Sign In to Dashboard</span>
-          <div class="loader" id="btn-loader"></div>
-        </button>
+      <button type="submit" class="btn-primary" id="submit-btn" style="height: 56px;">
+        <span id="btn-text">Sign In to Workspace</span>
+        <i data-lucide="arrow-right" style="width: 20px;"></i>
+        <div class="loader" id="btn-loader"></div>
+      </button>
 
-        <div style="margin-top: 2rem; text-align: center; border-top: 1px solid #F1F5F9; padding-top: 1.5rem;">
-          <p style="font-size: 0.85rem; color: #64748B; font-weight: 600;">Institutions with no account?</p>
-          <a href="#" onclick="switchLoginMode('new-admin')" style="display: block; margin-top: 0.5rem; color: var(--primary-brand); font-weight: 800; text-decoration: none;">Register Your School Node</a>
-        </div>
+      <div class="divider">Or continue with</div>
 
-        <div class="role-hint">Automatic Role Detection Enabled</div>
-      </form>
-    </div>
+      <button type="button" class="btn-google" onclick="toast('Google login coming soon', 'info')">
+        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" style="width: 18px;">
+        Sign in with Google
+      </button>
+    </form>
   </div>
 
 </div>
