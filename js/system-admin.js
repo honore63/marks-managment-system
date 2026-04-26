@@ -7,6 +7,30 @@
 
 const el = id => document.getElementById(id);
 
+// -----------------------------------------------------------
+// Sidebar toggle helper – enables mobile and desktop sidebar toggling
+// -----------------------------------------------------------
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!sidebar) return;
+
+    // Mobile: toggle the overlay and the open state
+    const isOpen = sidebar.classList.contains('open');
+    if (isOpen) {
+        sidebar.classList.remove('open');
+        if (overlay) overlay.style.display = 'none';
+    } else {
+        sidebar.classList.add('open');
+        if (overlay) overlay.style.display = 'block';
+    }
+
+    // Desktop collapsed/expanded toggle (optional)
+    // Uncomment the line below if you want the sidebar to collapse on larger screens
+    // sidebar.classList.toggle('collapsed');
+}
+
 async function initSystemAdmin() {
     try {
         const { data: { user } } = await _supabase.auth.getUser();
@@ -31,6 +55,10 @@ async function initSystemAdmin() {
         const sb = document.querySelector('.sidebar');
         if (sb && localStorage.getItem('sidebar_collapsed') === 'true') {
             sb.classList.add('collapsed');
+        }
+        // Initialize Theme
+        if (localStorage.getItem('dark_mode') === 'true') {
+            toggleDarkMode(true);
         }
 
         await updateStats();
@@ -62,24 +90,72 @@ async function initSystemAdmin() {
         }, 60000);
 
         // REAL-TIME GLOBAL COMMAND SYNC
-        _supabase.channel('mms-global-sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'schools' }, () => {
-                console.log('[SYNC] Global Institutions Registry Updated');
-                renderSchools();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-                console.log('[SYNC] Global Profile Membership Updated');
-                updateStats();
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'marks' }, () => {
+        if (typeof SYNC !== 'undefined' && SYNC.start) {
+            await SYNC.start();
+            
+            SYNC.on('marks', () => {
                 console.log('[SYNC] Global Academic Records Updated');
                 updateStats();
-            })
-            .subscribe();
+                calculatePerformanceAnalytics();
+            });
+
+            SYNC.on('teachers', () => {
+                console.log('[SYNC] Global Faculty Membership Updated');
+                updateStats();
+                if (document.getElementById('view-users').classList.contains('active')) renderGlobalUsers();
+            });
+
+            SYNC.on('students', () => {
+                console.log('[SYNC] Global Student Membership Updated');
+                updateStats();
+            });
+
+            SYNC.on('support_messages', () => {
+                console.log('[SYNC] Support inbox updated');
+                renderInboundMessages();
+            });
+
+            // Schools registry (specific to sysadmin)
+            _supabase.channel('global-schools-sync')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'schools' }, () => {
+                    console.log('[SYNC] Global Institutions Registry Updated');
+                    renderSchools();
+                    updateStats();
+                })
+                .subscribe();
+        }
 
         if (window.lucide) lucide.createIcons();
     } catch (e) {
         console.error('[SYSADMIN] Init failed:', e);
+    }
+}
+
+function toggleDarkMode(force) {
+    const isDark = typeof force === 'boolean' ? force : document.body.classList.toggle('dark-mode');
+    if (typeof force === 'boolean') {
+        document.body.classList.toggle('dark-mode', isDark);
+    }
+    
+    localStorage.setItem('dark_mode', isDark);
+    
+    // Update theme icons if they exist
+    const icon = document.querySelector('[onclick="toggleDarkMode()"] i');
+    if (icon) {
+        if (isDark) {
+            icon.setAttribute('data-lucide', 'sun');
+            document.body.style.background = '#0f172a';
+            document.body.style.color = '#f8fafc';
+        } else {
+            icon.setAttribute('data-lucide', 'moon');
+            document.body.style.background = '#f8fafc';
+            document.body.style.color = '#1e293b';
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+    
+    if (typeof force !== 'boolean') {
+        toast(`Interface set to ${isDark ? 'Stealth' : 'Light'} mode`, 'info');
     }
 }
 
@@ -186,15 +262,40 @@ async function handleRegisterSchool(event) {
     const sdmsCode = el('node-sdms-code').value.trim();
     const adminName = el('node-admin-name').value.trim();
 
-    if (!sdmsCode || sdmsCode.length !== 6) {
-        toast('SDMS Code must be 6 digits', 'error');
+    // 1. Mandatory Validation per Institutional Policy
+    if (!schoolName) { toast('School Name is required', 'error'); return; }
+    if (!adminName) { toast('Admin Full Name is required', 'error'); return; }
+    
+    const codeCheck = ValidationSystem.validateSchoolCode(sdmsCode);
+    if (!codeCheck.valid) {
+        toast(codeCheck.error, 'error');
         return;
     }
 
     try {
-        toast('Initializing institutional node...', 'info');
+        toast('Initializing institutional node & provisioning Auth...', 'info');
 
-        // 1. Create School Node
+        // 2. Resolve SDMS-based Credentials
+        // Default Email: sdms[CODE]@mms.rw | Default Password: Admin@[CODE]
+        const sdmsEmail = `sdms${sdmsCode}@mms.rw`;
+        const initialPassword = `Admin@${sdmsCode}`; 
+
+        // Check if profile exists first to prevent collisions
+        const { data: existing } = await _supabase.from('profiles').select('id').eq('email', sdmsEmail).maybeSingle();
+        if (existing) {
+            throw new Error(`An institutional record for node ${sdmsCode} already exists.`);
+        }
+
+        // 3. Provision Supabase Auth Identity (Immediate Activation)
+        const { data: authData, error: authError } = await _supabase.auth.signUp({
+            email: sdmsEmail,
+            password: initialPassword,
+            options: { data: { full_name: adminName, role: 'admin' } }
+        });
+
+        if (authError) throw new Error(`Authentication Layer Failure: ${authError.message}`);
+
+        // 4. Create School Node
         const { error: schoolError } = await _supabase.from('schools').upsert({
             sdms_code: sdmsCode,
             name: schoolName,
@@ -203,11 +304,9 @@ async function handleRegisterSchool(event) {
 
         if (schoolError) throw schoolError;
 
-        // 2. Provision Admin Profile with SDMS-based Credentials
-        // Email format: sdms[CODE]@mms.rw | Password: [CODE]
-        const sdmsEmail = `sdms${sdmsCode}@mms.rw`;
-        
-        const { error: profileError } = await _supabase.from('profiles').upsert({
+        // 5. Create Profile Record
+        const { error: profileError } = await _supabase.from('profiles').insert([{
+            id: authData.user.id,
             email: sdmsEmail,
             full_name: adminName,
             role: 'admin',
@@ -215,11 +314,13 @@ async function handleRegisterSchool(event) {
             school_name: schoolName,
             temp_password_active: true,
             created_at: new Date().toISOString()
-        }, { onConflict: 'email' });
+        }]);
 
         if (profileError) throw profileError;
 
-        toast(`✅ Institutional Node ${sdmsCode} provisioned!`, 'success');
+        toast(`✅ Institutional Node ${sdmsCode} provisioned and active!`, 'success');
+        alert(`NODE PROVISIONED SUCCESSFULY\n\nEmail: ${sdmsEmail}\nPassword: ${initialPassword}\n\nNote: The admin can log in immediately.`);
+        
         closeModal('register-school-modal');
         await renderSchools();
         await renderGlobalUsers();
@@ -511,7 +612,7 @@ let performanceChart = null;
 
 async function calculatePerformanceAnalytics() {
     try {
-        const { data: marks, error } = await _supabase.from('marks').select('mark, out_of, school_code, student_id');
+        const { data: marks, error } = await _supabase.from('marks').select('score, max_score, school_code, student_id');
         if (error) throw error;
 
         if (!marks || marks.length === 0) return;
@@ -522,8 +623,13 @@ async function calculatePerformanceAnalytics() {
         let totalPossible = 0;
 
         marks.forEach(m => {
-            if (!m.mark || !m.out_of) return;
-            const perc = (m.mark / m.out_of) * 100;
+            // Handle -1 as 0 (Missed) or skip. Standardizing with admin portal logic.
+            const actualScore = m.score === -1 ? 0 : (Number(m.score) || 0);
+            const actualMax = Number(m.max_score) || 0;
+            
+            if (actualMax === 0) return;
+            
+            const perc = (actualScore / actualMax) * 100;
             if (!schoolStats[m.school_code]) schoolStats[m.school_code] = { sum: 0, count: 0 };
             schoolStats[m.school_code].sum += perc;
             schoolStats[m.school_code].count++;
@@ -635,7 +741,14 @@ async function renderInboundMessages() {
             .select(`*, sender:profiles(full_name)`)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            if (error.code === 'PGRST116' || error.message.includes('not found')) {
+                console.warn('[MESSAGING] support_messages table not found. Skipping render.');
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:3rem;">Messaging system not initialized.</td></tr>';
+                return;
+            }
+            throw error;
+        }
 
         if (el('unread-count')) el('unread-count').textContent = data.filter(m => !m.is_resolved).length + ' NEW';
 
@@ -654,7 +767,12 @@ async function renderInboundMessages() {
         
         if (window.lucide) lucide.createIcons();
     } catch (e) {
-        console.error('[MESSAGING] Fetch failed:', e);
+        if (e.code !== 'PGRST116' && !e.message?.includes('not found')) {
+            console.error('[MESSAGING] Fetch failed:', e);
+        } else {
+            console.warn('[MESSAGING] support_messages table not found. Messaging disabled.');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:3rem; color:#94a3b8;">Strategic messaging node not provisioned.</td></tr>';
+        }
     }
 }
 
@@ -686,19 +804,11 @@ async function replyToAdmin(adminId, originalMsg) {
     }
 }
 
-async function handleLogout() {
-    try {
-        await DB.signOut();
-        window.location.href = 'Login.html';
-    } catch (e) {
-        console.error('[AUTH] Logout failed:', e);
-        window.location.href = 'Login.html';
-    }
-}
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
     initSystemAdmin();
-    renderAuditLogs();
     
     const editForm = el('edit-user-form');
     if (editForm) editForm.addEventListener('submit', handleEditUser);

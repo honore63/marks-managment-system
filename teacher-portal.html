@@ -1109,6 +1109,35 @@
   </div>
 </div>
 
+<!-- PROCLAMATION GENERATOR MODAL (Teacher Edition) -->
+<div class="modal-overlay" id="generate-proclamation-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Configure Proclamation Document</h2>
+    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Select the specific subjects and assessment markers to include in the executive proclamation for your class.</p>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">🎓 Target Cohort (Class)</label>
+        <input type="text" id="proc-target-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="proc-target-class">
+    </div>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📚 Curricular Subjects</label>
+        <div id="proc-subject-checklist" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:0.8rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+    
+    <div style="margin-bottom: 2.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📋 Evaluation Markers</label>
+        <div id="proc-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="executeTeacherProclamation()">Generate Proclamation</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('generate-proclamation-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOASTS -->
       <!-- EXPORT MARKS MODAL (Institutional Edition) -->
       <div class="modal-overlay" id="export-marks-modal">

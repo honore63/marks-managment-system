@@ -23,37 +23,78 @@
  */
 async function registerStudentIndividual(firstName, lastName, sdms, classId, gender) {
   try {
-    // Validation
-    if (!firstName || !firstName.trim()) throw new Error('First name is required');
-    if (!lastName || !lastName.trim()) throw new Error('Last name is required');
+    // 1. Mandatory Policy Validation
+    if (!firstName || !firstName.trim()) throw new Error('Student First Name is required');
+    if (!lastName || !lastName.trim()) throw new Error('Student Last Name is required');
     if (!sdms || !sdms.trim()) throw new Error('Student SDMS Code is required');
-    if (!classId) throw new Error('Class Assignment is required');
-    if (!gender) throw new Error('Gender is required');
+    if (!classId) throw new Error('Academic Class Assignment is required');
+    if (!gender) throw new Error('Gender selection is required');
+
+    const schoolCode = await getCurrentSchoolCode();
+    
+    // 2. Synthetic Credentials for Immediate Student Access
+    // Login Identifier: std[SDMS]@mms.student | Password: Student@[SDMS]
+    const studentUserEmail = `std${sdms.trim()}@mms.student.rw`;
+    const studentPassword = `Student@${sdms.trim()}`;
+
+    console.log('[STUDENT] Provisioning Auth & Registry record...');
+
+    // 3. Auth Provisioning
+    const { data: authData, error: authError } = await _supabase.auth.signUp({
+        email: studentUserEmail,
+        password: studentPassword,
+        options: { data: { full_name: `${firstName.trim()} ${lastName.trim()}`, role: 'student' } }
+    });
+
+    if (authError) {
+        if (authError.message.includes('already registered')) {
+            throw new Error(`Student with SDMS ${sdms} is already registered in the authentication system.`);
+        }
+        throw new Error(`Auth Layer Error: ${authError.message}`);
+    }
 
     const studentObj = {
+      id: authData.user.id,
       first_name: firstName.trim().toUpperCase(),
       last_name: lastName.trim().toUpperCase(),
       full_name: `${firstName.trim()} ${lastName.trim()}`.toUpperCase(),
       sid: sdms.trim().toUpperCase(),
       gender: gender.toUpperCase(),
       class_id: classId,
+      school_code: schoolCode,
       is_active: true,
       enrollment_date: new Date().toISOString()
     };
 
-    console.log('[STUDENT] Registering:', studentObj);
-
-    const { data, error } = await DB.addStudent(studentObj);
+    // 4. Academic Record Creation
+    const { data, error } = await _supabase.from('students').insert([studentObj]).select();
+    
     if (error) {
-      console.error('[STUDENT] Registration failed:', error);
-      return { success: false, error: error.message };
+      // Cleanup auth if profile fails (Best effort in frontend)
+      console.error('[STUDENT] Record creation failed:', error);
+      throw error;
     }
 
-    console.log('[STUDENT] Registered successfully:', data);
-    return { success: true, student: data?.[0] || data, error: null };
+    // 5. Create Profile Record (for role-based login access)
+    await _supabase.from('profiles').insert([{
+        id: authData.user.id,
+        email: studentUserEmail,
+        full_name: studentObj.full_name,
+        role: 'student',
+        school_code: schoolCode,
+        sdms_code: sdms.trim(),
+        created_at: new Date().toISOString()
+    }]);
+
+    console.log('[STUDENT] Registered & Activated:', data);
+    return { 
+        success: true, 
+        student: data?.[0] || data, 
+        credentials: { email: studentUserEmail, password: studentPassword } 
+    };
 
   } catch (error) {
-    console.error('[STUDENT] Error:', error);
+    console.error('[STUDENT] Registration Error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -262,25 +303,38 @@ async function bulkImportStudents(students, classId) {
  */
 async function registerTeacherIndividual(firstName, lastName, email, sdmsCode) {
   try {
-    // Validation
-    if (!firstName || !firstName.trim()) throw new Error('First name is required');
-    if (!lastName || !lastName.trim()) throw new Error('Last name is required');
-    if (!email || !email.includes('@')) throw new Error('Valid email is required');
-    if (!sdmsCode || sdmsCode.length !== 10) throw new Error('SDMS code must be 10 digits');
+    // 1. Mandatory Policy Validation
+    if (!firstName || !firstName.trim()) throw new Error('Faculty First Name is required');
+    if (!lastName || !lastName.trim()) throw new Error('Faculty Last Name is required');
+    const emailCheck = ValidationSystem.validateEmail(email);
+    if (!emailCheck.valid) throw new Error(emailCheck.error);
+    
+    if (!sdmsCode || sdmsCode.length !== 10) throw new Error('Teacher SDMS code must be exactly 10 digits as per MINEDUC standard.');
 
     const schoolCode = await getCurrentSchoolCode();
 
-    // Create auth user
-    // Institutional Password Standard (Final Edit)
-    const password = `Teacher@2026`; 
+    // 2. Provision Auth User (Immediate Activation)
+    // Institutional Password Standard: Teacher@[SDMS]
+    const password = `Teacher@${sdmsCode}`; 
+    
+    console.log('[TEACHER] Provisioning Auth Identity...');
+    
     const { data: authData, error: authError } = await _supabase.auth.signUp({
       email,
-      password
+      password,
+      options: { data: { full_name: `${firstName.trim()} ${lastName.trim()}`, role: 'teacher' } }
     });
 
-    if (authError) throw new Error(`Auth error: ${authError.message}`);
+    if (authError) {
+        if (authError.message.includes('already registered')) {
+            throw new Error(`The email "${email}" is already registered in the MMS system.`);
+        }
+        throw new Error(`Authentication Layer failure: ${authError.message}`);
+    }
 
-    // Create profile
+    // 3. Create Profile Record
+    console.log('[TEACHER] Linking Auth to Institutional Registry...');
+    
     const { data: profile, error: profileError } = await _supabase
       .from('profiles')
       .insert([{
@@ -298,13 +352,13 @@ async function registerTeacherIndividual(firstName, lastName, email, sdmsCode) {
 
     if (profileError) throw profileError;
 
-    console.log('[TEACHER] Registered successfully:', profile);
+    console.log('[TEACHER] ✅ Registration Complete. Account Active.');
 
     return {
       success: true,
       teacher: authData.user,
       profile,
-      tempPassword: password,
+      credentials: { email, password },
       error: null
     };
 

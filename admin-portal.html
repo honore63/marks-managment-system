@@ -1523,6 +1523,25 @@
 </div>
 
 <!-- Additional Core Modals Preserved with CAMIS Styling -->
+<div class="modal-overlay" id="add-teacher-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Register Faculty</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+         <input type="text" id="t-fname" placeholder="First Name" class="input-field">
+         <input type="text" id="t-lname" placeholder="Last Name" class="input-field">
+      </div>
+      <input type="email" id="t-email" placeholder="Institutional Email" class="input-field">
+      <input type="text" id="t-sdms" placeholder="10-digit SDMS Code" class="input-field" maxlength="10">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" id="btn-add-teacher" onclick="addTeacher()">Register Faculty</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-teacher-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <div class="modal-overlay" id="add-class-modal">
   <div class="modal-card" style="padding: 2.5rem;">
     <h2 style="font-weight:900; margin-bottom:1.5rem;">Initialize Class Group</h2>

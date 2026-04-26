@@ -42,103 +42,51 @@ let CURRENT_YEAR = '2025-2026';
  */
 async function initTeacherPortal() {
   try {
-    console.log('[INIT] Starting teacher portal initialization...');
+    console.log('[INIT] Starting optimized teacher portal initialization...');
 
-    // Check if user is authenticated
-    const { data: { user } } = await _supabase.auth.getUser();
+    // 1. Parallel Core Authentication & Context Fetching
+    const [userRes, schoolCode] = await Promise.all([
+        _supabase.auth.getUser(),
+        getCurrentSchoolCode()
+    ]);
+
+    const user = userRes.data?.user;
     if (!user) {
       console.warn('[AUTH] No user found, redirecting to login');
       window.location.href = 'index.html';
       return;
     }
 
-    // ELITE DYNAMIC HEADER CONTROLLER
-    const SCROLL_TARGET = document.querySelector('.main-wrapper') || document.querySelector('.main-content') || window;
-    
-    SCROLL_TARGET.addEventListener('scroll', () => {
-        const header = document.querySelector('.sub-header');
-        if (!header) return;
-        
-        const scrollValue = (SCROLL_TARGET === window) ? window.scrollY : SCROLL_TARGET.scrollTop;
-        if (scrollValue > 50) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
+    // 2. Parallel Profile & Institutional Data Fetching
+    const [profile, officialInfo] = await Promise.all([
+        DB.getProfile(),
+        DB.getSchoolInfo()
+    ]);
 
-    // Get current user's school code
-    const schoolCode = await getCurrentSchoolCode();
-    
-    // FETCH INSTITUTIONAL IDENTITY — Multi-Strategy Lookup
-    let profile = null;
-    
-    // Strategy 1: Lookup by auth user ID (most reliable)
-    const { data: profileById } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-    if (profileById) {
-        profile = profileById;
-        console.log('[PROFILE] ✅ Found profile by auth ID');
-    }
-    
-    // Strategy 2: Lookup by email
-    if (!profile && user.email) {
-        const { data: profileByEmail } = await _supabase.from('profiles').select('*').eq('email', user.email).maybeSingle();
-        if (profileByEmail) {
-            profile = profileByEmail;
-            console.log('[PROFILE] ✅ Found profile by email');
-        }
-    }
-    
-    // Strategy 3: Lookup by SDMS-generated email pattern
-    if (!profile && user.email) {
-        const sdmsMatch = user.email.match(/^sdms(\d+)@/);
-        if (sdmsMatch) {
-            const { data: profileBySdms } = await _supabase.from('profiles').select('*').eq('sdms_code', sdmsMatch[1]).maybeSingle();
-            if (profileBySdms) {
-                profile = profileBySdms;
-                console.log('[PROFILE] ✅ Found profile by SDMS code');
-            }
-        }
-    }
-    
     if (!profile) {
-        console.error('[PROFILE] Member registry record missing for:', user.email, user.id);
-        const tc = document.getElementById('toast-container');
-        if (tc) {
-          const t = document.createElement('div'); t.className = 'toast error';
-          t.style.cssText = 'padding:1rem 1.5rem;background:#fef2f2;color:#dc2626;border-radius:12px;border:2px solid #fecaca;font-weight:800;font-size:0.85rem;';
-          t.textContent = '⚠️ Profile not found. Contact your school administrator.';
-          tc.appendChild(t); setTimeout(() => t.remove(), 7000);
-        }
+        console.error('[PROFILE] Member registry record missing for:', user.email);
+        toast('⚠️ Profile not found. Contact your school administrator.', 'error');
         return;
     }
     
     MY_PROFILE = profile;
-    MY_ASSIGNMENTS = await DB.getTeacherAssignments(profile.id);
     
-    // ELITE IDENTITY INJECTOR
-    if (el('header-user-name')) el('header-user-name').textContent = profile.full_name || 'TEACHER';
-    if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'MMS NODE';
-    if (el('header-user-avatar') && profile.full_name) {
-        el('header-user-avatar').textContent = profile.full_name.charAt(0).toUpperCase();
-    }
+    // 3. Parallel Assignment & Branding Updates
+    const [assignments] = await Promise.all([
+        DB.getTeacherAssignments(profile.id)
+    ]);
+    MY_ASSIGNMENTS = assignments;
 
-    console.log(`[TEACHER] ${profile.full_name || 'Teacher'} authenticated for school: ${schoolCode}`);
-    
-    // === DIAGNOSTIC LOGGING (Check browser console for these) ===
-    console.log('[DEBUG] Profile ID used for assignments:', profile.id);
-    console.log('[DEBUG] Profile email:', profile.email);
-    console.log('[DEBUG] Assignments returned:', MY_ASSIGNMENTS.length);
-    console.log('[DEBUG] Assignment types:', MY_ASSIGNMENTS.map(a => a.type));
-    console.log('[DEBUG] Full assignments data:', JSON.stringify(MY_ASSIGNMENTS, null, 2));
-
-    // FETCH COMPREHENSIVE INSTITUTIONAL IDENTITY (Registry + Overrides)
-    const officialInfo = await DB.getSchoolInfo();
-    
     if (officialInfo) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
-      console.log('[SCHOOL] Institutional Identity Verified:', SCHOOL_INFO.school);
     }
+
+    // UI Identity Injection
+    if (el('header-user-name')) el('header-user-name').textContent = profile.full_name || 'TEACHER';
+    if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'MMS NODE';
+    if (el('header-user-avatar')) el('header-user-avatar').textContent = (profile.full_name || 'T').charAt(0).toUpperCase();
+
+    console.log(`[TEACHER] Verified: ${profile.full_name} for node: ${schoolCode}`);
 
     // Update UI header with school info
     const schoolNameEl = document.getElementById('school-name-hd');
@@ -167,12 +115,10 @@ async function initTeacherPortal() {
 
     // Show Class Teacher exclusive tools
     if (isClassTeacher) {
-        const classMonitor = document.getElementById('side-class-monitor');
         const studentsNav = document.getElementById('side-students');
         const reportsNav = document.getElementById('side-reports');
         const proclamationNav = document.getElementById('side-proclamation');
         
-        if (classMonitor) classMonitor.style.display = 'flex';
         if (studentsNav) studentsNav.style.display = 'flex';
         if (reportsNav) reportsNav.style.display = 'flex';
         if (proclamationNav) proclamationNav.style.display = 'flex';
@@ -187,6 +133,10 @@ async function initTeacherPortal() {
         console.log('[SIDEBAR] ✅ Subject Teacher report access activated');
     }
 
+    // Ensure Dashboard (My Classes) and Verification (Assigned Subjects) are always visible for any faculty
+    if (el('side-dashboard')) el('side-dashboard').style.display = 'flex';
+    if (el('side-verification')) el('side-verification').style.display = 'flex';
+
     // ============================================================
     // PROFILE IDENTITY ENGINE — Populate Header + Sidebar Footer
     // ============================================================
@@ -196,6 +146,7 @@ async function initTeacherPortal() {
     const dashTeacherName = document.getElementById('dash-teacher-name');
     const dashSchoolName = document.getElementById('dash-school-name');
     const dashProfileName = document.getElementById('dash-profile-name');
+    const dashProfileEmail = document.getElementById('dash-profile-email');
     const dashProfileCode = document.getElementById('dash-profile-code');
     const sidebarUserName = document.getElementById('sidebar-user-name');
     const sidebarUserRole = document.getElementById('sidebar-user-role');
@@ -222,12 +173,12 @@ async function initTeacherPortal() {
 
     // Render the main dashboard view with data
     await renderDashboard();
+    await renderQuickJump();
 
     // Mark this teacher as active
     await updateLastSync();
 
     // Enable real-time sync for this school (non-critical)
-    try { subscribeToSchoolChanges(schoolCode); } catch(e) { console.warn('[SYNC]', e.message); }
 
     // Setup listeners for UI updates (non-critical)
     try { setupTeacherUIListeners(schoolCode); } catch(e) { console.warn('[UI]', e.message); }
@@ -260,38 +211,59 @@ async function initTeacherPortal() {
  * Setup real-time listeners for teacher portal
  */
 function setupTeacherUIListeners(schoolCode) {
-  
   if (SYNC && typeof SYNC.on === 'function') {
-    // Listen for mark approvals/rejections
+    
+    // Helper to refresh current active view
+    const refreshCurrentView = async () => {
+        const activeView = document.querySelector('.view.active')?.id;
+        console.log(`[SYNC] Refreshing active view: ${activeView}`);
+        
+        if (activeView === 'view-dashboard') await renderDashboard();
+        if (activeView === 'view-marks-entry') await renderMarksEntry();
+        if (activeView === 'view-verification') await renderVerificationView();
+        if (activeView === 'view-approval-status') await renderApprovalStatus();
+    };
+
     SYNC.on('marks', (payload) => {
       console.log('[UPDATE] Marks changed:', payload.eventType);
       
-      if (payload.new?.is_approved) {
+      if (payload.new?.is_approved && !payload.old?.is_approved) {
         toast('✅ Your marks have been approved by admin', 'success');
-        if (typeof renderDashboard === 'function') renderDashboard();
       }
       
-      if (payload.new?.is_submitted) {
-        toast('📤 Marks submitted for review', 'info');
-        if (typeof renderDashboard === 'function') renderDashboard();
+      if (payload.new?.rejection_comment && !payload.old?.rejection_comment) {
+        toast('⚠️ Marks rejected. Please check comments.', 'error');
       }
+
+      refreshCurrentView();
     });
 
-    // Listen for student changes
     SYNC.on('students', (payload) => {
       console.log('[UPDATE] Students updated');
-      if (typeof syncSchoolData === 'function') syncSchoolData();
+      refreshCurrentView();
     });
 
-    // Listen for admin notifications
+    SYNC.on('assignments', () => {
+        toast('📋 Institutional assignments updated', 'info');
+        refreshCurrentView();
+    });
+
     SYNC.on('school_settings', (payload) => {
       console.log('[UPDATE] School settings updated');
-      fetchSchoolSettings(schoolCode).then(settings => {
-        if (settings && settings.info) {
-          SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
+      DB.getSchoolInfo().then(info => {
+        if (info) {
+          SCHOOL_INFO = info;
         }
       });
+      refreshCurrentView();
     });
+
+    // Sync indicators
+    const updateSyncTime = () => {
+        const el = document.getElementById('dash-last-synced');
+        if (el) el.textContent = `Last Synced: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    };
+    window.addEventListener('mms-data-changed', updateSyncTime);
   }
 }
 
@@ -389,28 +361,7 @@ let GRADING_SCALE = [];
 // SCHOOL_INFO consolidated at top for SaaS multi-tenancy
 
 
-function generateInstitutionalHeader(docTitle, docSubtitle = "") {
-    const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
-    const schoolLogo = SCHOOL_INFO.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png"; 
-    
-    return `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:3px solid #000; padding-bottom:5px; color:#000;">
-            <img src="${rwandaLogo}" style="width:85px; height:auto; object-fit:contain;">
-            <div style="text-align:center; padding: 0 5px;">
-                <div style="font-size:0.8rem; font-weight:900; letter-spacing:0.5px; line-height:1.2; color:#000;">REPUBLIC OF RWANDA</div>
-                <div style="font-size:0.75rem; font-weight:900; margin-bottom:2px; line-height:1.2; color:#000;">MINISTRY OF EDUCATION</div>
-                <div style="font-size:0.7rem; font-weight:900; color:#000; line-height:1.3;">
-                    <span style="font-size:0.95rem; letter-spacing:0.5px;">${(SCHOOL_INFO.school || 'MMS INSTITUTIONAL PORTAL').toUpperCase()}</span><br>
-                    District: ${(SCHOOL_INFO.district || '----------------').toUpperCase()} | Sector: ${(SCHOOL_INFO.sector || '----------------').toUpperCase()}<br>
-                    School Code: ${SCHOOL_INFO.code || '------'} | Phone: ${SCHOOL_INFO.phone || '----------------'}
-                </div>
-            </div>
-            <img src="${schoolLogo}" style="width:85px; height:85px; object-fit:contain;">
-        </div>
-        <div style="text-align:center; font-weight:1000; font-size:1.3rem; letter-spacing:4px; text-transform:uppercase; margin-bottom:10px; background:#fff; border:3px solid #000; padding:8px; color:#000;">${docTitle}</div>
-        ${docSubtitle ? `<div style="text-align:center; font-size:0.8rem; font-weight:900; margin-bottom:8px; color:#000;">${docSubtitle}</div>` : ''}
-    `;
-}
+// generateInstitutionalHeader moved to INSTITUTIONAL BRANDING ORCHESTRATION section below
 
 async function syncConfigs() {
     try {
@@ -577,16 +528,16 @@ async function renderVerificationView() {
     const container = document.getElementById('view-verification');
     if (!container) return;
     
-    const [assignments, allAssignments] = await Promise.all([
-        DB.getTeacherAssignments(MY_PROFILE?.id),
-        DB.getTeacherAssignments() // Institutional View
-    ]);
-
-    const mySubjects = assignments.filter(a => a.type === 'subject');
+    const assignments = await DB.getTeacherAssignments(MY_PROFILE?.id);
     const myLeadClasses = assignments.filter(a => a.type === 'class').map(a => a.class_id);
     
-    // Find all subjects in classes I lead (even if I don't teach them)
-    const classSubjects = allAssignments.filter(a => myLeadClasses.includes(a.class_id) && a.type === 'subject');
+    // Fetch curriculum for managed classes in parallel
+    const classAssignmentsResults = await Promise.all(
+        myLeadClasses.map(cid => DB.getClassAssignments(cid))
+    );
+    const classSubjects = classAssignmentsResults.flat().filter(a => a.type === 'subject');
+
+    const mySubjects = assignments.filter(a => a.type === 'subject');
     
     // Merge for verification view
     const displaySubjects = [...mySubjects];
@@ -796,12 +747,15 @@ async function renderDashboard() {
         const assignments = await DB.getTeacherAssignments(MY_PROFILE.id);
         const myClassIds = [...new Set(assignments.map(a => a.class_id).filter(Boolean))];
         
-        const [allAssignments, allStudents, allMarks, assessList] = await Promise.all([
-            DB.getTeacherAssignments(),
+        // Fetch lookups and institutional class data in parallel
+        const [classAssignmentsResults, allStudents, allMarks, assessList] = await Promise.all([
+            Promise.all(myClassIds.map(cid => DB.getClassAssignments(cid))),
             DB.getStudents(),
             DB.getMarks({ classIds: myClassIds }), 
             DB.getAssessments()
         ]);
+        
+        const allClassAssignments = classAssignmentsResults.flat();
         
         const activeAssessments = assessList.length ? assessList : [
             {id: 'cat', name: 'CAT', max_score: 50},
@@ -826,8 +780,8 @@ async function renderDashboard() {
         // 2. Add subjects from Managed Classes (Institutional View)
         assignments.forEach(a => {
             if (a.type === 'class' && a.class_id) {
-                // Find all subjects in the system for this class
-                const classSubs = allAssignments.filter(x => x.class_id === a.class_id && x.type === 'subject');
+                // Find all subjects in the system for this class from our pre-fetched list
+                const classSubs = allClassAssignments.filter(x => x.class_id === a.class_id && x.type === 'subject');
                 classSubs.forEach(subAss => {
                     const subKey = `sub_${subAss.class_id}_${subAss.subject_id}`;
                     if (!seenAssignments.has(subKey)) {
@@ -927,10 +881,15 @@ async function renderDashboard() {
         if (el('dash-courses-tbody')) el('dash-courses-tbody').innerHTML = dashboardTbody || '<tr><td colspan="4" style="text-align:center;padding:3rem;">No institutional assignments detected.</td></tr>';
         if (el('marks-entry-courses-tbody')) el('marks-entry-courses-tbody').innerHTML = recordingTbody || '<tr><td colspan="4" style="text-align:center;padding:3rem;">No subjects available for recording.</td></tr>';
         
+        // Robust Metrics Calculation
+        const allAssociatedClassIds = [...new Set(uniqueAssignments.map(s => s.class_id))];
+        const studentPool = allStudents.filter(s => allAssociatedClassIds.includes(s.class_id));
+        const marksPool = allMarks.filter(m => allAssociatedClassIds.includes(m.class_id));
+
         if (el('dash-avg-score')) el('dash-avg-score').textContent = (totalMaxSum > 0 ? (totalScoreSum / totalMaxSum * 100).toFixed(1) : '0.0') + '%';
-        if (el('dash-student-count')) el('dash-student-count').textContent = allStudents.filter(s => myClassIds.includes(s.class_id)).length;
+        if (el('dash-student-count')) el('dash-student-count').textContent = studentPool.length;
         if (el('dash-subject-count')) el('dash-subject-count').textContent = jurisdictionCount;
-        if (el('dash-marks-count')) el('dash-marks-count').textContent = allMarks.filter(m => myClassIds.includes(m.class_id)).length;
+        if (el('dash-marks-count')) el('dash-marks-count').textContent = marksPool.length;
         
         const remainingCount = totalContexts - submittedCount - pendingCount;
         const progressPct = totalContexts === 0 ? 0 : Math.round((submittedCount / totalContexts) * 100);
@@ -985,11 +944,15 @@ async function renderDashboard() {
 
         // Role-Based visibility restoration
         const isClassLead = assignments.some(a => a.type === 'class');
-        const classTools = ['side-monitor', 'side-students', 'side-reports', 'side-proclamation'];
+        const classTools = ['side-students', 'side-reports', 'side-proclamation'];
         classTools.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.style.display = isClassLead ? 'flex' : 'none';
         });
+        
+        // Dashboard and Verification are core
+        if (el('side-dashboard')) el('side-dashboard').style.display = 'flex';
+        if (el('side-verification')) el('side-verification').style.display = 'flex';
 
         if (isClassLead) {
             const myClass = assignments.find(a => a.type === 'class')?.classes;
@@ -1112,10 +1075,11 @@ async function loadMarksTable() {
                               ${isLocked ? 'disabled' : ''}
                               onkeydown="handleEntryKeyDown(event, '${ass.id}', ${i})"
                               oninput="validateInput(this, document.getElementById('max-hdr-${ass.id}').value)"
+                              onchange="autoSaveMark(this)"
                               onblur="markUnsaved(this)">
                        <span style="color: #cbd5e1; font-weight: 800; font-size: 1.1rem; line-height: 1;">/</span>
                        <span data-max-target="${ass.id}" style="color: #cbd5e1; font-weight: 800; font-size: 0.95rem;">${ass.max_score || 90}</span>
-                       <div style="margin-left: 0.5rem;">${statusIcon}</div>
+                       <div class="save-status-icon" style="margin-left: 0.5rem;">${statusIcon}</div>
                     </div>
                 </td>
             `;
@@ -1191,7 +1155,60 @@ function validateInput(inp, maxVal) {
 }
 
 function markUnsaved(inp) {
-    if (inp.value !== '') inp.classList.add('unsaved');
+    // If not saved yet, keep the visual cue
+    if (inp.classList.contains('unsaved')) {
+        inp.style.borderBottom = '1px solid var(--warning)';
+    }
+}
+
+/**
+ * Institutional Auto-Save Engine
+ * Saves individual marks immediately upon entry
+ */
+async function autoSaveMark(inp) {
+    const valRaw = inp.value.trim().toLowerCase();
+    if (valRaw === '') return;
+
+    const sid = inp.dataset.sid;
+    const aid = inp.dataset.aid;
+    const cid = CURRENT_SESSION.classId;
+    const subjectId = CURRENT_SESSION.subjectId;
+    const term = SCHOOL_INFO.active_term || 2;
+    const maxVal = parseFloat(document.getElementById(`max-hdr-${aid}`)?.value) || 90;
+
+    let score = parseFloat(valRaw);
+    if (valRaw === 'missed' || valRaw === 'm' || valRaw === 'a' || valRaw === 'absent') score = -1;
+
+    if (isNaN(score) && score !== -1) return;
+    if (score > maxVal) return;
+
+    // UI Feedback: Show saving state
+    const statusIcon = inp.parentElement.querySelector('.save-status-icon');
+    if (statusIcon) statusIcon.innerHTML = `<svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`;
+
+    try {
+        const res = await DB.saveMark({
+            student_id: sid,
+            class_id: cid,
+            subject_id: subjectId,
+            assessment_id: aid,
+            term: term,
+            score: score,
+            max_score: maxVal,
+            academic_year: SCHOOL_INFO.academic_year || '2025/2026'
+        });
+
+        if (res.error) throw res.error;
+
+        // UI Feedback: Success
+        inp.classList.remove('unsaved');
+        inp.style.borderBottom = '1px dotted #cbd5e1';
+        if (statusIcon) statusIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+    } catch (err) {
+        console.error('[AUTOSAVE] Failed:', err);
+        if (statusIcon) statusIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+        toast('Auto-save failed. Check connection.', 'error');
+    }
 }
 
 async function submitMarksToAdmin() {
@@ -2728,10 +2745,29 @@ async function renderQuickJump() {
     const qjLabel = document.getElementById('side-quick-jump-label');
     if (!qjContainer) return;
 
-    const mySubjects = MY_ASSIGNMENTS.filter(a => a.type === 'subject');
-    if (mySubjects.length > 0) {
+    const assignments = await DB.getTeacherAssignments(MY_PROFILE.id);
+    const myClassIds = assignments.filter(a => a.type === 'class').map(a => a.class_id);
+    
+    // Fetch curriculum for lead classes
+    const classAssignmentsResults = await Promise.all(
+        myClassIds.map(cid => DB.getClassAssignments(cid))
+    );
+    const leadSubjects = classAssignmentsResults.flat().filter(a => a.type === 'subject');
+    
+    // Combine for Quick Jump
+    const uniqueMap = new Map();
+    assignments.filter(a => a.type === 'subject').forEach(s => uniqueMap.set(`sub_${s.class_id}_${s.subject_id}`, s));
+    leadSubjects.forEach(s => {
+        if (!uniqueMap.has(`sub_${s.class_id}_${s.subject_id}`)) {
+            uniqueMap.set(`sub_${s.class_id}_${s.subject_id}`, s);
+        }
+    });
+
+    const displayItems = Array.from(uniqueMap.values());
+
+    if (displayItems.length > 0) {
         qjLabel.style.display = 'block';
-        qjContainer.innerHTML = mySubjects.map(s => `
+        qjContainer.innerHTML = displayItems.map(s => `
             <div class="sidebar-item" style="font-size: 0.75rem; padding: 10px 1.5rem;" 
                  onclick="goToEntrySubjectClass('${s.subject_id}','${s.subjects?.name || 'Sub'}','${s.class_id}','${s.classes?.name || 'Class'}')">
                 <i data-lucide="zap" style="width:12px; height:12px; color:#f59e0b;"></i>
@@ -2768,14 +2804,14 @@ function getSelectedReportAssessLabels() {
  * INSTITUTIONAL BRANDING ORCHESTRATION
  * Ensures all reports use real database info and official logos.
  */
-function generateInstitutionalHeader(reportTitle, subtitle = '') {
+function generateInstitutionalHeader(reportTitle, subtitle = '', assessLabelOverride = '') {
     const info = SCHOOL_INFO;
-    const assessLabel = getSelectedReportAssessLabels() || 'ALL ASSESSMENTS';
+    const assessLabel = assessLabelOverride || (typeof getSelectedReportAssessLabels === 'function' ? getSelectedReportAssessLabels() : 'ALL ASSESSMENTS');
     const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
     const schoolLogo = info.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png";
 
     return `
-        <div style="display:flex; flex-direction:column; align-items:center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 20px; position:relative;">
+        <div style="display:flex; flex-direction:column; align-items:center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 20px; position:relative; font-family: 'Inter', sans-serif; color:#000;">
             
             <!-- Standard Rwanda/MINEDUC Branding (Left Overlay-ish) -->
             <div style="position:absolute; left:0; top:0; width:120px; text-align:center;">
@@ -2786,7 +2822,7 @@ function generateInstitutionalHeader(reportTitle, subtitle = '') {
             </div>
 
             <!-- Central School Details -->
-            <div style="text-align:center; padding: 0 130px; width:100%; box-sizing:border-box;">
+            <div style="text-align:center; padding: 0 100px; width:100%; box-sizing:border-box;">
                 <div style="font-size:0.8rem; font-weight:900; color:#000; letter-spacing:1px;">${(info.republic || 'REPUBLIC OF RWANDA').toUpperCase()}</div>
                 <div style="font-size:2.2rem; font-weight:1000; color:#000; text-transform:uppercase; margin: 4px 0; letter-spacing:-1px; line-height:1;">${(info.school || 'MMS PORTAL').toUpperCase()}</div>
                 
@@ -2796,15 +2832,15 @@ function generateInstitutionalHeader(reportTitle, subtitle = '') {
                 </div>
 
                 <div style="margin: 15px 0;">
-                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 45px; border:3px solid #000; display:inline-block; letter-spacing:3px;">${reportTitle.toUpperCase()}</span>
+                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 25px; border:3px solid #000; display:inline-block; letter-spacing:3px; white-space: nowrap;">${reportTitle.toUpperCase()}</span>
                 </div>
 
-                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px;">
+                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px; white-space: nowrap;">
                     Email: ${info.email || '...'} | Phone: ${info.phone || '...'}
                 </div>
 
-                <div style="font-size:0.95rem; font-weight:900; color:#000; margin-top:10px; text-transform:uppercase;">
-                    [ BASED ON: ${assessLabel} ]
+                <div style="font-size:0.95rem; font-weight:900; color:#000; margin-top:10px; text-transform:uppercase; white-space: nowrap;">
+                    [ REPORT FOR: ${assessLabel} ]
                 </div>
                 
                 ${subtitle ? `<div style="font-size:1rem; font-weight:950; margin-top:8px; font-style:italic;">${subtitle}</div>` : ''}
@@ -3022,7 +3058,7 @@ window.renderGradeDistributionPdf = function(data) {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>GRADE DISTRIBUTION SUMMARY</title>
+            <title>GRADE DISTRIBUTION SUMMARY — ${SCHOOL_INFO.academic_year || '2025/2026'}</title>
             <style>
                 @media print {
                     body { margin: 0; padding: 0 !important; background: white !important; }
@@ -3105,39 +3141,53 @@ window.generateSubjectSuccessReport = async function() {
     toast('Analyzing subject performance...', 'info');
     
     try {
-        await syncConfigs();
-        const [allMarks, students, classes, subjects] = await Promise.all([
+        const [allMarks, students, classes, subjects, assignments] = await Promise.all([
             DB.getMarks({ term, year }), 
             DB.getStudents(), 
             DB.getClasses(), 
-            DB.getSubjects()
+            DB.getSubjects(),
+            DB.getTeacherAssignments(MY_PROFILE?.id)
         ]);
 
-        const assignments = await DB.getTeacherAssignments(MY_PROFILE?.id);
-        
-        let targetAssignments = [];
-        if (subjectId === 'all') {
-            targetAssignments = assignments.filter(a => a.type === 'subject' || a.type === 'class_subject');
-        } else {
-            targetAssignments = assignments.filter(a => a.subject_id === subjectId);
-        }
+        const classesWhereIAmCT = assignments.filter(a => a.type === 'class').map(a => a.class_id);
+        const myExplicitSubjectIds = assignments.filter(a => a.subject_id).map(a => a.subject_id);
 
-        const selAssessIds = getSelectedReportAssessIds();
+        const targetAssignments = assignments.filter(a => {
+            if (subjectId === 'all') {
+                return a.type === 'class' || a.subject_id;
+            }
+            return a.subject_id === subjectId;
+        });
+
         const reportData = [];
         let grandTotals = { exp_b: 0, exp_g: 0, exp_t: 0, sat_b: 0, sat_g: 0, sat_t: 0, pass_b: 0, pass_g: 0, pass_t: 0, fail_b: 0, fail_g: 0, fail_t: 0 };
 
-        for (const ass of targetAssignments) {
-            const sid = ass.subject_id;
-            const cid = ass.class_id;
+        // Process each jurisdiction
+        const jurisdictions = [];
+        if (subjectId === 'all') {
+            // For "All Subjects", we check every subject in classes where teacher is CT, 
+            // plus subjects where teacher is explicitly assigned.
+            subjects.forEach(s => {
+                if (classesWhereIAmCT.includes(s.class_id) || myExplicitSubjectIds.includes(s.id)) {
+                    jurisdictions.push({ subject_id: s.id, class_id: s.class_id });
+                }
+            });
+        } else {
+            // Specific subject: either explicitly assigned or in CT class
+            const sub = subjects.find(s => s.id === subjectId);
+            if (sub) {
+                jurisdictions.push({ subject_id: sub.id, class_id: sub.class_id });
+            }
+        }
+
+        for (const jur of jurisdictions) {
+            const sid = jur.subject_id;
+            const cid = jur.class_id;
             const sub = subjects.find(s => s.id === sid);
             const cls = classes.find(c => c.id === cid);
             
             const classStudents = students.filter(s => s.class_id === cid);
-            let classMarks = allMarks.filter(m => m.class_id === cid && m.subject_id === sid && String(m.term) === String(term) && m.is_approved);
-            
-            if (selAssessIds.length > 0) {
-                classMarks = classMarks.filter(m => selAssessIds.includes(m.assessment_id));
-            }
+            const classMarks = allMarks.filter(m => m.class_id === cid && m.subject_id === sid && String(m.term) === String(term) && m.is_approved);
             
             let exp_b = 0, exp_g = 0, sat_b = 0, sat_g = 0, pass_b = 0, pass_g = 0, fail_b = 0, fail_g = 0;
 
@@ -3181,7 +3231,6 @@ window.generateSubjectSuccessReport = async function() {
                 fail_b, fail_g, fail_t, fail_p
             });
 
-            // Aggregate Grand Totals
             grandTotals.exp_b += exp_b; grandTotals.exp_g += exp_g; grandTotals.exp_t += exp_t;
             grandTotals.sat_b += sat_b; grandTotals.sat_g += sat_g; grandTotals.sat_t += sat_t;
             grandTotals.pass_b += pass_b; grandTotals.pass_g += pass_g; grandTotals.pass_t += pass_t;
@@ -3203,6 +3252,257 @@ window.generateSubjectSuccessReport = async function() {
         toast('Failed to generate report data.', 'error');
     }
 };
+
+// ============================================================
+// PROCLAMATION (CLASS TEACHER EXECUTIVE SUMMARY)
+// ============================================================
+
+window.openTeacherProclamationModal = async function() {
+    const assignments = await DB.getTeacherAssignments(MY_PROFILE?.id);
+    const classAssignment = assignments.find(a => a.type === 'class');
+    
+    if (!classAssignment) {
+        return toast('⚠️ Proclamation access is restricted to Class Teachers.', 'warning');
+    }
+
+    const classId = classAssignment.class_id;
+    const className = classAssignment.classes?.name || 'Class';
+    
+    // Set Target Class
+    const targetInput = el('proc-target-class');
+    const targetDisplay = el('proc-target-class-display');
+    if (targetInput) targetInput.value = classId;
+    if (targetDisplay) targetDisplay.value = className.toUpperCase();
+
+    // Fetch Required Data
+    const [allMarks, dbAssessments, allSubs] = await Promise.all([
+        DB.getMarks(), DB.getAssessments(), DB.getSubjects()
+    ]);
+
+    // Find subjects present in this class's marks
+    const classMarks = allMarks.filter(m => m.class_id === classId);
+    const subjectIdsInMarks = new Set(classMarks.map(m => m.subject_id));
+    
+    const subItems = allSubs
+        .filter(s => subjectIdsInMarks.has(s.id))
+        .map(s => ({ id: s.id, abbr: s.abbr || s.name.substring(0,5), checked: true }));
+
+    // Standard Assessment Markers
+    const STD_ASSESS = [
+        { key: 'EU',  label: 'End of Unit' },
+        { key: 'ET',  label: 'End of Term' },
+        { key: 'MT',  label: 'Mid-Term Test' },
+        { key: 'MID', label: 'MID Test' },
+        { key: 'WK',  label: 'Weekly Test' },
+    ];
+    
+    const assessItems = STD_ASSESS.map(std => {
+        const match = dbAssessments.find(a => 
+            (a.abbr || '').toUpperCase() === std.key || 
+            (a.name || '').toUpperCase().startsWith(std.label.split(' ')[0].toUpperCase())
+        );
+        return { 
+            id: match ? match.id : 'std_' + std.key, 
+            abbr: std.key, 
+            label: std.label, 
+            checked: (std.key === 'EU' || std.key === 'ET') 
+        };
+    });
+
+    const pillStyle = (on, color) => `display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:999px;margin:4px;cursor:pointer;font-size:0.75rem;font-weight:800;user-select:none;transition:all 0.15s;border:2.5px solid ${on ? color : '#cbd5e1'};background:${on ? color : '#fff'};color:${on ? '#fff' : '#64748b'};`;
+
+    el('proc-subject-checklist').innerHTML = subItems.map(s => `
+        <label style="${pillStyle(s.checked, '#0f172a')}" class="rc-sub-pill" onclick="var cb=this.querySelector('input'),v=cb.checked;this.style.background=v?'#0f172a':'#fff';this.style.borderColor=v?'#0f172a':'#cbd5e1';this.style.color=v?'#fff':'#64748b';">
+            <input type="checkbox" ${s.checked ? 'checked' : ''} value="${s.id}" class="proc-sub-cb" style="display:none">
+            ${s.abbr}
+        </label>`).join('');
+
+    el('proc-assess-checklist').innerHTML = assessItems.map(a => `
+        <label style="${pillStyle(a.checked, '#1d4ed8')}" class="rc-ass-pill" title="${a.label}" onclick="var cb=this.querySelector('input'),v=cb.checked;this.style.background=v?'#1d4ed8':'#fff';this.style.borderColor=v?'#1d4ed8':'#cbd5e1';this.style.color=v?'#fff':'#64748b';">
+            <input type="checkbox" ${a.checked ? 'checked' : ''} value="${a.id}" class="proc-ass-cb" style="display:none">
+            ${a.abbr}
+        </label>`).join('');
+
+    openModal('generate-proclamation-modal');
+};
+
+window.executeTeacherProclamation = function() {
+    const classId = el('proc-target-class').value;
+    const selectedSubs = Array.from(document.querySelectorAll('.proc-sub-cb:checked')).map(cb => cb.value);
+    const selectedAsses = Array.from(document.querySelectorAll('.proc-ass-cb:checked'))
+        .map(cb => cb.value)
+        .filter(v => !String(v).startsWith('std_'));
+
+    if (selectedSubs.length === 0) return toast('⚠️ Please select at least one curriculum subject.', 'warning');
+    if (selectedAsses.length === 0) return toast('⚠️ Please select at least one assessment marker.', 'warning');
+
+    closeModal('generate-proclamation-modal');
+    window.exportClassProclamation(classId, selectedSubs, selectedAsses);
+};
+
+window.exportClassProclamation = async function(classId, targetSubs = [], targetAsses = []) {
+    toast('Generating Executive Proclamation...', 'info');
+    
+    try {
+        const [marks, stds, subs, classes, assignments, teachers] = await Promise.all([
+            DB.getMarks(), DB.getStudents(), DB.getSubjects(), DB.getClasses(), DB.getTeacherAssignments(), DB.getTeachers()
+        ]);
+
+        const cls = classes.find(c => c.id === classId);
+        const term = SCHOOL_INFO.active_term || '2';
+        const year = SCHOOL_INFO.academic_year || '2025/2026';
+        const info = SCHOOL_INFO;
+
+        // Context-Aware Filtering
+        const classStudents = stds.filter(s => s.class_id === classId);
+        const classMarks = marks.filter(m => 
+            m.class_id === classId && 
+            m.is_approved &&
+            String(m.term) === String(term) &&
+            (targetSubs.length === 0 || targetSubs.includes(m.subject_id)) &&
+            (targetAsses.length === 0 || targetAsses.includes(m.assessment_id))
+        );
+        
+        const classSubjects = subs.filter(s => targetSubs.length === 0 || targetSubs.includes(s.id));
+        if (!classStudents.length) return toast('No student records found for this cohort.', 'warning');
+
+        const subjectMeta = classSubjects.map(s => {
+            let max = 0;
+            targetAsses.forEach(aid => {
+                max += (['ART','PES','SRS'].includes(s.abbr) ? 20 : 40);
+            });
+            return { ...s, totalMax: max };
+        }).filter(s => s.totalMax > 0);
+
+        const stStats = classStudents.map(student => {
+            let studentTotalScore = 0;
+            let studentTotalMax = 0;
+            subjectMeta.forEach(meta => {
+                let subScore = 0;
+                const allowedMax = ['ART','PES','SRS'].includes(meta.abbr) ? 20 : 40;
+                targetAsses.forEach(aid => {
+                    const mk = classMarks.find(m => m.student_id === student.id && m.subject_id === meta.id && m.assessment_id === aid);
+                    if (mk) {
+                        const rawScore = mk.score === -1 ? 0 : Number(mk.score);
+                        subScore += Math.min(rawScore, allowedMax);
+                    }
+                });
+                studentTotalScore += subScore;
+                studentTotalMax += meta.totalMax;
+            });
+            const perc = studentTotalMax > 0 ? (studentTotalScore / studentTotalMax * 100) : 0;
+            return { id: student.id, total: studentTotalScore, totalMax: studentTotalMax, percentage: perc };
+        }).sort((a,b) => b.percentage - a.percentage);
+
+        const subjectHeaders = subjectMeta.map(s => `
+            <th style="border: 1px solid #000; width: 35px; height: 110px; padding: 0; vertical-align: bottom; position: relative; background:#f8fafc;">
+               <div style="writing-mode: vertical-rl; transform: rotate(180deg); margin: 0 auto; padding-top: 5px; font-weight: 900; font-size: 0.65rem; text-transform: uppercase; white-space:nowrap;">
+                  ${(s.abbr || s.name).substring(0, 15)} / ${s.totalMax}
+               </div>
+            </th>
+        `).join('');
+
+        const rowsHtml = classStudents.sort((a,b) => {
+            const statsA = stStats.find(x => x.id === a.id);
+            const statsB = stStats.find(x => x.id === b.id);
+            return statsB.percentage - statsA.percentage;
+        }).map((s, i) => {
+            const stats = stStats.find(x => x.id === s.id);
+            const pos = stStats.findIndex(x => x.id === s.id) + 1;
+            const perc = stats.percentage.toFixed(1);
+            
+            const markCells = subjectMeta.map(meta => {
+                let subScore = 0;
+                const allowedMaxAssessment = ['ART','PES','SRS'].includes(meta.abbr) ? 20 : 40;
+                targetAsses.forEach(aid => {
+                    const mk = classMarks.find(m => m.student_id === s.id && m.subject_id === meta.id && m.assessment_id === aid);
+                    if (mk) {
+                        const rawScore = mk.score === -1 ? 0 : Number(mk.score);
+                        subScore += Math.min(rawScore, allowedMaxAssessment);
+                    }
+                });
+                const isFail = subScore < (meta.totalMax / 2);
+                return `<td style="border: 1px solid #000; text-align: center; font-weight: 900; font-size: 0.8rem; color: ${isFail ? '#ef4444' : '#000'}; ${isFail ? 'text-decoration:underline;' : ''}">${subScore}</td>`;
+            }).join('');
+
+            const comment = perc >= 80 ? 'Excellent.' : perc >= 60 ? 'Good.' : perc >= 50 ? 'Fair.' : 'Poor.';
+
+            return `
+                <tr style="height:28px;">
+                    <td style="border:1px solid #000; text-align:center; font-weight:800; font-size:0.75rem;">${i+1}</td>
+                    <td style="border:1px solid #000; padding:2px 8px; font-weight:900; font-size:0.75rem; white-space:nowrap;">${(s.last_name||'').toUpperCase()} ${(s.first_name||'').toUpperCase()}</td>
+                    ${markCells}
+                    <td style="border:1px solid #000; text-align:center; font-weight:1000; font-size:0.8rem; background:#f8fafc;">${stats.total.toFixed(0)}</td>
+                    <td style="border:1px solid #000; text-align:center; font-weight:1000; font-size:0.8rem; color:${perc < 50 ? '#ef4444' : '#000'};">${perc}%</td>
+                    <td style="border:1px solid #000; text-align:center; font-weight:1000; font-size:0.8rem;">${pos}</td>
+                    <td style="border:1px solid #000; padding:2px; font-size:0.65rem; text-align:center;">${comment}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const assessedLine = targetAsses.map(aid => {
+            const ass = dbAssessments.find(a => a.id === aid);
+            return ass ? (ass.abbr || ass.name) : aid;
+        }).join(' + ');
+
+        const instHeader = generateInstitutionalHeader(`${cls.name.toUpperCase()} • PROCLAMATION`, `TERM ${term} — ${year}`, assessedLine);
+
+        const html = `
+            <div id="proclamation-document" style="width: 277mm; min-height: 190mm; padding: 8mm; background: white; font-family: 'Arial', sans-serif; box-sizing: border-box; color: #000; margin: 0 auto;">
+                ${instHeader}
+
+                <div style="display:flex; justify-content:space-between; border-top:2px solid #000; border-bottom:1px solid #cbd5e1; padding:5px 2px; margin-bottom:8px; font-size:8pt; font-weight:800;">
+                    <div>Class Teacher: <strong>${(MY_PROFILE?.full_name || '...').toUpperCase()}</strong></div>
+                    <div style="text-align:right;">Academic Year: <strong>${year}</strong> | Term: <strong>${term}</strong></div>
+                </div>
+
+                <table style="width:100%; border-collapse:collapse; border:2.5px solid #000; margin-bottom:20px;">
+                    <thead style="background:#f1f5f9;">
+                        <tr>
+                            <th style="border:1px solid #000; width:30px; font-size:0.7rem;">NO</th>
+                            <th style="border:1px solid #000; text-align:left; padding-left:10px; font-size:0.7rem;">STUDENT NAME (ALPHABETICAL ORDER)</th>
+                            ${subjectHeaders}
+                            <th style="border:1px solid #000; width:50px; font-size:0.7rem;">TOTAL</th>
+                            <th style="border:1px solid #000; width:55px; font-size:0.7rem;">%</th>
+                            <th style="border:1px solid #000; width:40px; font-size:0.7rem;">POS</th>
+                            <th style="border:1px solid #000; width:70px; font-size:0.7rem;">COMMENT</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+
+                <div style="margin-top:30px; display:flex; justify-content:space-around; font-size:0.8rem; font-weight:900;">
+                    <div style="text-align:center;">
+                        <div style="margin-bottom:40px;">Done at ${info.district || '...'}, on ${new Date().toLocaleDateString('en-GB')}</div>
+                        <div style="border-top:1.5px solid #000; padding-top:5px; min-width:180px;">
+                            CLASS TEACHER SIGNATURE<br>
+                            ${MY_PROFILE?.signature ? `<img src="${MY_PROFILE.signature}" style="max-height:45px; display:block; margin:4px auto; mix-blend-mode:multiply;">` : ''}
+                            <strong>${(MY_PROFILE?.full_name || '...').toUpperCase()}</strong>
+                        </div>
+                    </div>
+                    <div style="text-align:center; position:relative;">
+                        <div style="height:40px;"></div>
+                        <div style="border-top:1.5px solid #000; padding-top:5px; min-width:180px; position:relative;">
+                            HEAD TEACHER & STAMP<br>
+                            ${SCHOOL_INFO.headteacher_sig ? `<img src="${SCHOOL_INFO.headteacher_sig}" style="max-height:50px; max-width:180px; mix-blend-mode:multiply; position:absolute; top:-40px; left:50%; transform:translateX(-50%);">` : ''}
+                            ${SCHOOL_INFO.stamp ? `<img src="${SCHOOL_INFO.stamp}" style="width:75px; height:75px; mix-blend-mode:multiply; position:absolute; top:-60px; right:0; opacity:0.7; transform:rotate(-5deg);">` : ''}
+                            <strong>${(info.headteacher || '...').toUpperCase()}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const pw = window.open('', '_blank', 'width=1200,height=800');
+        pw.document.write(`<html><head><title>CLASS PROCLAMATION</title><style>@media print { body { margin:0; padding:0; background:white; } .no-print { display:none; } @page { size: A4 landscape; margin: 0; } } body { background:#1e293b; padding:40px; display:flex; flex-direction:column; align-items:center; }</style></head><body><div style="position:fixed; top:0; left:0; right:0; background:#0B0E14; padding:15px 30px; display:flex; justify-content:space-between; align-items:center; z-index:9999;" class="no-print"><h2 style="color:white; margin:0; font-size:1.1rem; font-weight:800;">PROCLAMATION PREVIEW</h2><button onclick="window.print()" style="padding:10px 20px; background:#10b981; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">🖨️ EXPORT TO PDF</button></div><div style="background:white; border-radius:8px; box-shadow:0 40px 80px rgba(0,0,0,0.5);">${html}</div></body></html>`);
+        pw.document.close();
+
+    } catch (err) {
+        console.error('[PROCLAMATION] Export Error:', err);
+        toast('Failed to synthesize proclamation.', 'error');
+    }
+};
+
 
 window.renderSubjectSuccessReportPdf = function(data) {
     const { year, term, subject, reportData, grandTotals, grand_pass_p, grand_fail_p } = data;
@@ -3227,7 +3527,7 @@ window.renderSubjectSuccessReportPdf = function(data) {
             <td style="border: 1px solid #000;">${r.fail_b}</td>
             <td style="border: 1px solid #000;">${r.fail_g}</td>
             <td style="border: 1px solid #000; font-weight: bold;">${r.fail_t}</td>
-            <td style="border: 1px solid #000; font-weight: bold; background: #fee2e2;">${r.fail_p}%</td>
+            <td style="border: 1px solid #000; font-weight: bold; background: #fee2e2; text-decoration: underline;">${r.fail_p}%</td>
         </tr>
     `).join('');
 
@@ -3456,7 +3756,7 @@ window.renderPassRateReportPdf = function(data) {
             <td style="border: 1px solid #000;">${r.fail_b}</td>
             <td style="border: 1px solid #000;">${r.fail_g}</td>
             <td style="border: 1px solid #000; font-weight: bold;">${r.fail_t}</td>
-            <td style="border: 1px solid #000; font-weight: bold; background: #fee2e2;">${r.fail_p}%</td>
+            <td style="border: 1px solid #000; font-weight: bold; background: #fee2e2; text-decoration: underline;">${r.fail_p}%</td>
         </tr>
     `).join('');
 
@@ -3470,8 +3770,8 @@ window.renderPassRateReportPdf = function(data) {
             ${headerHtml}
 
             <div style="margin-bottom: 20px; font-weight: 900; line-height: 1.8; font-size: 0.95rem;">
-                <div>ACADEMIC YEAR: ${year}</div>
-                <div>TERM: ${term}</div>
+                <div>ACADEMIC YEAR: ${year || SCHOOL_INFO.academic_year || '2025/2026'}</div>
+                <div>TERM: ${term || SCHOOL_INFO.active_term || '2'}</div>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; border: 2.5px solid #000; margin-bottom: 40px; font-size: 0.9rem;">

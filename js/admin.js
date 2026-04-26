@@ -48,27 +48,28 @@ if (typeof window.el === 'undefined') {
  */
 async function initAdminPortal() {
   try {
-    console.log('[INIT] Starting admin portal initialization...');
+    console.log('[INIT] Starting optimized admin portal initialization...');
 
-    // Check if user is authenticated
-    const { data: { user } } = await _supabase.auth.getUser();
+    // 1. Parallel Core Authentication & Node Synchronization
+    const [userRes, schoolCode] = await Promise.all([
+        _supabase.auth.getUser(),
+        getCurrentSchoolCode()
+    ]);
+
+    const user = userRes.data?.user;
     if (!user) {
       console.warn('[AUTH] No user found, redirecting to login');
       window.location.href = 'index.html';
       return;
     }
 
-    // Get current user's school code
-    const schoolCode = await getCurrentSchoolCode();
-    console.log(`[ADMIN] Connected to school: ${schoolCode}`);
+    // 2. Parallel Profile & School Registry Fetching
+    const [profile, officialInfo] = await Promise.all([
+        DB.getProfile(),
+        DB.getSchoolInfo()
+    ]);
 
-    // Update LOCAL school info with the actual login code immediately
     SCHOOL_INFO.code = schoolCode;
-
-    // FETCH REAL INSTITUTIONAL REGISTRY
-    const officialInfo = await DB.getSchoolInfo();
-    const sc = (officialInfo?.code) || schoolCode;
-
     if (officialInfo) {
       SCHOOL_INFO = { ...SCHOOL_INFO, ...officialInfo };
       console.log('[SCHOOL] Verified Institutional Hub:', SCHOOL_INFO.school);
@@ -77,6 +78,7 @@ async function initAdminPortal() {
     // PREMIUM IDENTITY INJECTOR
     const schoolNameEl = document.getElementById('school-name-hd');
     const schoolCodeEl = document.getElementById('school-code-hd');
+    const sc = officialInfo?.code || schoolCode;
     
     if (schoolCodeEl) schoolCodeEl.textContent = `SDMS NODE • ${sc}`;
     if (schoolNameEl) {
@@ -91,51 +93,19 @@ async function initAdminPortal() {
     if (el('header-school-name')) el('header-school-name').textContent = SCHOOL_INFO.school || 'INSTITUTION';
     if (el('header-user-avatar')) el('header-user-avatar').textContent = 'A';
 
-    // Refresh Lucide icons if any new were added
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // 3. Concurrent Activation (Non-critical)
+    Promise.all([
+        updateLastSync().catch(() => {}),
+        getAdminsInSchool(schoolCode).then(updateAdminActivityPanel).catch(() => {}),
+        initNotificationSystem(schoolCode, user.id).catch(() => {}),
+        (typeof SYNC !== 'undefined' && SYNC.start) ? SYNC.start() : Promise.resolve()
+    ]);
 
-    // Mark this admin as active (non-critical)
-    try { await updateLastSync(); } catch(e) { console.warn('[INIT] updateLastSync:', e.message); }
-
-    // Show active admins count (non-critical)
-    try {
-      const activeAdmins = await getAdminsInSchool(schoolCode);
-      console.log(`[TEAM] ${activeAdmins.length} admin(s) active`);
-      updateAdminActivityPanel(activeAdmins);
-    } catch(e) { console.warn('[INIT] Admin panel:', e.message); }
-
-    // Enable real-time sync for this school (non-critical)
-    try { subscribeToSchoolChanges(schoolCode); } catch(e) { console.warn('[SYNC]', e.message); }
-
-    // SETUP REAL-TIME NOTIFICATIONS & MESSAGING (non-critical)
-    try { await initNotificationSystem(schoolCode, user.id); } catch(e) { console.warn('[NOTIF]', e.message); }
-
-    // Setup listeners for UI updates (non-critical)
+    // Enable real-time sync for this school
     try { setupUIListeners(schoolCode); } catch(e) { console.warn('[UI]', e.message); }
 
     // Start regular sync tracking (every 30 seconds)
     setInterval(() => updateLastSync().catch(()=>{}), 30 * 1000);
-
-    // ELITE DYNAMIC HEADER CONTROLLER
-    const SCROLL_TARGET = document.querySelector('.main-wrapper') || document.querySelector('.main-content') || window;
-    
-    SCROLL_TARGET.addEventListener('scroll', () => {
-        const header = document.querySelector('.sub-header');
-        if (!header) return;
-        
-        const scrollValue = (SCROLL_TARGET === window) ? window.scrollY : SCROLL_TARGET.scrollTop;
-        if (scrollValue > 50) {
-            header.classList.add('scrolled');
-        } else {
-            header.classList.remove('scrolled');
-        }
-    });
-
-    // 6. INITIALIZE REAL-TIME INSTITUTIONAL BRIDGE
-    if (typeof SYNC !== 'undefined' && SYNC.start) {
-        await SYNC.start();
-        console.log('[SYNC] Live Institutional Node Online');
-    }
 
     console.log('[INIT] Admin portal ready!');
 
@@ -285,54 +255,68 @@ async function handleSupportMessage(e) {
  * Updates UI when other admins make changes
  */
 function setupUIListeners(schoolCode) {
-  
-  // Listen for new students
   if (SYNC && typeof SYNC.on === 'function') {
+    
+    // Helper to refresh current active view
+    const refreshCurrentView = async () => {
+        const activeView = document.querySelector('.view.active')?.id;
+        console.log(`[SYNC] Refreshing active view: ${activeView}`);
+        
+        if (activeView === 'view-dashboard') {
+            if (typeof renderFacultyMonitor === 'function') await renderFacultyMonitor();
+            if (typeof renderAdminDashboardCharts === 'function') await renderAdminDashboardCharts();
+        }
+        if (activeView === 'view-students') if (typeof loadStudentsTable === 'function') await loadStudentsTable();
+        if (activeView === 'view-teachers') if (typeof loadTeachersTable === 'function') await loadTeachersTable();
+        if (activeView === 'view-approval') if (typeof loadMarksApprovalQueue === 'function') await loadMarksApprovalQueue();
+        if (activeView === 'view-classes') if (typeof loadClassesTable === 'function') await loadClassesTable();
+        if (activeView === 'view-subjects') if (typeof loadSubjectsTable === 'function') await loadSubjectsTable();
+        if (activeView === 'view-assessments') if (typeof loadAssessmentsTable === 'function') await loadAssessmentsTable();
+        if (activeView === 'view-settings') if (typeof loadSettings === 'function') await loadSettings();
+    };
+
     SYNC.on('students', (payload) => {
       console.log('[UPDATE] Students changed:', payload.eventType);
-      if (payload.eventType === 'INSERT') {
-        toast('📚 New student added', 'info');
-        if (typeof loadStudentsTable === 'function') loadStudentsTable();
-      } else if (payload.eventType === 'DELETE') {
-        toast('🗑️ Student removed', 'info');
-        if (typeof loadStudentsTable === 'function') loadStudentsTable();
-      } else if (payload.eventType === 'UPDATE') {
-        if (typeof loadStudentsTable === 'function') loadStudentsTable();
-      }
+      if (payload.eventType === 'INSERT') toast('📚 New student enrolled', 'info');
+      else if (payload.eventType === 'DELETE') toast('🗑️ Student removed from registry', 'warning');
+      refreshCurrentView();
     });
 
-    // Listen for mark submissions/approvals
     SYNC.on('marks', (payload) => {
       console.log('[UPDATE] Marks changed:', payload.eventType);
-      if (payload.new?.is_approved) {
-        toast('✅ Marks approved', 'success');
+      if (payload.new?.is_submitted && !payload.old?.is_submitted) {
+          toast('📤 New marks submitted for review', 'info');
       }
-      if (payload.new?.is_submitted) {
-        toast('📤 Marks submitted for review', 'info');
+      if (payload.new?.is_approved && !payload.old?.is_approved) {
+          toast('✅ Marks approved successfully', 'success');
       }
-      if (typeof loadMarksApprovalQueue === 'function') loadMarksApprovalQueue();
+      refreshCurrentView();
     });
 
-    // Listen for teacher changes
     SYNC.on('teachers', (payload) => {
-      console.log('[UPDATE] Teachers changed:', payload.eventType);
-      if (payload.eventType === 'INSERT') {
-        toast('👨‍🏫 New teacher registered', 'success');
-      }
-      if (typeof loadTeachersTable === 'function') loadTeachersTable();
+      console.log('[UPDATE] Faculty registry changed:', payload.eventType);
+      if (payload.eventType === 'INSERT') toast('👨‍🏫 New teacher registered', 'success');
+      refreshCurrentView();
     });
 
-    // Listen for school settings changes
+    SYNC.on('classes', () => refreshCurrentView());
+    SYNC.on('subjects', () => refreshCurrentView());
+    SYNC.on('assessments', () => refreshCurrentView());
+    SYNC.on('assignments', () => {
+        toast('📋 Teacher assignments updated', 'info');
+        refreshCurrentView();
+    });
+
     SYNC.on('school_settings', (payload) => {
-      console.log('[UPDATE] School settings updated');
-      fetchSchoolSettings(schoolCode).then(settings => {
-        if (settings && settings.info) {
-          SCHOOL_INFO = { ...SCHOOL_INFO, ...settings.info };
-          // Update header if name changed
+      console.log('[UPDATE] Institutional settings updated');
+      DB.getSchoolInfo().then(info => {
+        if (info) {
+          SCHOOL_INFO = info;
           const schoolNameEl = document.getElementById('school-name-hd');
-          if (schoolNameEl) schoolNameEl.textContent = (SCHOOL_INFO.school || 'MMS Portal').toUpperCase();
+          if (schoolNameEl) schoolNameEl.textContent = (SCHOOL_INFO.name || 'MMS Portal').toUpperCase();
         }
       });
+      refreshCurrentView();
     });
 
     // Universal Sync Feedback
@@ -341,8 +325,7 @@ function setupUIListeners(schoolCode) {
         if (el) el.textContent = `Synced: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}`;
     };
     
-    // Trigger feedback on every table refresh
-    window.addEventListener('mms-data-refreshed', updateSyncTime);
+    window.addEventListener('mms-data-changed', updateSyncTime);
   }
 }
 
@@ -504,7 +487,7 @@ function getComment(pct) {
     return 'Unsatisfactory! Intensive support and revision needed.';
 }
 
-function generateInstitutionalHeader(reportTitle, subtitle = "") {
+function generateInstitutionalHeader(reportTitle, subtitle = "", assessLabel = "") {
     const info = SCHOOL_INFO;
     const rwandaLogo = "js/Report image/download__92_-removebg-preview.png";
     const schoolLogo = info.logo || "js/Report image/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png";
@@ -521,7 +504,7 @@ function generateInstitutionalHeader(reportTitle, subtitle = "") {
             </div>
 
             <!-- Central School Details -->
-            <div style="text-align:center; padding: 0 130px; width:100%; box-sizing:border-box;">
+            <div style="text-align:center; padding: 0 100px; width:100%; box-sizing:border-box;">
                 <div style="font-size:0.8rem; font-weight:900; color:#000; letter-spacing:1px;">${(info.republic || 'REPUBLIC OF RWANDA').toUpperCase()}</div>
                 <div style="font-size:2.2rem; font-weight:1000; color:#000; text-transform:uppercase; margin: 4px 0; letter-spacing:-1px; line-height:1.1;">${(info.school || 'MMS PORTAL').toUpperCase()}</div>
                 
@@ -531,12 +514,17 @@ function generateInstitutionalHeader(reportTitle, subtitle = "") {
                 </div>
 
                 <div style="margin: 15px 0;">
-                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 45px; border:3px solid #000; display:inline-block; letter-spacing:3px;">${reportTitle.toUpperCase()}</span>
+                    <span style="font-size:1.6rem; font-weight:1000; padding:10px 25px; border:3px solid #000; display:inline-block; letter-spacing:3px; white-space: nowrap;">${reportTitle.toUpperCase()}</span>
                 </div>
 
-                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px;">
+                <div style="font-size:0.8rem; font-weight:800; color:#000; margin-top:5px; white-space: nowrap;">
                     Email: ${info.email || '...'} | Phone: ${info.phone || '...'}
                 </div>
+
+                ${assessLabel ? `
+                <div style="font-size:0.95rem; font-weight:900; color:#000; margin-top:10px; text-transform:uppercase; white-space: nowrap;">
+                    [ REPORT FOR: ${assessLabel} ]
+                </div>` : ''}
 
                 ${subtitle ? `<div style="font-size:1rem; font-weight:950; margin-top:8px; font-style:italic;">${subtitle}</div>` : ''}
             </div>
@@ -1108,8 +1096,8 @@ async function renderTeachersRegistry() {
                     </td>
                     <td>
                         <div style="display:flex; gap:0.5rem;">
-                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="openAssignmentModal('${t.id}')">ASSIGN</button>
-                            <button class="btn" style="padding: 4px 10px; font-size: 0.7rem; color:#dc2626;" onclick="deleteTeacher('${t.id}')">WIPE</button>
+                            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="openEditAssignments('${t.id}')">ASSIGN</button>
+                            <button class="btn" style="padding: 4px 10px; font-size: 0.7rem; color:#dc2626;" onclick="deleteTeacher('${t.id}', '${t.full_name}')">WIPE</button>
                         </div>
                     </td>
                 </tr>
@@ -1195,6 +1183,23 @@ async function handleDeleteStudent(id, name) {
     } catch (err) {
         console.error('[REGISTRY] Student delete failed:', err);
         toast('❌ Failed to remove student: ' + err.message, 'error');
+    }
+}
+
+async function deleteTeacher(id, name) {
+    if (!confirm(`⚠️ PERMANENT ACTION: Are you sure you want to remove ${name} from the institutional faculty registry? This will also wipe their teaching assignments.`)) return;
+
+    toast('🚮 Terminating faculty node...', 'info');
+    try {
+        const { error } = await DB.deleteTeacher(id);
+        if (error) throw error;
+
+        toast(`✅ ${name} has been removed from the registry.`, 'success');
+        await renderTeachersRegistry();
+        await renderDashboardStats();
+    } catch (err) {
+        console.error('[REGISTRY] Teacher delete failed:', err);
+        toast('❌ Failed to remove teacher: ' + err.message, 'error');
     }
 }
 
@@ -1511,6 +1516,60 @@ async function addStudent() {
         toast(`❌ Registration Blocked: ${result.error}`, 'error');
     }
 }
+
+async function addTeacher() {
+    const fname = el('t-fname').value.trim();
+    const lname = el('t-lname').value.trim();
+    const email = el('t-email').value.trim();
+    const sdms  = el('t-sdms').value.trim();
+    const btn   = el('btn-add-teacher');
+
+    if (!fname || !lname || !email || !sdms) {
+        return toast('Please fill in all mandatory faculty fields.', 'warning');
+    }
+
+    if (sdms.length !== 10) {
+        return toast('SDMS code must be exactly 10 digits.', 'warning');
+    }
+
+    toast('Provisioning faculty account...', 'info');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loader-linear"></div> PROVISIONING...';
+    }
+
+    try {
+        const result = await TeacherRegistration.registerIndividual(fname, lname, email, sdms);
+        
+        if (result.success) {
+            toast(`✅ ${fname} registered! Account active.`, 'success');
+            closeModal('add-teacher-modal');
+            
+            // Clear inputs
+            el('t-fname').value = '';
+            el('t-lname').value = '';
+            el('t-email').value = '';
+            el('t-sdms').value = '';
+
+            // Refresh registry
+            if (typeof renderTeachersRegistry === 'function') await renderTeachersRegistry();
+            if (typeof renderDashboardStats === 'function') await renderDashboardStats();
+            if (typeof renderFacultyMonitor === 'function') await renderFacultyMonitor();
+        } else {
+            throw new Error(result.error);
+        }
+    } catch (err) {
+        console.error('[FACULTY] Registration failed:', err);
+        toast('❌ Error: ' + err.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = 'Register Faculty';
+        }
+    }
+}
+
+
 
 async function openEditStudentModal(id) {
     const students = await DB.getStudents();
@@ -2542,32 +2601,49 @@ async function processAddTeacher() {
         }
 
         const teacherRole = document.getElementById('t-role').value;
-        const teacherPayload = {
-            full_name: `${fname} ${lname}`, 
-            email, 
-            sdms_code: sdms,
-            school_code: schoolCode,
-            role: teacherRole
-        };
 
+        // ── STEP 1: Provision Supabase Auth Identity (Immediate Activation) ──
+        const tempPassword = sdms ? `Teacher@${sdms}` : `Teacher@${schoolCode}`;
 
-        // Phone is used for notifications but skipped for DB insert
+        const { data: authData, error: authError } = await _supabase.auth.signUp({
+            email,
+            password: tempPassword,
+            options: { data: { full_name: `${fname} ${lname}`, role: teacherRole, school_code: schoolCode } }
+        });
 
+        if (authError) {
+            if (authError.message.includes('already registered')) {
+                throw new Error(`The email "${email}" is already registered. Use a different email or contact System Admin.`);
+            }
+            throw new Error(`Auth provisioning failed: ${authError.message}`);
+        }
 
-        const { data, error } = await DB.addTeacher(teacherPayload);
-        if (error) throw error;
-        if (!data || data.length === 0) throw new Error('Institutional registry returned no data.');
+        const teacherId = authData.user.id;
 
-        const teacherId = data[0].id;
+        // ── STEP 2: Create/Update Profile Record (linked to Auth identity) ──
+        const { data: profileData, error: profileError } = await _supabase.from('profiles')
+            .upsert([{
+                id: teacherId,
+                full_name: `${fname} ${lname}`,
+                email,
+                sdms_code: sdms,
+                school_code: schoolCode,
+                role: teacherRole,
+                temp_password_active: true,
+                created_at: new Date().toISOString()
+            }])
+            .select();
+
+        if (profileError) throw profileError;
         
-        // 1. Process Class Assignment
+        // ── STEP 3: Process Class Assignment ──
         if (isClassTeacher) {
             const classId = document.getElementById('t-assign-class').value;
             const { error: asErr } = await DB.saveTeacherAssignment({ teacher_id: teacherId, class_id: classId, type: 'class' });
             if (asErr) throw asErr;
         }
         
-        // 2. Process Subject Jurisdictions
+        // ── STEP 4: Process Subject Jurisdictions ──
         if (isSubjTeacher) {
             const rows = document.querySelectorAll('.assignment-row');
             for (const row of rows) {
@@ -2585,8 +2661,8 @@ async function processAddTeacher() {
             }
         }
 
-        const defaultP = 'Teacher@2026';
-        toast(`✅ Enrollment Complete! Temporary Password: ${defaultP}`, 'success');
+        toast(`✅ Enrollment Complete! Account is ACTIVE.\nLogin: ${email}\nPassword: ${tempPassword}`, 'success');
+        alert(`TEACHER REGISTERED SUCCESSFULLY\n\nEmail: ${email}\nPassword: ${tempPassword}\n\nThe teacher can log in immediately.`);
 
         // 3. Dispatch Onboarding Notification
         try {
@@ -2610,6 +2686,7 @@ async function processAddTeacher() {
                 fullName: `${fname} ${lname}`,
                 email: email,
                 phone: phone,
+                tempPassword: tempPassword,
                 className: className,
                 subjects: assignedSubjects
             });
@@ -2657,7 +2734,7 @@ async function sendFacultyOnboardingInvite(data) {
         to_email: data.email,
         email: data.email,
         login_email: data.email,
-        temporary_password: 'Teacher@2026',
+        temporary_password: data.tempPassword || 'Teacher@2026',
         class_teacher: data.className || 'None assigned',
         subjects: data.subjects.length > 0 ? data.subjects.join(', ') : 'None assigned',
         school_phone: info.phone || '+250 000 000',
@@ -2684,7 +2761,7 @@ async function sendFacultyOnboardingInvite(data) {
 
     // --- CHANNEL 2: REAL SMS via Twilio ---
     if (data.phone) {
-        const smsMsg = `[${schoolName}] Welcome ${data.fullName}! LOGIN: ${data.email} | PSWD: Teacher@2026 | SDMS: ${SCHOOL_INFO.code}. Plz change pswd on login. Admin.`;
+        const smsMsg = `[${schoolName}] Welcome ${data.fullName}! LOGIN: ${data.email} | PSWD: ${data.tempPassword || 'Teacher@2026'} | SDMS: ${SCHOOL_INFO.code}. Plz change pswd on login. Admin.`;
         
         await dispatchTwilioSMS(data.phone, smsMsg);
     } else {
@@ -3068,7 +3145,8 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
             
             const perc = sumM > 0 ? ((sumS / sumM) * 100).toFixed(1) : 0;
             
-            marksRows += `<tr><td style="padding: 12px; border: 1px solid #000; font-weight: 700; color: #000;">${sub.name}</td><td style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 800; color: #000;">${sumS > 0 ? sumS.toFixed(1) : '—'} <span style="color:#000; font-weight:400;">/ ${sumM}</span></td><td style="padding: 12px; border: 1px solid #000; text-align: center; color: #000; font-weight: 900;">${perc}%</td></tr>`;
+            const isFail = perc < 50;
+            marksRows += `<tr><td style="padding: 12px; border: 1px solid #000; font-weight: 700; color: #000;">${sub.name}</td><td style="padding: 12px; border: 1px solid #000; text-align: center; font-weight: 800; color: #000; ${isFail ? 'text-decoration:underline;' : ''}">${sumS > 0 ? sumS.toFixed(1) : '—'} <span style="color:#000; font-weight:400; text-decoration: none;">/ ${sumM}</span></td><td style="padding: 12px; border: 1px solid #000; text-align: center; color: #000; font-weight: 900; ${isFail ? 'text-decoration:underline;' : ''}">${perc}%</td></tr>`;
             totalScore += sumS; totalMax += sumM;
         });
 
@@ -3076,7 +3154,8 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
         const getGrade = p => p >= 80 ? {l:'A', c:'#000', d:'EXCELLENT'} : p >= 70 ? {l:'B', c:'#000', d:'VERY GOOD'} : p >= 60 ? {l:'C', c:'#000', d:'GOOD'} : p >= 40 ? {l:'D', c:'#000', d:'SATISFACTORY'} : {l:'F', c:'#000', d:'FAIL'};
         const gi = getGrade(percentage);
 
-        const instHeader = generateInstitutionalHeader('OFFICIAL ACADEMIC REPORT', `TERM ${SCHOOL_INFO.active_term || 1} — 2025/2026`);
+        const assessLabel = targetAsses.map(a => a.label).join(' + ');
+        const instHeader = generateInstitutionalHeader('OFFICIAL ACADEMIC REPORT', `TERM ${SCHOOL_INFO.active_term || 1} — ${SCHOOL_INFO.academic_year || '2025/2026'}`, assessLabel);
         const finalDate = new Date().toLocaleDateString('en-GB');
 
         html += `
@@ -3090,7 +3169,7 @@ window.generateAllReportsPdf = async function(targetClassId = 'all', targetSubs 
                    <div style="margin-top: 10px; font-size: 0.85rem; color: #000; font-weight:700;">Class: <strong>${stClass}</strong> | Reg ID: <strong>${student?.student_id || sId}</strong></div>
                 </div>
                 <div style="text-align: right; border-left: 2px solid #000; padding-left: 15px; color: #000; font-weight:800;">
-                   <div style="font-size: 0.85rem;">Academic Year: 2025/2026</div>
+                   <div style="font-size: 0.85rem;">Academic Year: ${SCHOOL_INFO.academic_year || '2025/2026'}</div>
                    <div style="font-size: 0.85rem;">Term: ${SCHOOL_INFO.active_term || 1}</div>
                    <div style="font-size: 0.85rem; margin-top:5px;">Level: PRIMARY</div>
                 </div>
@@ -3570,30 +3649,11 @@ window.exportClassProclamation = async function(classId, targetSubs = [], target
             ? Array.from(document.querySelectorAll('.proc-ass-cb:checked')).map(cb => cb.closest('label').textContent.trim()).join(' + ')
             : targetAsses.join(' + ');
 
+        const instHeader = generateInstitutionalHeader(`${cls.name.toUpperCase()} • PROCLAMATION`, `TERM ${term} — ${SCHOOL_INFO.academic_year || '2025/2026'}`, assessedLine);
+
         const html = `
             <div id="proclamation-document" style="width: 277mm; min-height: 190mm; padding: 8mm; background: white; font-family: 'Arial', sans-serif; box-sizing: border-box; color: #000; margin: 0 auto;">
-
-                <!-- HEADER -->
-                <table style="width:100%; border-collapse:collapse; margin-bottom:8px;">
-                    <tr>
-                        <td style="width:90px; vertical-align:middle; text-align:left;">
-                            <img src="js/Report image/download__92_-removebg-preview.png" style="width:75px; height:auto;">
-                            <div style="font-size:6pt; font-weight:700; color:#1e40af; text-align:center; margin-top:2px;">Republic of Rwanda<br>Ministry of Education</div>
-                        </td>
-                        <td style="text-align:center; vertical-align:middle;">
-                            <div style="font-size:8pt; font-weight:900; color:#1e40af; letter-spacing:2px;">REPUBLIC OF RWANDA</div>
-                            <div style="font-size:7pt; font-weight:700; margin-bottom:2px;">MINISTRY OF EDUCATION</div>
-                            <div style="font-size:15pt; font-weight:900; text-transform:uppercase; margin-bottom:4px;">${(SCHOOL_INFO.school||'MMS PORTAL').toUpperCase()}</div>
-                            <div style="display:inline-block; background:#1d4ed8; color:#fff; font-size:8pt; font-weight:900; padding:5px 18px; letter-spacing:1px; text-transform:uppercase;">
-                                CLASS: ${cls.name.toUpperCase()} &bull; TERM ${term} PROCLAMATION
-                            </div>
-                            <div style="font-size:6.5pt; margin-top:4px; color:#475569;">Assessed: ${assessedLine}</div>
-                        </td>
-                        <td style="width:90px; vertical-align:middle; text-align:right;">
-                            ${SCHOOL_INFO.logo ? `<img src="${SCHOOL_INFO.logo}" style="width:75px; height:75px; object-fit:contain; border-radius:4px;">` : `<div style="width:75px;height:75px;border:1.5px solid #94a3b8;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:6pt;font-weight:700;text-align:center;">SCHOOL<br>LOGO</div>`}
-                        </td>
-                    </tr>
-                </table>
+                ${instHeader}
 
                 <!-- META ROW -->
                 <div style="display:flex; justify-content:space-between; border-top:2px solid #000; border-bottom:1px solid #cbd5e1; padding:5px 2px; margin-bottom:8px; font-size:7pt; font-weight:800;">

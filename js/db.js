@@ -102,6 +102,26 @@ const DB_CACHE = {
     },
     clear: () => {
         Object.keys(localStorage).forEach(k => { if (k.startsWith('camis_cache_')) localStorage.removeItem(k); });
+        MEM_CACHE.clear();
+    }
+};
+
+const MEM_CACHE = {
+    profile: null,
+    schoolCode: null,
+    assignments: {}, // teacherId -> data
+    marks: {},       // key -> data
+    students: null,
+    subjects: null,
+    classes: null,
+    clear: () => {
+        MEM_CACHE.profile = null;
+        MEM_CACHE.schoolCode = null;
+        MEM_CACHE.assignments = {};
+        MEM_CACHE.marks = {};
+        MEM_CACHE.students = null;
+        MEM_CACHE.subjects = null;
+        MEM_CACHE.classes = null;
     }
 };
 
@@ -374,10 +394,12 @@ const DB = {
   },
 
   async _getUser() {
+    if (MEM_CACHE.user) return MEM_CACHE.user;
     if (this._userPromise) return this._userPromise;
     this._userPromise = (async () => {
         try {
             const { data: { user } } = await _supabase.auth.getUser();
+            MEM_CACHE.user = user;
             return user;
         } finally {
             this._userPromise = null;
@@ -386,43 +408,41 @@ const DB = {
     return this._userPromise;
   },
 
+  async getProfile() {
+    if (MEM_CACHE.profile) return MEM_CACHE.profile;
+    const user = await this._getUser();
+    if (!user) return null;
+    
+    const { data: p } = await _supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    if (p) MEM_CACHE.profile = p;
+    return p;
+  },
+
   // --- HELPERS ---
    async _getSchoolCode() {
-    if (DB_CACHE._sc) return DB_CACHE._sc;
+    if (MEM_CACHE.schoolCode) return MEM_CACHE.schoolCode;
+    const sessionSC = sessionStorage.getItem('current_school_code');
+    if (sessionSC) { MEM_CACHE.schoolCode = sessionSC; return sessionSC; }
+
     const user = await this._getUser();
     if (!user) return 'UNAUTHORIZED';
     
-    // Concurrency Lock for Profile Fetch
     if (this._scPromise) return this._scPromise;
-
     this._scPromise = (async () => {
         try {
             const { data: p } = await _supabase.from('profiles').select('role, school_code').eq('id', user.id).maybeSingle();
-            
-            // SECURITY: Handle missing or invalid school assignment
-            if (!p || !p.school_code) {
-                console.warn('[SECURITY] Partial block: No school assignment found for user.');
-                return 'DENIED';
-            }
+            if (!p || !p.school_code) return 'DENIED';
 
             let finalCode = p.school_code;
             if (p.role === 'system_admin') finalCode = 'GLOBAL';
             
-            // Note: 'DEFAULT' is still discouraged but allowed for read-only legacy view
-            if (finalCode === 'DEFAULT') {
-                console.warn('[SECURITY] User is operating on legacy DEFAULT node.');
-            }
-
-            DB_CACHE._sc = finalCode;
+            MEM_CACHE.schoolCode = finalCode;
+            sessionStorage.setItem('current_school_code', finalCode);
             return finalCode;
-        } catch (err) {
-            console.error('[DB] _getSchoolCode error:', err);
-            return 'DENIED';
         } finally {
             this._scPromise = null;
         }
     })();
-
     return this._scPromise;
   },
 
@@ -487,15 +507,18 @@ const DB = {
   
   // --- TEACHER ASSIGNMENTS ---
   async getTeacherAssignments(teacherId) {
+    // MEMOIZATION: Return from memory if already fetched in this session
+    const cacheKey = teacherId || 'all';
+    if (MEM_CACHE.assignments[cacheKey]) return MEM_CACHE.assignments[cacheKey];
+
     try {
-      // STEP 1: Flat query — no joins (bulletproof)
+      const sc = await this._getSchoolCode();
       let query = _supabase.from('teacher_assignments').select('*');
+      if (sc !== 'GLOBAL') {
+          query = query.eq('school_code', sc);
+      }
       
-      if (arguments.length > 0) {
-          if (!teacherId) {
-              console.warn('[DB] getTeacherAssignments: Attempted fetch with null teacherId');
-              return []; 
-          }
+      if (teacherId) {
           query = query.eq('teacher_id', teacherId);
       }
 
@@ -505,11 +528,11 @@ const DB = {
           return []; 
       }
       if (!rawAssignments || rawAssignments.length === 0) {
-          console.warn('[DB] getTeacherAssignments: 0 records found for teacher:', teacherId);
+          console.warn('[DB] getTeacherAssignments: 0 records found for:', teacherId || 'INSTITUTION');
           return [];
       }
 
-      console.log(`[DB] getTeacherAssignments: Found ${rawAssignments.length} raw assignment(s)`);
+      console.log(`[DB] getTeacherAssignments: Found ${rawAssignments.length} raw record(s)`);
 
       // STEP 2: Collect unique IDs for enrichment
       const classIds = [...new Set(rawAssignments.map(a => a.class_id).filter(Boolean))];
@@ -539,7 +562,7 @@ const DB = {
         profiles: profileMap[a.teacher_id] || { id: a.teacher_id, full_name: 'Teacher', role: 'teacher' }
       }));
 
-      console.log(`[DB] getTeacherAssignments: Enriched ${enriched.length} assignment(s) with class/subject names`);
+      MEM_CACHE.assignments[cacheKey] = enriched;
       return enriched;
       
     } catch (err) {
@@ -547,8 +570,20 @@ const DB = {
       return [];
     }
   },
+  async getClassAssignments(classId) {
+    const sc = await this._getSchoolCode();
+    const { data, error } = await _supabase.from('teacher_assignments')
+        .select('*, subjects(id, name, abbr), profiles(id, full_name)')
+        .eq('school_code', sc)
+        .eq('class_id', classId);
+    
+    if (error) { console.error('[DB] getClassAssignments:', error); return []; }
+    return data || [];
+  },
   async saveTeacherAssignment(assignment) {
-    return await _supabase.from('teacher_assignments').insert([assignment]).select();
+    const sc = await this._getSchoolCode();
+    const payload = { ...assignment, school_code: assignment.school_code || sc };
+    return await _supabase.from('teacher_assignments').insert([payload]).select();
   },
   async deleteTeacherAssignments(teacherId) {
     return await _supabase.from('teacher_assignments').delete().eq('teacher_id', teacherId);
@@ -568,13 +603,23 @@ const DB = {
     return await _supabase.from('profiles').update({ id: newId }).eq('id', oldId).select();
   },
   async assignClassTeacher(teacherId, classId) {
-    return await _supabase.from('teacher_assignments').insert([{ teacher_id: teacherId, class_id: classId, type: 'class' }]);
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('teacher_assignments').insert([{ 
+        teacher_id: teacherId, 
+        class_id: classId, 
+        type: 'class',
+        school_code: sc
+    }]);
   },
   async assignSubjectTeacher(teacherId, classId, subjectId) {
-    return await _supabase.from('teacher_assignments').insert([{ teacher_id: teacherId, class_id: classId, subject_id: subjectId, type: 'subject' }]);
-  },
-  async saveTeacherAssignment(assignment) {
-    return await _supabase.from('teacher_assignments').insert([assignment]);
+    const sc = await this._getSchoolCode();
+    return await _supabase.from('teacher_assignments').insert([{ 
+        teacher_id: teacherId, 
+        class_id: classId, 
+        subject_id: subjectId, 
+        type: 'subject',
+        school_code: sc
+    }]);
   },
   async deleteTeacher(id) {
     // 1. Permanent Wipe: Clean all foreign key relationships
@@ -600,35 +645,33 @@ const DB = {
   // --- STUDENTS ---
   async getStudents(classId = null) {
     const sc = await this._getSchoolCode();
-    const user = await this._getUser();
-    
-    // FETCH ROLE FOR JURISDICTION FILTERING
-    const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
-    
+    const cacheKey = `students_${sc}_${classId || 'all'}`;
+    if (MEM_CACHE.students && MEM_CACHE.students[cacheKey]) return MEM_CACHE.students[cacheKey];
+
+    const profile = await this.getProfile();
     let query = _supabase.from('students').select('*, classes(name)');
     
-    // 1. SaaS Isolation
     if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
     
-    // 2. Teacher Role Jurisdiction
     if (profile?.role === 'teacher') {
         const assignments = await this.getTeacherAssignments(profile.id);
         const myClassIds = [...new Set(assignments.filter(a => a.type === 'class').map(a => a.class_id))];
         const mySubjectClassIds = [...new Set(assignments.filter(a => a.type === 'subject').map(a => a.class_id))];
-        
-        // Combine all classes where this teacher has jurisdiction
         const allowedClasses = [...new Set([...myClassIds, ...mySubjectClassIds])];
         
         if (allowedClasses.length > 0) {
             query = query.in('class_id', allowedClasses);
         } else {
-            return []; // No assignments, no access
+            return [];
         }
     }
     
     if (classId) query = query.eq('class_id', classId);
     const { data, error } = await query;
-    if (error) { console.error('[DB] getStudents:', error); return []; }
+    if (error) return [];
+    
+    if (!MEM_CACHE.students) MEM_CACHE.students = {};
+    MEM_CACHE.students[cacheKey] = data || [];
     return data || [];
   },
   async addStudent(studentObj) {
@@ -744,25 +787,27 @@ const DB = {
   // --- MARKS ---
   async getMarks(filters = {}) {
     const sc = await this._getSchoolCode();
-    const user = await this._getUser();
-    const { data: profile } = await _supabase.from('profiles').select('role, id').eq('id', user.id).maybeSingle();
+    const cacheKey = `marks_${sc}_${JSON.stringify(filters)}`;
+    if (MEM_CACHE.marks[cacheKey]) return MEM_CACHE.marks[cacheKey];
 
-    let query = _supabase.from('marks').select('*').eq('school_code', sc);
+    const profile = await this.getProfile();
+    let query = _supabase.from('marks').select('*');
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
     
-    // Teacher Jurisdiction Enforcement
     if (profile?.role === 'teacher') {
         const assignments = await this.getTeacherAssignments(profile.id);
         const myClassIds = [...new Set(assignments.filter(a => a.type === 'class').map(a => a.class_id))];
         const mySubAssignments = assignments.filter(a => a.type === 'subject');
+        const mySubIds = mySubAssignments.map(a => a.subject_id).filter(Boolean);
 
-        if (myClassIds.length > 0) {
-            // Class teachers can see everything in their classes OR their assigned subjects elsewhere
-            query = query.or(`class_id.in.(${myClassIds.join(',')}),subject_id.in.(${mySubAssignments.map(a => a.subject_id).join(',')})`);
-        } else if (mySubAssignments.length > 0) {
-            // Subject-only teachers only see their subjects
-            query = query.in('subject_id', mySubAssignments.map(a => a.subject_id));
+        if (myClassIds.length > 0 && mySubIds.length > 0) {
+            query = query.or(`class_id.in.(${myClassIds.join(',')}),subject_id.in.(${mySubIds.join(',')})`);
+        } else if (myClassIds.length > 0) {
+            query = query.in('class_id', myClassIds);
+        } else if (mySubIds.length > 0) {
+            query = query.in('subject_id', mySubIds);
         } else {
-             return []; // No assignments found
+             return [];
         }
     }
 
@@ -775,7 +820,9 @@ const DB = {
     if (filters.classIds)     query = query.in('class_id', filters.classIds);
     
     const { data, error } = await query;
-    if (error) { console.error('[DB] getMarks:', error); return []; }
+    if (error) return [];
+    
+    MEM_CACHE.marks[cacheKey] = data || [];
     return data || [];
   },
 
@@ -882,7 +929,9 @@ const DB = {
     const cached = DB_CACHE.get(`assessments_${sc}`);
     if (cached) return cached;
 
-    const { data, error } = await _supabase.from('assessments').select('*').eq('school_code', sc).order('created_at');
+    let query = _supabase.from('assessments').select('*');
+    if (sc !== 'GLOBAL') query = query.eq('school_code', sc);
+    const { data, error } = await query.order('created_at');
     if (error) { console.error('[DB] getAssessments:', error); return []; }
     DB_CACHE.set(`assessments_${sc}`, data || []);
     return data || [];
@@ -937,28 +986,32 @@ const DB = {
       .eq('school_code', sc)
       .maybeSingle();
 
-    // Merge: Prioritize Registry data, enrich with settings
+    // Merge: Prioritize settings (Admin customizations) over base Registry data
     const info = {
-      school: schoolRecord?.name || schoolSettings?.info?.school || 'MMS PORTAL',
-      district: schoolRecord?.district || schoolSettings?.info?.district || '',
-      sector: schoolRecord?.sector || schoolSettings?.info?.sector || '',
-      province: schoolRecord?.province || schoolSettings?.info?.province || '',
+      ...(schoolSettings?.info || {}),
+      school: schoolSettings?.info?.school || schoolRecord?.name || 'MMS PORTAL',
+      district: schoolSettings?.info?.district || schoolRecord?.district || '',
+      sector: schoolSettings?.info?.sector || schoolRecord?.sector || '',
+      province: schoolSettings?.info?.province || schoolRecord?.province || '',
       code: sc,
       headteacher: schoolSettings?.info?.headteacher || '',
       phone: schoolSettings?.info?.phone || '',
       academic_year: schoolSettings?.info?.academic_year || '2025/2026',
-      done_date: new Date().toLocaleDateString('en-GB')
+      done_date: schoolSettings?.info?.done_date || new Date().toLocaleDateString('en-GB')
     };
 
     return info;
   },
-  async saveSchoolInfo(info) {
+  async saveSchoolInfo(updates) {
     const sc = await this._getSchoolCode();
     if (sc === 'DENIED' || sc === 'UNAUTHORIZED' || sc === 'DEFAULT' || sc === 'GLOBAL') return { error: 'Not authorized' };
     
+    const { data: existing } = await _supabase.from('school_settings').select('info').eq('school_code', sc).maybeSingle();
+    const mergedInfo = { ...(existing?.info || {}), ...updates };
+    
     return await _supabase
       .from('school_settings')
-      .upsert({ school_code: sc, info: info }, { onConflict: 'school_code' });
+      .upsert({ school_code: sc, info: mergedInfo }, { onConflict: 'school_code' });
   },
 
   /**
@@ -968,11 +1021,13 @@ const DB = {
   async getInstitutionalStats() {
     const sc = await this._getSchoolCode();
     
+    const filter = sc === 'GLOBAL' ? {} : { school_code: sc };
+    
     const [students, teachers, classes, pending] = await Promise.all([
-      _supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_code', sc),
-      _supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('role', 'teacher'),
-      _supabase.from('classes').select('*', { count: 'exact', head: true }).eq('school_code', sc),
-      _supabase.from('marks').select('*', { count: 'exact', head: true }).eq('school_code', sc).eq('is_submitted', true).eq('is_approved', false)
+      _supabase.from('students').select('*', { count: 'exact', head: true }).match(filter),
+      _supabase.from('profiles').select('*', { count: 'exact', head: true }).match(filter).eq('role', 'teacher'),
+      _supabase.from('classes').select('*', { count: 'exact', head: true }).match(filter),
+      _supabase.from('marks').select('*', { count: 'exact', head: true }).match(filter).eq('is_submitted', true).eq('is_approved', false)
     ]);
 
     return {
@@ -1410,14 +1465,25 @@ const SYNC = {
   },
 
   _emit(event, payload) {
-    // CACHE INVALIDATION: Purge local cache for the affected table across all schools
-    Object.keys(localStorage).forEach(k => {
-        if (k.includes(`camis_cache_${event}`)) localStorage.removeItem(k);
-    });
+    console.log(`[SYNC] Emitting event: ${event}`, payload.eventType);
+    
+    // CACHE INVALIDATION: Purge local cache for the affected table
+    // We clear all institutional cache if something big changed
+    const tablesToClearCache = ['marks', 'students', 'profiles', 'classes', 'subjects', 'assessments', 'teacher_assignments', 'school_settings'];
+    if (tablesToClearCache.includes(event) || event === 'teachers' || event === 'assignments') {
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith('camis_cache_')) localStorage.removeItem(k);
+        });
+        if (typeof MEM_CACHE !== 'undefined' && MEM_CACHE.clear) MEM_CACHE.clear();
+    }
 
+    // Notify registered UI listeners
     (this._callbacks[event] || []).forEach(fn => {
       try { fn(payload); } catch(e) { console.error('[SYNC] Callback error on', event, ':', e); }
     });
+
+    // Global refresh trigger for components that don't use fine-grained SYNC.on
+    window.dispatchEvent(new CustomEvent('mms-data-changed', { detail: { table: event, payload } }));
   },
 
   _updateBadge(status) {
@@ -1547,6 +1613,22 @@ const SYNC = {
           payload => {
             console.log('[SYNC] school_settings →', payload.eventType);
             this._emit('school_settings', payload);
+          }
+      )
+      // NOTIFICATIONS
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications' },
+          payload => {
+            console.log('[SYNC] notifications →', payload.eventType);
+            this._emit('notifications', payload);
+          }
+      )
+      // SUPPORT MESSAGES
+      .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'support_messages' },
+          payload => {
+            console.log('[SYNC] support_messages →', payload.eventType);
+            this._emit('support_messages', payload);
           }
       )
       .subscribe(status => {
