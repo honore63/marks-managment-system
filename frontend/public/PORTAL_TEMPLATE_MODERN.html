@@ -1,0 +1,535 @@
+<!-- ════════════════════════════════════════════════════════════════════
+     MMS PORTAL BASE TEMPLATE - MODERN DESIGN v2.0
+     ════════════════════════════════════════════════════════════════════
+     This is a complete HTML template for modern MMS portals.
+     Use this as the foundation for Teacher, Admin, and System Admin portals.
+     
+     Key Features:
+     - Modern responsive sidebar navigation
+     - Professional header with breadcrumbs and actions
+     - Dashboard grid system with stat cards
+     - Data tables with modern styling
+     - Modals and forms with professional design
+     - Full mobile responsiveness
+     - Accessibility-first approach
+     ════════════════════════════════════════════════════════════════════ -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Marks Management System - Professional Educational Platform">
+  <title>MMS Portal - Marks Management System</title>
+  
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+  
+  <!-- Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Dependencies -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- Design System -->
+  <link rel="stylesheet" href="../src/styles/enterprise-design-system.css">
+  <link rel="stylesheet" href="../src/styles/portal-layouts.css">
+  <link rel="stylesheet" href="../src/styles/dashboard-components.css">
+  
+  <style>
+    /* Portal-specific customizations */
+    .portal-header { background: white; border-bottom: 1px solid var(--gray-border); }
+    .content-container { max-width: 1400px; margin: 0 auto; }
+    .page-transition { animation: fadeIn 0.3s ease; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     APP LAYOUT CONTAINER
+     ════════════════════════════════════════════════════════════════════ -->
+
+<div class="app-layout teacher-portal" id="app-layout">
+  
+  <!-- ══════════════════════════════════════════════════════════════════
+       SIDEBAR NAVIGATION
+       ══════════════════════════════════════════════════════════════════ -->
+  
+  <aside class="app-sidebar" id="app-sidebar">
+    <div class="sidebar-header">
+      <a href="#" class="sidebar-brand">
+        <div class="sidebar-brand-icon">📚</div>
+        <div class="sidebar-brand-text">
+          <h3 class="sidebar-brand-title">MMS</h3>
+          <p class="sidebar-brand-subtitle">Teacher</p>
+        </div>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Dashboard Section -->
+      <div class="nav-section">
+        <span class="nav-section-label">Main</span>
+        <a href="#dashboard" class="nav-item active">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="nav-item-text">Dashboard</span>
+        </a>
+        <a href="#marks" class="nav-item">
+          <i data-lucide="book-open"></i>
+          <span class="nav-item-text">Marks Entry</span>
+        </a>
+        <a href="#analytics" class="nav-item">
+          <i data-lucide="bar-chart-3"></i>
+          <span class="nav-item-text">Analytics</span>
+        </a>
+      </div>
+
+      <!-- Management Section -->
+      <div class="nav-section">
+        <span class="nav-section-label">Management</span>
+        <a href="#students" class="nav-item">
+          <i data-lucide="users"></i>
+          <span class="nav-item-text">Students</span>
+        </a>
+        <a href="#classes" class="nav-item">
+          <i data-lucide="layers"></i>
+          <span class="nav-item-text">Classes</span>
+        </a>
+        <a href="#reports" class="nav-item">
+          <i data-lucide="file-text"></i>
+          <span class="nav-item-text">Reports</span>
+        </a>
+      </div>
+
+      <!-- Tools Section -->
+      <div class="nav-section">
+        <span class="nav-section-label">Tools</span>
+        <a href="#import" class="nav-item">
+          <i data-lucide="upload"></i>
+          <span class="nav-item-text">Import Data</span>
+        </a>
+        <a href="#templates" class="nav-item">
+          <i data-lucide="file"></i>
+          <span class="nav-item-text">Templates</span>
+        </a>
+      </div>
+
+      <!-- Settings Section -->
+      <div class="nav-section">
+        <span class="nav-section-label">Account</span>
+        <a href="#settings" class="nav-item">
+          <i data-lucide="settings"></i>
+          <span class="nav-item-text">Settings</span>
+        </a>
+        <a href="#help" class="nav-item">
+          <i data-lucide="help-circle"></i>
+          <span class="nav-item-text">Help</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="user-profile" id="user-profile-btn">
+        <div class="user-avatar" id="user-avatar">T</div>
+        <div class="user-info">
+          <span class="user-name" id="user-name">Teacher Name</span>
+          <span class="user-role" id="user-role">Class Teacher</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       MAIN CONTENT AREA
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <div class="main-wrapper">
+    <!-- Header -->
+    <header class="app-header portal-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebar-toggle">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="header-breadcrumb hide-md">
+          <span class="breadcrumb-item">Dashboard</span>
+          <span class="breadcrumb-item active">Overview</span>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <div class="header-actions">
+          <button class="header-action-btn" id="notifications-btn" title="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="notification-badge" id="notification-count">3</span>
+          </button>
+          <button class="header-action-btn" id="search-btn" title="Search">
+            <i data-lucide="search"></i>
+          </button>
+          <button class="header-action-btn" id="fullscreen-btn" title="Fullscreen">
+            <i data-lucide="maximize-2"></i>
+          </button>
+          <button class="header-action-btn" id="logout-btn" title="Logout">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <div class="main-content">
+        
+        <!-- Page Header -->
+        <div class="page-header page-transition">
+          <div class="page-header-top">
+            <div class="page-header-title">
+              <h1 id="page-title">Dashboard</h1>
+              <p class="page-header-subtitle" id="page-subtitle">Welcome back to your teaching portal</p>
+            </div>
+            <div class="page-header-actions">
+              <button class="btn btn-primary">
+                <i data-lucide="download" width="16"></i>
+                <span>Export Data</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <section id="dashboard-section">
+          <!-- Stat Cards -->
+          <div class="dashboard-grid dashboard-grid-4">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <div class="stat-icon">📊</div>
+                <span class="stat-badge up">
+                  <i data-lucide="trending-up" width="14"></i>
+                  12%
+                </span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">Total Students</span>
+                <span class="stat-value">124</span>
+                <span class="stat-change up">
+                  <i data-lucide="arrow-up" width="14"></i>
+                  8 this month
+                </span>
+              </div>
+            </div>
+
+            <div class="stat-card success">
+              <div class="stat-card-header">
+                <div class="stat-icon">✅</div>
+                <span class="stat-badge">
+                  <i data-lucide="check-circle" width="14"></i>
+                  98%
+                </span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">Marks Submitted</span>
+                <span class="stat-value">98%</span>
+                <span class="stat-change">
+                  All classes updated
+                </span>
+              </div>
+            </div>
+
+            <div class="stat-card warning">
+              <div class="stat-card-header">
+                <div class="stat-icon">⚠️</div>
+                <span class="stat-badge">
+                  <i data-lucide="alert-circle" width="14"></i>
+                  5
+                </span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">Pending Actions</span>
+                <span class="stat-value">5</span>
+                <span class="stat-change">
+                  2 urgent reviews
+                </span>
+              </div>
+            </div>
+
+            <div class="stat-card info">
+              <div class="stat-card-header">
+                <div class="stat-icon">📅</div>
+                <span class="stat-badge">
+                  <i data-lucide="calendar" width="14"></i>
+                  Q2
+                </span>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label">Current Term</span>
+                <span class="stat-value">Q2 2026</span>
+                <span class="stat-change">
+                  Week 12 of 13
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div class="dashboard-grid dashboard-grid-2" style="margin-top: 2rem;">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3 class="chart-title">Class Performance</h3>
+                <div class="chart-actions">
+                  <button class="chart-action-btn"><i data-lucide="download" width="16"></i></button>
+                  <button class="chart-action-btn"><i data-lucide="more-vertical" width="16"></i></button>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+              </div>
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <div class="legend-dot" style="background: #4f46e5;"></div>
+                  <span>Average Score</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background: #10b981;"></div>
+                  <span>Class Target</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3 class="chart-title">Marks Distribution</h3>
+                <div class="chart-actions">
+                  <button class="chart-action-btn"><i data-lucide="download" width="16"></i></button>
+                  <button class="chart-action-btn"><i data-lucide="more-vertical" width="16"></i></button>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="dashboard-grid" style="margin-top: 2rem;">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Recent Activity</h3>
+              </div>
+              <div class="card-body">
+                <ul class="activity-list">
+                  <li class="activity-item">
+                    <div class="activity-dot"></div>
+                    <div class="activity-content">
+                      <div class="activity-title">Marks submitted for Class 10A</div>
+                      <div class="activity-description">Mathematics - 45 students</div>
+                      <div class="activity-timestamp">2 hours ago</div>
+                    </div>
+                  </li>
+                  <li class="activity-item">
+                    <div class="activity-dot"></div>
+                    <div class="activity-content">
+                      <div class="activity-title">Student performance report generated</div>
+                      <div class="activity-description">Quarterly analysis complete</div>
+                      <div class="activity-timestamp">Yesterday</div>
+                    </div>
+                  </li>
+                  <li class="activity-item">
+                    <div class="activity-dot"></div>
+                    <div class="activity-content">
+                      <div class="activity-title">System backup completed</div>
+                      <div class="activity-description">All data synchronized</div>
+                      <div class="activity-timestamp">3 days ago</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tables Example -->
+        <section id="students-section" style="display: none;">
+          <div class="page-header page-transition">
+            <div class="page-header-top">
+              <div class="page-header-title">
+                <h1>Students</h1>
+                <p class="page-header-subtitle">Manage your class students</p>
+              </div>
+              <div class="page-header-actions">
+                <button class="btn btn-primary">
+                  <i data-lucide="plus" width="16"></i>
+                  <span>Add Student</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-header">
+              <h3 class="table-title">Class 10A - Students</h3>
+              <div class="table-controls">
+                <div class="table-search">
+                  <i data-lucide="search"></i>
+                  <input type="text" placeholder="Search students...">
+                </div>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th><input type="checkbox"></th>
+                    <th>Name</th>
+                    <th>SDMS Code</th>
+                    <th>Gender</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>Aarav Kumar</td>
+                    <td>610501001</td>
+                    <td>Male</td>
+                    <td><span class="status-badge success"><span class="status-dot online"></span>Active</span></td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="table-action-btn" title="Edit"><i data-lucide="edit-2" width="16"></i></button>
+                        <button class="table-action-btn delete" title="Delete"><i data-lucide="trash-2" width="16"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><input type="checkbox"></td>
+                    <td>Bhavna Sharma</td>
+                    <td>610501002</td>
+                    <td>Female</td>
+                    <td><span class="status-badge success"><span class="status-dot online"></span>Active</span></td>
+                    <td>
+                      <div class="table-actions">
+                        <button class="table-action-btn" title="Edit"><i data-lucide="edit-2" width="16"></i></button>
+                        <button class="table-action-btn delete" title="Delete"><i data-lucide="trash-2" width="16"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════════════════════════════════ -->
+
+<script src="../src/services/db.js"></script>
+<script src="../src/components/frontend-access-control.js"></script>
+<script src="../src/components/student-management.js"></script>
+<script>
+  // Initialize Lucide icons
+  lucide.createIcons();
+
+  // Sidebar toggle for mobile
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.getElementById('app-sidebar');
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+  }
+
+  // Navigation links
+  document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+
+  // Logout button
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+      await DB.signOut();
+      window.location.href = 'Login.html';
+    } catch (err) {
+      console.error('Logout failed:', err);
+      alert('Logout failed. Please try again.');
+    }
+  });
+
+  // Initialize charts
+  const perfCtx = document.getElementById('performanceChart')?.getContext('2d');
+  if (perfCtx) {
+    new Chart(perfCtx, {
+      type: 'line',
+      data: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+        datasets: [
+          {
+            label: 'Class Average',
+            data: [65, 68, 72, 75, 78, 82],
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            tension: 0.4,
+            fill: true
+          },
+          {
+            label: 'Target',
+            data: [70, 72, 75, 78, 80, 85],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, max: 100 } }
+      }
+    });
+  }
+
+  const distCtx = document.getElementById('distributionChart')?.getContext('2d');
+  if (distCtx) {
+    new Chart(distCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Excellent (90-100)', 'Good (75-89)', 'Average (60-74)', 'Below Avg (<60)'],
+        datasets: [{
+          data: [25, 45, 22, 8],
+          backgroundColor: ['#10b981', '#4f46e5', '#f59e0b', '#ef4444'],
+          borderColor: 'white',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+</script>
+
+</body>
+</html>

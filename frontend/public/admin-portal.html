@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMS (Marks Management System) — School Portal</title>
+  <!-- Font Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- MMS Unified Font System -->
+  <link rel="stylesheet" href="../src/styles/fonts.css">
+  <!-- Modern Design System (NEW) -->
+  <link rel="stylesheet" href="../src/styles/enterprise-design-system.css">
+  <link rel="stylesheet" href="../src/styles/portal-layouts.css">
+  <link rel="stylesheet" href="../src/styles/dashboard-components.css">
+  <link rel="stylesheet" href="../src/styles/forms-and-modals.css">
+  <!-- Legacy Styles (Preserved for Compatibility) -->
+  <link rel="stylesheet" href="../src/styles/style.css">
+  <link rel="stylesheet" href="../src/styles/admin.css">
+  <link rel="stylesheet" href="../src/styles/modern-design.css">
+  <link rel="stylesheet" href="../src/styles/responsive.css">
+  <link rel="stylesheet" href="../src/styles/ai-assistant.css">
+  <!-- ▼ NAVBAR OVERRIDE – must be last ▼ -->
+  <style>
+    /* Force navbar black dropdown – wins over all legacy CSS */
+    .top-navbar { position: sticky; top: 0; z-index: 2000; background: #000 !important; border-top: 4px solid #2563eb !important; box-sizing: border-box !important; }
+    .nav-item { position: relative; }
+    .nav-dropdown {
+      display: block;
+      position: absolute !important;
+      top: 100% !important;
+      left: 0 !important;
+      min-width: 220px !important;
+      background: #000000 !important;
+      background-color: #000000 !important;
+      border: 2px solid #2563eb !important;
+      border-radius: 8px !important;
+      padding: 6px !important;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.9) !important;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 99999 !important;
+    }
+    .nav-item:hover .nav-dropdown,
+    .nav-item.open .nav-dropdown {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    .dropdown-item {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      padding: 11px 16px !important;
+      color: #ffffff !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      text-decoration: none !important;
+      border-radius: 6px !important;
+      background: transparent !important;
+      cursor: pointer;
+    }
+    .dropdown-item:hover {
+      background: #2563eb !important;
+      color: #fff !important;
+    }
+    .nav-link { color: #fff !important; font-size: 0.75rem !important; white-space: nowrap; padding: 0.3rem 0.4rem !important; }
+    .nav-link:hover, .nav-link.active { background: #2563eb !important; color: #fff !important; border-radius: 6px; }
+    /* Prevent legacy sidebar styles from touching the top navbar items */
+    .top-navbar .nav-item { margin: 0 2px !important; border-radius: 0 !important; color: #fff !important; background: transparent !important; }
+    .top-navbar .nav-item:hover { background: transparent !important; transform: none !important; }
+    .top-navbar .nav-item.active, .top-navbar .nav-item.open { background: transparent !important; box-shadow: none !important; }
+  </style>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase & Core Infrastructure -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  
+  <!-- Data Parsing Ecosystem -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       MMS ADMIN PORTAL — EXECUTIVE GOVERNANCE DESIGN SYSTEM
+       (Unified with System Admin. Primary: Indigo)
+       ══════════════════════════════════════════════════════════ */
+
+    /* ── DASHBOARD GRIDS ───────────────────────────── */
+    .dashboard-main-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .analytics-dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .chart-card {
+      background: #fff; border-radius: var(--radius-xl, 24px);
+      border: 1.5px solid #e2e8f0;
+      box-shadow: 0 4px 24px rgba(15,14,42,0.08);
+      overflow: hidden; padding: 1.75rem 2rem;
+    }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
+    .chart-header h3 { font-size: 1rem; font-weight: 800; color: var(--midnight); }
+    .chart-legend { display: flex; gap: 1rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #64748b; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 2rem; border-bottom: 1.5px solid #f1f5f9; flex-wrap: wrap; gap: 0.75rem; background: linear-gradient(135deg,#fafafa,#fff); }
+    .data-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+    .resp-grid { display: grid; gap: 1.5rem; margin-bottom: 2rem; }
+    .resp-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .resp-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .stat-card {
+      background: #fff; border-radius: 16px;
+      border: 1.5px solid #e2e8f0;
+      box-shadow: 0 2px 12px rgba(15,14,42,0.05);
+      padding: 1.25rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+      transition: all 0.4s cubic-bezier(0.19,1,0.22,1);
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,14,42,0.08); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem; border: none !important; }
+    .stat-info { flex: 1; }
+    .stat-lbl { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; }
+    .stat-val { font-size: 1.6rem; font-weight: 900; color: var(--midnight); line-height: 1.1; letter-spacing: -0.5px; }
+    .stat-sub { font-size: 0.7rem; font-weight: 700; color: #64748b; margin-top: 2px; }
+    .alert-box { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 16px; padding: 1.25rem 1.5rem; }
+    .badge-blue { background: #eff6ff; color: #3b82f6; padding: 3px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+    @media (max-width: 1100px) {
+      .dashboard-main-grid { grid-template-columns: 1fr; }
+      .analytics-dashboard-grid { grid-template-columns: 1fr; }
+      .resp-grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .resp-grid-2, .resp-grid-3 { grid-template-columns: 1fr !important; }
+    }
+
+    :root {
+      --midnight: #111827;
+      --navy: #1f2937;
+      --indigo: #2563eb;
+      --indigo-light: #60a5fa;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --gold: #f59e0b;
+      --gold-light: #fbbf24;
+      --gold-glow: rgba(245, 158, 11, 0.12);
+      --emerald: #10b981;
+      --rose: #ef4444;
+      --violet: #8b5cf6;
+      --sidebar-w: 260px;
+      --header-h: 72px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
+      --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      color: #1e1b4b;
+      font-weight: 600;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+
+    /* ── LAYOUT ARCHITECTURE ── */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background: #f8fafc;
+    }
+
+    .main-wrapper {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+    }
+
+    .main-content {
+      padding: 2.5rem;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+    }
+    .user-pill { display: flex; align-items: center; gap: 10px; margin-bottom: 1.25rem; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
+    .user-info { display: flex; flex-direction: column; font-size: 0.75rem; overflow: hidden; }
+    .user-name { font-weight: 800; color: #111827; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+    .user-role { color: #64748b; font-weight: 600; font-size: 0.65rem; text-transform: uppercase; }
+    .logout-btn { 
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 0.8rem; border: 1.5px solid #fee2e2; border-radius: 10px;
+      color: #ef4444; background: transparent; font-weight: 800; cursor: pointer; transition: 0.2s;
+    }
+    .logout-btn:hover { background: #ef4444; color: white; border-color: #ef4444; }
+
+    /* ── MAIN WRAPPER ─────────────────────────────── */
+    .layout-sidebar { display: flex; height: 100vh; overflow: hidden; }
+    .main-wrapper {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f1f5f9;
+    }
+
+    /* ── TOPBAR (sub-header) ──────────────────────── */
+    .sub-header {
+      height: var(--header-h) !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e5e7eb !important;
+      padding: 0 2rem !important;
+      display: flex !important; justify-content: space-between !important; align-items: center !important;
+      top: 0; z-index: 1500; position: sticky !important;
+      transition: var(--transition) !important;
+      flex-shrink: 0;
+    }
+    .sub-header.scrolled {
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+      border-bottom-color: transparent !important;
+    }
+    @media (min-width: 1025px) {
+      .sub-header .user-pill-elite { display: none !important; }
+    }
+
+    /* ── CONTENT ──────────────────────────────────── */
+    .main-content {
+      flex: 1; overflow-y: auto; padding: 2rem;
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
+      background: #f9fafb;
+    }
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* ── KPI CARDS ────────────────────────────────── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .kpi-card {
+      background: #fff !important;
+      border-radius: var(--radius-xl) !important;
+      padding: 1.75rem 2rem !important;
+      display: flex !important; align-items: center !important; gap: 1.5rem !important;
+      border: 1px solid #e5e7eb !important;
+      box-shadow: var(--shadow-card) !important;
+      transition: var(--transition) !important;
+      position: relative !important; overflow: hidden !important;
+    }
+    .kpi-card::before { display: none; }
+    .kpi-card::after { display: none; }
+    .kpi-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; border-color: #d1d5db !important; }
+    .kpi-icon { width: 56px !important; height: 56px !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .kpi-card:hover .kpi-icon { transform: scale(1.05) !important; }
+    .kpi-info h4 { font-size: 0.75rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: #6b7280 !important; margin-bottom: 0.4rem; }
+    .kpi-info .val { font-size: 2rem !important; font-weight: 800 !important; color: #111827 !important; line-height: 1; letter-spacing: -0.5px; }
+
+    /* ── CARDS / PANELS ───────────────────────────── */
+    .card, .table-card, .chart-box {
+      background: #ffffff !important;
+      border-radius: var(--radius-xl) !important;
+      border: 1px solid #e5e7eb !important;
+      box-shadow: var(--shadow-card) !important;
+      overflow: hidden !important; margin-bottom: 2rem;
+      transition: var(--transition) !important;
+    }
+    .card-header, .table-card-header {
+      padding: 1.5rem 2rem !important;
+      display: flex !important; align-items: center !important; justify-content: space-between !important;
+      border-bottom: 1px solid #f9fafb !important;
+      background: #ffffff !important;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .card-header h3, .card-header h2 { font-size: 1.25rem !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px !important; }
+    .card-body { padding: 1.5rem 2rem !important; }
+
+    /* ── CHARTS ───────────────────────────────────── */
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .chart-box { padding: 2rem !important; }
+    canvas { background: transparent !important; }
+
+    /* ── TABLES ───────────────────────────────────── */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 1.25rem;
+      background: #fff; padding: 1.5rem 2rem;
+      border-radius: var(--radius-xl); border: 1.5px solid #e2e8f0;
+      margin-bottom: 2rem; align-items: flex-end;
+      box-shadow: var(--shadow-card);
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 180px; }
+    .filter-group label { font-size: 0.68rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; }
+
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    thead tr { background: #fafafa; border-bottom: 2px solid #f1f5f9; }
+    th {
+      padding: 1rem 1.5rem; font-size: 0.68rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 2px; color: #94a3b8;
+      white-space: nowrap; text-align: left;
+      background: #fafafa !important; color: #94a3b8 !important;
+    }
+    td {
+      padding: 1.25rem 1.5rem; font-size: 0.88rem; font-weight: 700;
+      color: var(--midnight) !important; border-bottom: 1px solid #f8fafc;
+      transition: background 0.2s;
+      background: transparent !important;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafcff !important; }
+
+    /* ── BUTTONS ──────────────────────────────────── */
+    .btn {
+      display: inline-flex !important; align-items: center !important; gap: 0.5rem !important;
+      padding: 0.75rem 1.5rem !important; border-radius: 8px !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 0.875rem !important; font-weight: 600 !important;
+      cursor: pointer !important; border: 1px solid transparent !important;
+      transition: var(--transition) !important; white-space: nowrap !important;
+      width: auto !important; justify-content: center !important;
+    }
+    .btn-primary, .btn-indigo {
+      background: var(--indigo) !important; color: #fff !important;
+      box-shadow: 0 6px 20px rgba(67,56,202,0.25) !important; border-color: transparent !important;
+    }
+    .btn-primary:hover, .btn-indigo:hover { background: var(--primary-hover) !important; transform: translateY(-2px) !important; }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light)) !important;
+      color: var(--midnight) !important; box-shadow: 0 6px 20px rgba(245,158,11,0.3) !important;
+    }
+    .btn-gold:hover { transform: translateY(-3px) !important; box-shadow: 0 12px 30px rgba(245,158,11,0.4) !important; }
+    .btn-dark, .btn-secondary {
+      background: var(--midnight) !important; color: #fff !important;
+      box-shadow: 0 4px 12px rgba(15,14,42,0.15) !important; border-color: transparent !important;
+    }
+    .btn-dark:hover, .btn-secondary:hover { background: var(--navy) !important; transform: translateY(-2px) !important; }
+    .btn-ghost, .btn-outline {
+      background: transparent !important; color: var(--midnight) !important;
+      border-color: #e2e8f0 !important;
+    }
+    .btn-ghost:hover, .btn-outline:hover { border-color: var(--indigo) !important; color: var(--indigo) !important; background: rgba(67,56,202,0.06) !important; }
+    .btn-sm { padding: 0.5rem 1rem !important; font-size: 0.75rem !important; border-radius: 10px !important; }
+
+    /* ── BADGES ───────────────────────────────────── */
+    .badge-status {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.875rem; border-radius: 100px;
+      font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .badge-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-active { background: #ecfdf5; color: #059669; }
+    .badge-active .dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .badge-inactive { background: #f1f5f9; color: #64748b; }
+    .badge-inactive .dot { background: #94a3b8; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-pending .dot { background: var(--gold); }
+    /* Legacy badge support */
+    .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; border: none !important; }
+    .badge-success { background: #ecfdf5; color: #059669; }
+    .badge-info { background: #eff6ff; color: #3b82f6; }
+    .badge-danger { background: #fef2f2; color: #ef4444; }
+    .badge-warning { background: #fffbeb; color: #d97706; }
+
+    /* ── MODALS ───────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,14,42,0.75); backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 10000; padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box, .modal-content, .modal-card, [class*="modal"] > .card {
+      background: #fff !important; width: 100%; max-width: 580px;
+      border-radius: var(--radius-2xl) !important; padding: 3rem !important;
+      border: 2px solid rgba(67,56,202,0.2) !important;
+      box-shadow: 0 50px 100px -20px rgba(15,14,42,0.35) !important;
+      position: relative;
+      animation: modalPop 0.45s cubic-bezier(0.19, 1, 0.22, 1) both;
+    }
+    @keyframes modalPop { from { opacity:0; transform:scale(0.92) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+
+    /* ── FORMS ────────────────────────────────────── */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label, .form-label {
+      display: block; font-size: 0.72rem; font-weight: 900;
+      color: var(--navy); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem;
+    }
+    .form-control, .input-field, select.form-control {
+      width: 100%; padding: 0.875rem 1.25rem;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500;
+      color: #111827; background: #ffffff;
+      transition: var(--transition); outline: none;
+    }
+    .form-control:focus, .input-field:focus {
+      border-color: var(--indigo); background: #fff;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .search-pill { border-radius: 9999px !important; padding-left: 40px !important; }
+
+    /* ── TOAST ────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 2rem; right: 2rem;
+      z-index: 20000; display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .toast {
+      padding: 1rem 1.5rem; background: var(--midnight); color: #fff;
+      border-radius: 16px; font-size: 0.9rem; font-weight: 800;
+      box-shadow: 0 20px 40px rgba(15,14,42,0.25); border: 1px solid rgba(255,255,255,0.08);
+      border-left: 4px solid var(--indigo); min-width: 280px;
+      animation: toastIn 0.4s ease both;
+    }
+    .toast.success { border-left-color: var(--emerald); }
+    .toast.error { border-left-color: var(--rose); }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    /* ── MARKS TABLE SPECIFICS ────────────────────── */
+    .mark-input {
+      width: 60px; padding: 8px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.9rem; text-align: center; font-weight: 800; color: var(--midnight);
+      transition: all 0.2s; background: #f8fafc;
+    }
+    .mark-input:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(67,56,202,0.1); background: #fff; }
+    .mark-input.saved { border-color: var(--emerald); background: #f0fdf4; color: var(--emerald); }
+
+    /* ── LAYOUT FIX ────────────────────────────────── */
+    .layout-sidebar { display: flex; height: 100vh; overflow: hidden; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f1f5f9; min-width: 0; }
+    .main-content { flex: 1; overflow-y: auto; padding: 2rem; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* Sub-header MUST be outside main-content scroll, sticky at top of main-wrapper */
+    .sub-header {
+      flex-shrink: 0;
+      height: var(--header-h) !important;
+      background: rgba(255,255,255,0.95) !important;
+      backdrop-filter: blur(20px) saturate(1.8) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+      border-bottom: 1px solid #e8ecf0 !important;
+      padding: 0 2rem !important;
+      display: flex !important; justify-content: space-between !important; align-items: center !important;
+      position: sticky !important; top: 0 !important; z-index: 1500 !important;
+      transition: var(--transition) !important;
+      box-shadow: none !important;
+    }
+    .sub-header.scrolled { box-shadow: 0 4px 20px rgba(15,14,42,0.07) !important; border-bottom-color: rgba(67,56,202,0.2) !important; }
+    #page-title { font-size: 1.5rem !important; font-weight: 900 !important; color: var(--midnight) !important; letter-spacing: -0.75px !important; margin: 0 !important; }
+
+    /* Mobile toggle button */
+    .mobile-menu-btn {
+      display: none; width: 44px; height: 44px;
+      align-items: center; justify-content: center;
+      background: var(--midnight); color: var(--gold);
+      border-radius: 14px; border: none; font-size: 1.4rem;
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    /* Sidebar footer */
+    .sidebar-footer { margin-top: auto; padding: 1.25rem 1.25rem; border-top: 1.5px solid #f1f5f9; }
+    .user-compact {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.875rem 1rem; background: #f8fafc;
+      border-radius: 14px; border: 1.5px solid #e8ecf0;
+      cursor: pointer; transition: var(--transition);
+    }
+    .user-compact:hover { background: #f1f5f9; border-color: #d1d5db; }
+    .user-avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--midnight), var(--indigo));
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 900; color: #fff; flex-shrink: 0;
+      border: 2px solid var(--gold);
+    }
+    .user-compact .user-info { flex: 1; overflow: hidden; }
+    .user-compact .name { font-size: 0.82rem; font-weight: 800; color: var(--midnight); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-compact .role { font-size: 0.6rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-top: 1px; display: block; }
+    .sidebar-footer .btn { margin-top: 0.75rem; width: 100%; justify-content: center; padding: 0.65rem 1rem !important; font-size: 0.8rem !important; background: #fef2f2 !important; color: #dc2626 !important; border: 1.5px solid #fecaca !important; box-shadow: none !important; }
+    .sidebar-footer .btn:hover { background: #fee2e2 !important; border-color: #fca5a5 !important; transform: none !important; }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; animation: fadeUp 0.4s cubic-bezier(0.19,1,0.22,1) both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+    /* \u2500\u2500 RESPONSIVE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+    @media (max-width: 1200px) {
+      .charts-grid { grid-template-columns: 1fr; }
+      .kpi-grid, .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 1024px) {
+      .sidebar-toggle { display: flex !important; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0; width: 42px; height: 42px; position: absolute; right: 1.5rem; top: 1.5rem; z-index: 10000; color: #64748b; }
+      .layout-sidebar { display: flex; }
+      .sidebar { position: fixed; left: -300px; top: 0; height: 100vh; z-index: 9999; transition: left 0.4s cubic-bezier(0.19,1,0.22,1); box-shadow: none; }
+      .sidebar.open { left: 0; box-shadow: 20px 0 60px rgba(15,14,42,0.25); }
+      .main-wrapper { width: 100%; }
+      .mobile-toggle-btn { display: flex !important; align-items: center; justify-content: center; border: 1.5px solid #e2e8f0; border-radius: 10px; width: 42px; height: 42px; background: #fff; cursor: pointer; color: #64748b; }
+    }
+    @media (max-width: 768px) {
+      .main-content { padding: 1.25rem; }
+      .kpi-grid, .stats-grid, .charts-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+      #page-title { font-size: 1.25rem !important; }
+      .sub-header { padding: 0 1rem !important; }
+      .card-header { padding: 1rem 1.25rem !important; flex-direction: column; align-items: flex-start; }
+      .card-body { padding: 1.25rem !important; }
+    }
+  </style>
+
+
+    <link rel="stylesheet" href="../src/styles/mms-polish.css">
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- ── TOP NAVIGATION NAVBAR ── -->
+    <nav class="top-navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-brand">
+                <div class="nav-logo">
+                    <img src="../src/assets/images/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" alt="Logo" style="width:100%; height:100%; object-fit: contain;">
+                </div>
+                <div class="nav-brand-info">
+                    <span class="nav-brand-text">MARKS MANAGEMENT SYSTEM</span>
+                    <span class="nav-brand-tagline">INSTITUTIONAL ADMINISTRATION</span>
+                </div>
+            </a>
+
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" onclick="switchView('dashboard')">
+                        <i data-lucide="layout-dashboard"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="users"></i> Identities <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="switchView('students')">Student Registry</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('teachers')">Teachers Directory</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="book-open"></i> Academics <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="switchView('management')">Class Management</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('subjects')">Subject Catalog</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('assessments')">Evaluation Config</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="file-check"></i> Records <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="switchView('marks-mgmt')">Marks Recording</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('marks-approval')">Approval Hub</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('reports')">Report Generation</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('analytics')">Data Analytics</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="database"></i> Data Hub <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="openImportStudentsModal()">Batch Import</a>
+                        <a href="#" class="dropdown-item">System Sync</a>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="nav-actions">
+                <div class="nav-item user-profile-item" style="margin-left: 0.25rem !important;">
+                    <div class="user-profile-trigger" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 8px; background: rgba(37,99,235,0.1);">
+                        <div class="user-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem;">A</div>
+                        <span style="color: white; font-size: 0.8rem; font-weight: 600;">Admin</span>
+                        <i data-lucide="chevron-down" style="width: 14px; color: #94a3b8;"></i>
+                    </div>
+                    <div class="nav-dropdown" style="right: 0 !important; left: auto !important;">
+                        <a href="#" class="dropdown-item" onclick="switchView('profile')">
+                            <i data-lucide="user" style="width: 16px;"></i> My Profile
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="handleLogout()" style="color: #ef4444 !important;">
+                            <i data-lucide="log-out" style="width: 16px;"></i> Logout System
+                        </a>
+                    </div>
+                </div>
+                <button class="nav-mobile-toggle" onclick="toggleMobileMenu()">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+
+
+    <!-- SCROLLABLE CONTENT -->
+    <main class="main-content">
+      
+      <!-- VIEW: SUPPORT -->
+      <div id="view-support" class="view"></div>
+
+      <!-- VIEW: DASHBOARD -->
+      <div class="view active" id="view-dashboard">
+        <!-- Institutional Identity Hub -->
+        <div class="table-card premium-card" style="padding: 2rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div class="kpi-icon" style="width: 56px; height: 56px; background: #eff6ff; color: var(--primary); border-radius: 12px; font-size: 1.8rem;"><i data-lucide="school"></i></div>
+                <div>
+                   <h1 id="school-name-hd" style="margin: 0; font-size: 1.5rem; font-weight: 800; color: #111827; letter-spacing: -0.5px; text-transform: uppercase;">MMS PORTAL</h1>
+                   <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                      <span id="school-code-hd" style="font-size: 0.75rem; font-weight: 700; color: #4b5563; text-transform: uppercase;">SDMS: LOADING...</span>
+                      <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.65rem; font-weight: 800; border-radius: 9999px; padding: 2px 8px;">ACTIVE NODE</span>
+                   </div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+               <button class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-weight: 700;" onclick="openModal('add-teacher-modal')"><i data-lucide="user-plus"></i> REGISTER TEACHER</button>
+               <button class="btn btn-secondary" style="background: #f9fafb; color: #111827; border: 1px solid #d1d5db; font-weight: 600;" onclick="syncInstitutionalNodes()"><i data-lucide="refresh-cw"></i> FORCE SYNC</button>
+            </div>
+        </div>
+
+        <div class="premium-card animate-entrance" style="margin-bottom: 2.5rem; padding: 4rem 3rem; min-height: 280px; background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(37, 99, 235, 0.4)), url('../src/assets/images/MMS_platform_promotional_poster_202605051725.jpeg') center/cover; color: white; border-left: 6px solid var(--mms-brand-primary); display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;">
+            <h2 style="margin-bottom:0.75rem; font-size: 2.6rem; font-weight: 800; color: white; letter-spacing: -0.03em; text-shadow: 0 2px 10px rgba(0,0,0,0.5); position: relative; z-index: 2;">Institutional Administration</h2>
+            <p style="font-size: 1.05rem; color: #f1f5f9; max-width: 650px; margin: 0; line-height: 1.6; text-shadow: 0 2px 8px rgba(0,0,0,0.5); position: relative; z-index: 2;">Manage students, teachers, and academic performance from a centralized administrative hub.</p>
+        </div>
+
+        <!-- PRIMARY KPI TIERS -->
+        <div class="ll-cards">
+           <!-- Card 1: Students -->
+           <article class="ll-card">
+              <h3 class="ll-card__title">Institutional Registry</h3>
+              <p class="ll-card__text">
+                 Enrolled: <strong id="stat-students">0</strong><br>
+                 Category: <span class="badge badge-primary">Active</span>
+              </p>
+              <button class="ll-card__cta" onclick="switchView('students')">Manage Students</button>
+           </article>
+
+           <!-- Card 2: Teachers -->
+           <article class="ll-card">
+              <h3 class="ll-card__title">Pedagogical Teachers</h3>
+              <p class="ll-card__text">
+                 Educators: <strong id="stat-teachers">0</strong><br>
+                 Assignment: <span class="badge badge-info">Full-time</span>
+              </p>
+              <button class="ll-card__cta" onclick="switchView('teachers')">Teacher Management</button>
+           </article>
+
+           <!-- Card 3: Classes -->
+           <article class="ll-card">
+              <h3 class="ll-card__title">Academic Structure</h3>
+              <p class="ll-card__text">
+                 Total Groups: <strong id="stat-classes">0</strong><br>
+                 Curriculum: <span class="badge" style="background: #2563eb; color: #fff;">CBC</span>
+              </p>
+              <button class="ll-card__cta" onclick="switchView('management')">Initialize Classes</button>
+           </article>
+
+           <!-- Card 4: Pending -->
+           <article class="ll-card">
+              <h3 class="ll-card__title">Governance Status</h3>
+              <p class="ll-card__text">
+                 Approvals: <strong id="stat-pending">0</strong><br>
+                 Verification: <span class="badge" style="background: #000; color: #fff;">Required</span>
+              </p>
+              <button class="ll-card__cta" onclick="switchView('marks-approval')">Approve Marks</button>
+           </article>
+        </div>
+        <div class="dashboard-main-grid" style="margin-top: 1rem; align-items: start;">
+           
+           <!-- MAIN MONITOR: TEACHER ACTIVITY -->
+           <div class="table-card premium-card">
+              <div class="table-header">
+                 <div>
+                    <h2 style="font-size: 1.15rem; font-weight: 900; color: #1e293b;">Teachers Progress Monitor</h2>
+                    <p style="color: #64748b; font-size: 0.75rem; font-weight: 500; margin-top: 0.25rem;">Real-time tracking of marks entry.</p>
+                 </div>
+                  <div style="text-align: right;">
+                     <button class="btn" style="font-size: 0.65rem;" onclick="renderTeachersMonitor()">RELOAD PROGRESS</button>
+                     <div id="admin-last-synced" style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; margin-top: 4px; text-transform: uppercase;">Last Synced: --</div>
+                  </div>
+               </div>
+              <div class="data-table-wrapper" style="max-height: 440px; overflow-y: auto;">
+                 <table class="data-table">
+                    <thead style="position: sticky; top: 0; background: white; z-index: 5; box-shadow: 0 1px 0 var(--border);">
+                       <tr><th>Teacher Name</th><th>Subjects & Classes</th><th>Completion</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="teachers-activity-tbody">
+                       <tr><td colspan="4" style="text-align:center; padding: 3rem; color: #94a3b8;">Loading...</td></tr>
+                    </tbody>
+                 </table>
+              </div>
+           </div>
+
+           <!-- RIGHT COLUMN: SYSTEM ALERTS & QUICK ACTIONS -->
+           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+              
+              <div class="stat-card" style="background: var(--sidebar-bg); border: none; color: white;">
+                 <div style="flex: 1;">
+                    <div style="font-size: 0.65rem; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase;">School Status</div>
+                    <div style="font-size: 1.1rem; font-weight: 900; margin-top: 0.2rem;">All Systems Active</div>
+                    <div style="font-size: 0.7rem; color: #fff; font-weight: 800; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                       <span style="width: 8px; height: 8px; background: #2563eb; border-radius: 50%; display: inline-block;"></span>
+                       Real-time Sync Enabled
+                    </div>
+                 </div>
+              </div>
+
+              <div class="alert-box" id="dashboard-alert" style="display: none; margin: 0; flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                 <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <div class="stat-lbl" style="font-weight: 800;">Action Required</div>
+                    <div class="alert-icon" style="width: 24px; height: 24px; font-size: 0.8rem;">⚠️</div>
+                 </div>
+                 <div class="stat-sub" style="margin: 0; font-weight: 700; color: var(--danger);">Some marks need approval.</div>
+                 <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem; font-size: 0.65rem;" onclick="switchView('marks-approval', document.getElementById('nav-operations'))">VIEW APPROVALS</button>
+              </div>
+
+              <div class="table-card premium-card" style="padding: 1.5rem; margin: 0;">
+                 <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; margin-bottom: 1rem;">Quick Actions</h3>
+                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button class="btn btn-secondary btn-full" onclick="openModal('add-student-modal')">➕ Add Student</button>
+                    <button class="btn btn-secondary btn-full" onclick="openModal('add-teacher-modal')">➕ Add Teacher</button>
+                    <button class="btn btn-secondary btn-full" onclick="openAdminReportCardModal()">🎓 Batch Reports</button>
+                    <button class="btn btn-secondary btn-full" onclick="openAdminProclamationModal()">📜 Proclamation List</button>
+                    <button class="btn btn-secondary btn-full" onclick="switchView('settings')">⚙️ Change Term/Year</button>
+                 </div>
+              </div>
+
+           </div>
+
+        </div>
+
+        <div class="analytics-dashboard-grid" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+            <div class="chart-card">
+               <div class="chart-header">
+                  <h3>Institutional Performance Curve</h3>
+                  <div class="badge badge-blue">GLOBAL YEARLY DATA</div>
+               </div>
+               <div class="chart-canvas-wrapper" style="height: 350px;">
+                  <canvas id="admin-main-perf-chart"></canvas>
+               </div>
+            </div>
+            <div class="chart-card">
+               <div class="chart-header">
+                  <h3>Grade Distribution</h3>
+                  <div class="chart-legend">
+                     <span class="legend-item"><span class="legend-dot" style="background:#2563eb;"></span> Pass</span>
+                     <span class="legend-item"><span class="legend-dot" style="background:#f43f5e;"></span> Fail</span>
+                  </div>
+               </div>
+               <div class="chart-canvas-wrapper" style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                  <canvas id="admin-main-dist-chart"></canvas>
+               </div>
+            </div>
+        </div>
+
+        <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b; margin: 3rem 0 1.5rem;">Class Performance Details</h3>
+        <div class="resp-grid resp-grid-6" id="performance-matrix-grid"></div>
+
+        <div class="resp-grid resp-grid-2" style="margin-top: 3rem; margin-bottom: 5rem;">
+           <div class="table-card premium-card" style="padding: 2.5rem; background: linear-gradient(135deg, white, #f8fafc);">
+              <h2 style="font-size: 1.15rem; font-weight: 900; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem;">
+                <span style="color: var(--success); font-size: 1.5rem;">🛡️</span> System Security Status
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 1rem;">
+                  <div class="stat-card" style="background: white; border-color: var(--border); box-shadow: none;">
+                     <div class="stat-icon" style="font-size: 1.1rem; width: 44px; height: 44px;">🔐</div>
+                     <div style="flex: 1;">
+                         <div style="font-size: 0.85rem; font-weight: 900; color: var(--text-main);">Data Protection</div>
+                         <div style="font-size: 0.65rem; color: var(--success); font-weight: 800;">Active & Secure</div>
+                     </div>
+                  </div>
+                  <div class="stat-card" style="background: white; border-color: var(--border); box-shadow: none;">
+                     <div class="stat-icon" style="font-size: 1.1rem; width: 44px; height: 44px;">⚙️</div>
+                     <div style="flex: 1;">
+                         <div style="font-size: 0.85rem; font-weight: 900; color: var(--text-main);">Sync Speed</div>
+                         <div style="font-size: 0.65rem; color: var(--primary); font-weight: 800;">Real-time Enabled</div>
+                     </div>
+                  </div>
+              </div>
+           </div>
+        </div>
+
+      </div>
+
+      <!-- VIEW: SCHOOL MANAGEMENT -->
+      <div class="view" id="view-management">
+        <div class="table-card premium-card">
+            <div class="table-header">
+                <h2>School Setup</h2>
+            </div>
+            <div style="padding: 2rem;">
+                <div class="resp-grid resp-grid-2">
+                    <div>
+                        <h3 style="font-size: 0.85rem; font-weight: 900; margin-bottom: 1.5rem; text-transform: uppercase; color: var(--text-gray);">Academic Terms</h3>
+                        <div id="terms-list-container" class="resp-grid" style="gap: 1rem;"></div>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 0.85rem; font-weight: 900; margin-bottom: 1.5rem; text-transform: uppercase; color: var(--text-gray);">Class Structure (P1 - P6)</h3>
+                        <div id="classes-list-container" class="resp-grid resp-grid-3"></div>
+                        <button class="btn btn-primary" onclick="openModal('add-class-modal')" style="margin-top: 2rem; width: 100%; justify-content: center; padding: 1rem;">Initialize New Class Group</button>
+                        <button class="btn" style="margin-top: 0.75rem; width: 100%; justify-content: center; padding: 1rem; border: 1px solid #e2e8f0; background: #fff; color: #1e293b; font-weight: 800; box-shadow: var(--shadow-sm);" onclick="openModal('auto-generate-classes-modal')">
+                           <i data-lucide="layers" style="width:16px; height:16px; margin-right:8px; color: var(--primary);"></i> Intelligent Class Generator
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: STUDENTS -->
+      <div class="view" id="view-students">
+        <div class="table-card premium-card">
+            <div class="table-header">
+              <div style="display:flex; align-items:center; gap: 1rem; flex:1;">
+                <h2 style="white-space:nowrap;">Student Registry</h2>
+                <div style="display:flex; gap: 0.5rem; flex: 1; max-width: 600px;">
+                  <div style="position:relative; flex: 1;">
+                    <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.4;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </span>
+                    <input type="text" id="student-search-input" placeholder="Search name or ID..." 
+                      class="input-field search-pill" style="margin:0; background:#ffffff; font-size: 0.8rem;"
+                      onkeyup="renderCohortRegistry()">
+                  </div>
+                  <select id="student-class-filter" class="input-field" style="margin:0; width:150px; font-size: 0.8rem; background:#ffffff;" onchange="renderCohortRegistry()">
+                     <option value="all">All Classes</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.75rem; align-items:center;">
+                <button class="btn" style="background:white; border:1px solid var(--border); color:var(--text-main);" onclick="openModal('download-format-modal')">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Download List
+                </button>
+                <button class="btn" style="background:#f1f5f9; border:1px solid #cbd5e1; color:#1e293b;" onclick="StudentImportUI.open()">
+                   <i data-lucide="file-up" style="width:14px; margin-right:5px;"></i> Bulk Import
+                </button>
+                <button class="btn btn-primary" onclick="openModal('add-student-modal')">+ New Student</button>
+              </div>
+            </div>
+
+            <!-- IMPORT STUDENTS MODAL (ADMIN) -->
+            <div class="modal-overlay" id="import-students-modal">
+                <div class="modal-card" style="padding:2.5rem; max-width:800px; text-align:left;">
+                    <h2 style="font-size:1.4rem; font-weight:900; margin-bottom:0.5rem;">Bulk Student Registry</h2>
+                    <p style="margin-bottom:1.5rem; font-size: 0.85rem; color: #64748b;">
+                        Import students via Copy-Paste or CSV file. Mandatory fields: <strong>Name, SDMS ID, Gender</strong>.
+                    </p>
+                    
+                    <div id="import-step-1">
+                        <div class="filter-group" style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Target Class Group <span style="color:red;">*</span></label>
+                            <select id="import-target-class" class="input-field" style="margin:0;"></select>
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Copy & Paste Data (Format: First Name, Last Name, SDMS, Gender)</label>
+                            <textarea id="import-students-textarea" placeholder="Example:&#10;John, DOE, SDMS001, M&#10;Jane, SMITH, SDMS002, F" style="width:100%; height:120px; padding:0.75rem; border: 1px solid #e2e8f0; border-radius: 12px; font-family: monospace; font-size: 0.85rem; background: #fafafa;"></textarea>
+                        </div>
+                        
+                        <div style="border: 2px dashed #cbd5e1; padding: 1.5rem; border-radius: 12px; text-align: center; margin-bottom: 1.5rem; background: #f8fafc;">
+                            <p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.75rem;"><strong>Or Upload CSV File</strong></p>
+                            <input type="file" id="import-students-file" accept=".csv" style="font-size: 0.8rem; color: #64748b; margin: 0 auto;" />
+                        </div>
+
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" onclick="previewImportRecords()" style="flex: 1; justify-content: center; font-weight: 900;">🔍 PREVIEW COLLECTIONS</button>
+                            <button class="btn" onclick="closeModal('import-students-modal')" style="flex: 1; justify-content: center;">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div id="import-preview-section" style="display:none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-size: 1rem; font-weight: 800;">Validation Preview</h3>
+                            <span id="import-preview-summary" class="badge" style="background:#eff6ff; color:#3b82f6; font-weight:800;"></span>
+                        </div>
+                        
+                        <div class="data-table-wrapper" style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <table class="data-table" style="min-width: 100%;">
+                                <thead style="position:sticky; top:0; background:white; z-index:10;">
+                                    <tr>
+                                        <th style="padding: 0.75rem;">Status</th>
+                                        <th style="padding: 0.75rem;">Student Name</th>
+                                        <th style="padding: 0.75rem;">SDMS</th>
+                                        <th style="padding: 0.75rem;">Gender</th>
+                                        <th style="padding: 0.75rem;">Diagnostics</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-preview-tbody"></tbody>
+                            </table>
+                        </div>
+
+                        <div id="import-error-warning" style="display:none; padding: 1rem; background: #fef2f2; border-left: 4px solid #ef4444; border-radius: 8px; margin-bottom: 1.5rem;">
+                            <p style="color: #991b1b; font-size: 0.8rem; font-weight: 700;">⚠️ Some records are invalid. Only fully valid records will be registered.</p>
+                        </div>
+
+                        <div style="display:flex; gap:1rem;">
+                            <button class="btn btn-primary" id="btn-confirm-import" onclick="processStudentImport()" style="flex: 1; justify-content: center; font-weight: 900;">✅ COMMIT REGISTRATION</button>
+                            <button class="btn btn-secondary" onclick="resetImportStep()" style="flex: 1; justify-content: center;">⟲ Back to Edit</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>S/N</th><th>Student Name</th><th>Gender</th><th>ID / SDMS</th><th>Class Group</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="students-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: TEACHERS -->
+      <div class="view" id="view-teachers">
+        <div class="table-card premium-card">
+            <div class="table-header">
+              <h2>Teacher Directory</h2>
+              <div style="display:flex; gap:1rem;">
+                <button class="btn btn-primary" onclick="openModal('add-teacher-modal')">Register New Teacher</button>
+                <button class="btn" style="background:#fff7ed; color:#c2410c; border-color:#fdba74;" onclick="nuclearIdSync()">🚀 UNIQUE ID SYNC</button>
+              </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Teacher Name</th><th>Email</th><th>Roles</th><th>Subjects</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="teachers-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: SUBJECTS -->
+      <div class="view" id="view-subjects">
+        <div class="table-card premium-card">
+            <div class="table-header">
+                <div>
+                    <h2>School Subjects</h2>
+                    <p style="color: #64748b; font-size: 0.75rem; font-weight: 500; margin-top: 0.25rem;">Map subjects to classes and levels.</p>
+                </div>
+                <div style="display:flex; gap: 1rem;">
+                    <button class="btn" onclick="autoAddRwandaSubjects()">📚 Bulk Curriculum Sync</button>
+                    <button class="btn btn-primary" onclick="openModal('add-subject-modal')">➕ Define Subject</button>
+                </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Subject Name</th><th>Code</th><th>Levels</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="subjects-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: ASSESSMENTS -->
+      <div class="view" id="view-assessments">
+        <div class="table-card premium-card">
+            <div class="table-header">
+                <div>
+                   <h2>Marks Multipliers</h2>
+                   <p style="color: #64748b; font-size: 0.75rem; font-weight: 500; margin-top: 0.25rem;">Set how marks are weighted (e.g. Test out of 40).</p>
+                </div>
+                <button class="btn btn-primary" onclick="openModal('add-assessment-modal')">➕ Add Standard</button>
+            </div>
+            <div style="padding: 2rem;">
+               <div id="assessment-types-grid" class="resp-grid resp-grid-3"></div>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS MANAGEMENT -->
+      <div class="view" id="view-marks-mgmt">
+        <div class="table-card premium-card">
+            <div class="table-header">
+              <h2>Academic Performance Registry</h2>
+              <div style="display:flex; gap: 1rem;">
+                 <select class="input-field" style="margin:0; width: 150px; font-size: 0.75rem;" id="mgmt-filter-class"><option>All Classes</option></select>
+                 <select class="input-field" style="margin:0; width: 150px; font-size: 0.75rem;" id="mgmt-filter-sub"><option>All Subjects</option></select>
+              </div>
+            </div>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Student</th><th>Subject</th><th>Assessment</th><th>Score</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="marks-mgmt-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS APPROVAL -->
+      <div class="view" id="view-marks-approval">
+        <div style="display:grid; grid-template-columns: 1fr; gap: 2rem;">
+            <!-- Marks Submissions -->
+            <div class="table-card premium-card">
+               <div class="table-header" style="border:none; display:flex; justify-content:space-between; align-items:center;">
+                  <h2>Marks Submission Queue</h2>
+                  <button class="btn btn-primary" id="btn-approve-all-marks" style="font-size: 0.75rem; padding: 0.5rem 1rem; display: none;" onclick="approveAllMarks()">✅ Approve All at Once</button>
+               </div>
+               <div id="pending-approvals-queue" style="padding: 0 2rem 2rem; display:flex; flex-direction:column; gap: 1rem;">
+                  <div style="text-align:center; padding: 5rem; color: #94a3b8; font-weight: 600;">No pending submissions requiring executive approval.</div>
+               </div>
+            </div>
+
+            <!-- Student Deletion Requests -->
+            <div class="table-card premium-card" style="border-top: 4px solid var(--danger);">
+               <div class="table-header">
+                  <div>
+                     <h2 style="color: var(--danger);">Student Deletion Requests</h2>
+                     <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">Requests from Class Teachers to remove students from the institutional registry.</p>
+                  </div>
+               </div>
+               <div class="data-table-wrapper">
+                  <table class="data-table">
+                     <thead>
+                        <tr>
+                           <th>Student Name</th>
+                           <th>Class</th>
+                           <th>Gender</th>
+                           <th>SDMS ID</th>
+                           <th style="text-align: right;">Final Approval</th>
+                        </tr>
+                     </thead>
+                     <tbody id="student-deletion-queue" style="font-size: 0.85rem;">
+                        <tr><td colspan="5" style="text-align:center; padding: 3rem; color: #94a3b8;">No pending deletion requests.</td></tr>
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: REPORTS -->
+      <div class="view" id="view-reports">
+         <!-- Filter Bar -->
+         <div class="filter-bar">
+            <div class="filter-group">
+               <label>Academic Year</label>
+               <select class="input-field" style="margin:0;" id="report-filter-year">
+                  <option value="2025-2026">2025 - 2026</option>
+                  <option value="2024-2025">2024 - 2025</option>
+               </select>
+            </div>
+            <div class="filter-group">
+               <label>Term</label>
+               <select class="input-field" style="margin:0;" id="report-filter-term">
+                  <option value="">All Terms</option>
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+               </select>
+            </div>
+            <div class="filter-group">
+               <label>Class Group</label>
+               <select class="input-field" style="margin:0;" id="report-filter-class">
+                  <option value="">All Classes</option>
+               </select>
+            </div>
+            <div class="filter-group">
+               <label>Subject</label>
+               <select class="input-field" style="margin:0;" id="report-filter-sub">
+                  <option value="">All Subjects</option>
+               </select>
+            </div>
+            <button class="btn btn-primary" style="height: 48px; border-radius: 12px; padding: 0 2rem; font-weight: 900; display:inline-flex; align-items:center; gap:8px;" onclick="renderReports()"><i data-lucide="refresh-ccw" style="width:16px; height:16px;"></i> REFRESH ANALYTICS</button>
+         </div>
+
+         <!-- Top KPI Metrics (Preserving IDs) -->
+         <div class="kpi-grid">
+            <div class="kpi-card">
+               <div class="kpi-icon" style="background: #eff6ff; color: #3b82f6;"><i data-lucide="bar-chart-3" style="width:20px; height:20px;"></i></div>
+               <div class="kpi-info">
+                  <h4>Overall Average</h4>
+                  <div class="val" id="rep-kpi-avg">0.0%</div>
+               </div>
+            </div>
+            <div class="kpi-card">
+               <div class="kpi-icon" style="background: #f0fdf4; color: #10b981;"><i data-lucide="check-circle" style="width:20px; height:20px;"></i></div>
+               <div class="kpi-info">
+                  <h4>Approved Marks</h4>
+                  <div class="val" id="rep-kpi-approved">0</div>
+               </div>
+            </div>
+            <div class="kpi-card">
+               <div class="kpi-icon" style="background: #fdf4ff; color: #d946ef;"><i data-lucide="trophy" style="width:20px; height:20px;"></i></div>
+               <div class="kpi-info">
+                  <h4>Top Class</h4>
+                  <div class="val" id="rep-kpi-top-class" style="font-size: 1rem; margin-top: 5px;">—</div>
+               </div>
+            </div>
+            <div class="kpi-card">
+               <div class="kpi-icon" style="background: #fffbeb; color: #f59e0b;"><i data-lucide="star" style="width:20px; height:20px;"></i></div>
+               <div class="kpi-info">
+                  <h4>Top Subject</h4>
+                  <div class="val" id="rep-kpi-top-sub" style="font-size: 1rem; margin-top: 5px;">—</div>
+               </div>
+            </div>
+         </div>
+
+         <!-- Charts Section -->
+          <div class="charts-grid">
+             <div class="chart-card">
+                <div class="chart-header">
+                   <h3>Subject Performance Averages</h3>
+                   <div class="badge badge-blue">BY SUBJECT</div>
+                </div>
+                <div class="chart-canvas-wrapper" style="height: 350px;">
+                   <canvas id="reports-bar-chart"></canvas>
+                </div>
+             </div>
+             <div class="chart-card">
+                <div class="chart-header">
+                   <h3>Grade Distribution</h3>
+                   <div class="badge badge-purple">OVERALL</div>
+                </div>
+                <div class="chart-canvas-wrapper" style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                   <canvas id="reports-pie-chart"></canvas>
+                </div>
+             </div>
+          </div>
+
+         <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 2rem; margin-top: 2rem;">
+            <h3 style="font-weight: 900; margin-bottom: 2rem; color: #1e293b; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;"><i data-lucide="bar-chart-2" style="width:16px; height:16px; margin-right:4px;"></i> Institutional Performance Proclamations</h3>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+               <button class="btn" style="background: #f59e0b; color: white; border: none; padding: 1rem; font-weight: 900; gap: 8px; justify-content: center; display:inline-flex; align-items:center;" onclick="openPassRateReportModal()"><i data-lucide="trending-up" style="width:16px; height:16px;"></i> Pass Rate Report</button>
+               <button class="btn" style="background: #10b981; color: white; border: none; padding: 1rem; font-weight: 900; gap: 8px; justify-content: center; display:inline-flex; align-items:center;" onclick="openSubjectSuccessReportModal()"><i data-lucide="book" style="width:16px; height:16px;"></i> Subject Success Report</button>
+               <button class="btn" style="background: #6366f1; color: white; border: none; padding: 1rem; font-weight: 900; gap: 8px; justify-content: center; display:inline-flex; align-items:center;" onclick="openGradeDistributionReportModal()"><i data-lucide="bar-chart-2" style="width:16px; height:16px;"></i> Grade Distribution</button>
+               <button class="btn" style="background: #ef4444; color: white; border: none; padding: 1rem; font-weight: 900; gap: 8px; justify-content: center; display:inline-flex; align-items:center;" onclick="openAdminReportCardModal()"><i data-lucide="graduation-cap" style="width:16px; height:16px;"></i> Batch Report Cards</button>
+               <button class="btn" style="background: var(--sidebar-bg); color: white; border: none; padding: 1rem; font-weight: 900; gap: 8px; justify-content: center; display:inline-flex; align-items:center;" onclick="openAdminProclamationModal()"><i data-lucide="award" style="width:16px; height:16px;"></i> Class Proclamation</button>
+            </div>
+         </div>
+      </div>
+
+      <!-- VIEW: SETTINGS -->
+      <div class="view" id="view-settings">
+         <div class="table-card premium-card" style="padding: 3rem; max-width: 850px;">
+            <div style="margin-bottom: 2.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1.5rem;">
+               <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--sidebar-bg);">Institutional Identity</h2>
+               <p style="color: #64748b; font-size: 0.85rem; font-weight: 500; margin-top: 0.25rem;">Configure school branding and reporting headers for official documents.</p>
+            </div>
+            
+            <div class="settings-grid">
+               <div class="form-group">`n               <label>Republic Name</label>
+                  <input type="text" id="set-republic" class="input-field" placeholder="REPUBLIC OF RWANDA">
+               </div>
+               <div class="form-group">`n               <label>Ministry / Dept</label>
+                  <input type="text" id="set-ministry" class="input-field" placeholder="MINISTRY OF EDUCATION">
+               </div>
+                <div class="form-group">`n               <label>District</label>
+                   <input type="text" id="set-district" class="input-field" placeholder="NYARUGENGE">
+                </div>
+                <div class="form-group">`n               <label>Sector</label>
+                   <input type="text" id="set-sector" class="input-field" placeholder="MUHIMA">
+                </div>
+               <div class="form-group">`n               <label>Official School Name</label>
+                  <input type="text" id="set-school" class="input-field" placeholder="MARKS MANAGEMENT SYSTEM">
+               </div>
+               <div class="form-group">`n               <label>School Code</label>
+                  <input type="text" id="set-code" class="input-field" placeholder="EDM-01">
+               </div>
+                <div class="form-group">`n               <label>Academic Level</label>
+                   <input type="text" id="set-level" class="input-field" value="PRIMARY LEVEL">
+                </div>
+                <div class="form-group">`n               <label>School Email</label>
+                   <input type="email" id="set-email" class="input-field" placeholder="info@school.rw">
+                </div>
+                <div class="form-group">`n               <label>School Phone Number</label>
+                   <input type="text" id="set-phone" class="input-field" placeholder="+250 78x xxx xxx">
+                </div>
+               <div class="form-group">`n               <label>Active Academic Term</label>
+                  <select id="set-active-term" class="input-field" style="font-weight: 800; color: #1e293b;">
+                     <option value="1">TERM ONE (ORIENTATION)</option>
+                     <option value="2" selected>TERM TWO (CONSOLIDATION)</option>
+                     <option value="3">TERM THREE (FINALIZATION)</option>
+                  </select>
+               </div>
+               <div class="form-group">`n               <label>Active Academic Year</label>
+                   <input type="text" id="set-year" class="input-field" value="2025/2026" style="font-weight: 800;">
+               </div>
+               <div class="form-group">`n               <label>Headteacher / Principal</label>
+                   <input type="text" id="set-headteacher" class="input-field" placeholder="Full Name of Headteacher">
+               </div>
+               <div class="form-group">`n               <label>DOS (Dean of Studies)</label>
+                   <input type="text" id="set-dos" class="input-field" placeholder="Full Name of DOS">
+               </div>
+               <div class="form-group">`n               <label>Done on Date (e.g. 15/04/2026)</label>
+                   <input type="text" id="set-date" class="input-field" placeholder="DD/MM/YYYY">
+               </div>
+               <div class="form-group">`n               <label>School Logo</label>
+                   <div style="display:flex; gap:1rem; align-items:center;">
+                      <div id="set-logo-preview" style="width:60px; height:60px; border:1px solid #e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;">
+                         <span style="font-size:1.5rem;">🏫</span>
+                      </div>
+                      <input type="file" id="set-logo-file" accept="image/*" style="display:none;" onchange="handleLogoUpload(this)">
+                      <button class="btn" onclick="document.getElementById('set-logo-file').click()" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Upload Logo</button>
+                      <input type="hidden" id="set-logo-base64">
+                   </div>
+               </div>
+            </div>
+            
+            <button class="btn btn-primary" onclick="saveInstitutionalSettings()" style="padding: 1rem 3rem; width: 100%; justify-content: center; font-size: 0.85rem; font-weight: 800; cursor: pointer;">💾 COMMIT INSTITUTIONAL CHANGES</button>
+         </div>
+      </div>
+      <!-- VIEW: ROLES & PERMISSIONS -->
+      <div class="view" id="view-roles">
+         <div class="table-card premium-card" style="padding: 3rem;">
+           <div style="text-align:center; padding: 5rem;">
+              <div style="font-size: 3rem; margin-bottom: 2rem;">🔐</div>
+              <h2 style="font-size: 1.5rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem;">Institutional Role Engine</h2>
+              <p style="color: #64748b; font-size: 0.85rem; max-width: 500px; margin: 0 auto 2rem;">Manage administrative levels and functional permissions across the institution. This module is synced with the global security protocol.</p>
+              <div class="stat-card" style="max-width: 400px; margin: 0 auto; background: #f8fafc; border-style: dashed;">
+                 <div style="font-size: 0.75rem; font-weight: 800; color: #64748b;">SECURITY CLEARANCE: EXECUTIVE</div>
+              </div>
+           </div>
+         </div>
+      </div>
+
+      <!-- VIEW: PROFILE -->
+      <div class="view" id="view-profile">
+         <div class="table-card premium-card" style="padding: 3.5rem; max-width: 1000px; margin: 0 auto; border-radius: 30px;">
+            <!-- Profile Identity Header -->
+            <div class="profile-header">
+               <div class="profile-avatar" id="profile-avatar-init">AJ</div>
+               <div class="profile-info">
+                  <div class="profile-name" id="profile-name-display">ADMINISTRATOR</div>
+                  <div class="profile-role">
+                      <span class="profile-role-badge">Head Administrator</span>
+                      <span class="profile-meta">Institutional Registry Node Active</span>
+                  </div>
+               </div>
+            </div>
+            
+            <div class="profile-layout">
+               <!-- Column 1: Institutional Identity & Media -->
+               <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+                  <div class="form-section">
+                  <div class="form-section-title">
+                     <i data-lucide="school"></i> INSTITUTIONAL REGISTRY
+                  </div>
+                  
+                  <div class="form-row form-row-2" style="gap: 1.25rem;">
+                     <div class="field">
+                        <label>School Name</label>
+                        <input type="text" id="prof-school-name-input" class="input-field" placeholder="Full Official Name">
+                     </div>
+                     <div class="field">
+                        <label>School Code</label>
+                        <input type="text" id="prof-school-code-input" class="input-field" placeholder="e.g. EDM-01">
+                     </div>
+                  </div>
+
+                  <div class="form-row form-row-3" style="gap: 1.25rem;">
+                     <div class="field">
+                        <label>Province</label>
+                        <input type="text" id="prof-school-province" class="input-field" placeholder="Province">
+                     </div>
+                     <div class="field">
+                        <label>District</label>
+                        <input type="text" id="prof-school-district" class="input-field" placeholder="District">
+                     </div>
+                     <div class="field">
+                        <label>Sector</label>
+                        <input type="text" id="prof-school-sector" class="input-field" placeholder="Sector">
+                     </div>
+                  </div>
+
+                  <div class="form-row form-row-2" style="gap: 1.25rem;">
+                     <div class="field">
+                        <label>Telephone</label>
+                        <input type="text" id="prof-school-phone" class="input-field" placeholder="+250 ...">
+                     </div>
+                     <div class="field">
+                        <label>Email</label>
+                        <input type="email" id="prof-school-email" class="input-field" placeholder="info@school.edu.rw">
+                     </div>
+                  </div>
+                  </div>
+
+                  <!-- MEDIA HUB -->
+                  <div class="form-section">
+                     <div class="form-section-title">
+                        <i data-lucide="image"></i> INSTITUTIONAL MEDIA ASSETS
+                     </div>
+                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div style="text-align: center;">
+                           <div class="media-preview">
+                              <i data-lucide="image" style="color: #94a3b8; font-size: 2rem;"></i>
+                           </div>
+                           <div class="media-upload-text">School Logo</div>
+                           <button class="btn btn-secondary" style="width: 100%; font-size: 0.75rem;" onclick="document.getElementById('prof-logo-file').click()">📤 UPLOAD LOGO</button>
+                           <input type="file" id="prof-logo-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-logo-base64', 'prof-logo-preview')">
+                           <input type="hidden" id="prof-logo-base64">
+                           <div id="prof-logo-preview" style="display:none;"></div>
+                        </div>
+                        <div style="text-align: center;">
+                           <div class="media-preview" style="border-radius: 50%;">
+                              <i data-lucide="stamp" style="color: #94a3b8; font-size: 2rem;"></i>
+                           </div>
+                           <div class="media-upload-text">School Stamp</div>
+                           <button class="btn btn-secondary" style="width: 100%; font-size: 0.75rem;" onclick="document.getElementById('prof-stamp-file').click()">📤 UPLOAD STAMP</button>
+                           <input type="file" id="prof-stamp-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-stamp-base64', 'prof-stamp-preview')">
+                           <input type="hidden" id="prof-stamp-base64">
+                           <div id="prof-stamp-preview" style="display:none;"></div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <!-- Column 2: Leadership & Signatures -->
+               <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+                  <div class="form-section">
+                  <div class="form-section-title">
+                     <i data-lucide="award"></i> LEADERSHIP MANDATES
+                  </div>
+
+                  <!-- Head Teacher -->
+                  <div style="margin-bottom: 2rem;">
+                     <div class="field" style="margin-bottom: 1rem;">
+                        <label>Headteacher / Principal Name</label>
+                        <input type="text" id="prof-ht-name" class="input-field" placeholder="Full Name">
+                     </div>
+                     <div class="signature-container">
+                        <div class="signature-preview" id="prof-ht-sig-preview">
+                              <span class="signature-placeholder">Headteacher Signature</span>
+                        </div>
+                        <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.75rem;" onclick="document.getElementById('prof-ht-sig-file').click()">📤 Upload</button>
+                        <input type="file" id="prof-ht-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-ht-sig-base64', 'prof-ht-sig-preview')">
+                        <input type="hidden" id="prof-ht-sig-base64">
+                     </div>
+                  </div>
+
+                  <!-- DOS -->
+                  <div>
+                     <div class="field" style="margin-bottom: 1rem;">
+                        <label>DOS (Dean of Studies) Name</label>
+                        <input type="text" id="prof-dos-name" class="input-field" placeholder="Full Name">
+                     </div>
+                     <div class="signature-container">
+                        <div class="signature-preview" id="prof-dos-sig-preview">
+                              <span class="signature-placeholder">DOS Signature</span>
+                        </div>
+                        <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.75rem;" onclick="document.getElementById('prof-dos-sig-file').click()">📤 Upload</button>
+                        <input type="file" id="prof-dos-sig-file" accept="image/*" style="display:none;" onchange="handleInstitutionalMediaUpload(this, 'prof-dos-sig-base64', 'prof-dos-sig-preview')">
+                        <input type="hidden" id="prof-dos-sig-base64">
+                     </div>
+                  </div>
+                  </div>
+
+                  <div class="form-section">
+                  <div class="field">
+                     <label>Executive Professional Mandate</label>
+                     <textarea id="prof-responsibility" class="input-field" style="min-height: 120px; line-height: 1.6;" placeholder="Describe your primary responsibilities..."></textarea>
+                  </div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 1rem;">
+                     <button class="btn btn-primary btn-full btn-lg" onclick="saveAdminProfileUpdates()">💾 COMMIT ALL INSTITUTIONAL CHANGES</button>
+                     <p class="text-center text-small text-muted">All changes will immediately appear in reports & proclamations</p>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+    </main>
+
+    <!-- 🔻 FOOTER REMOVED FOR CLEANER INTERFACE -->
+    </main>
+  </div>
+</div>
+
+<!-- MODALS - Reusing existing IDs with enhanced styling -->
+<div class="modal-overlay" id="add-teacher-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-height: 90vh; overflow-y: auto;">
+        <h2 style="font-weight: 900; font-size: 1.25rem; margin-bottom: 2rem; color: var(--text-dark);">Institutional Enrollment</h2>
+        <div style="display:flex; flex-direction:column; gap: 1.25rem;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <input type="text" id="t-fname" placeholder="First Name" class="input-field">
+            <input type="text" id="t-lname" placeholder="Last Name" class="input-field">
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <input type="text" id="t-sdms" placeholder="SDMS Code (Unique Identifier)" class="input-field">
+            <div id="t-secure-node-badge" style="background: #f1f5f9; border-radius: 8px; display: flex; align-items: center; padding: 0 1rem; font-size: 0.75rem; font-weight: 800; color: #64748b; border: 1px solid #e2e8f0;">
+               <i data-lucide="shield-check" style="width:14px; margin-right:5px;"></i> SECURE NODE: ...
+            </div>
+          </div>
+          <input type="email" id="t-email" placeholder="Institutional Email" class="input-field">
+          <input type="text" id="t-phone" placeholder="Phone Number" class="input-field">
+          
+          <div class="form-group">`n               <label>System Access Level</label>
+            <select id="t-role" class="input-field" onchange="toggleAssignmentUI()">
+               <option value="teacher">Institutional Teacher</option>
+               <option value="admin">System Administrator</option>
+            </select>
+          </div>
+          
+          <div id="responsibilities-container" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1.5rem;">
+            <label style="font-size:0.65rem; font-weight:900; color:#64748b; margin-bottom:1rem; display:block; letter-spacing:0.04em; text-transform: uppercase;">Functional Responsibilities</label>
+            <div style="display:flex; gap:2rem; margin-bottom:1.5rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:800; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="role-class-teacher" onchange="toggleAssignmentUI()"> Class Management
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-weight:800; font-size:0.8rem; cursor:pointer;">
+                <input type="checkbox" id="role-subject-teacher" onchange="toggleAssignmentUI()"> Subject Instruction
+              </label>
+            </div>
+
+            <div id="class-teacher-assignment" style="display:none; margin-bottom:1.5rem; border-top:1px dashed #cbd5e1; padding-top:1rem;">
+              <label style="font-size:0.6rem; font-weight:900; color:#3b82f6; display:block; margin-bottom:0.75rem; text-transform: uppercase;">Primary Class Assignment</label>
+              <select id="t-assign-class" class="input-field" style="margin:0;"></select>
+            </div>
+
+            <div id="subject-teacher-assignment" style="display:none; border-top:1px dashed #cbd5e1; padding-top:1rem;">
+              <label style="font-size:0.6rem; font-weight:900; color:#8b5cf6; display:block; margin-bottom:0.75rem; text-transform: uppercase;">Specific Course Jurisdictions</label>
+              <div id="assignment-rows" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;"></div>
+              <button class="btn" style="width:100%; border-style:dashed; color: var(--primary);" onclick="addAssignmentRow()">+ Add Jurisdiction Row</button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap: 1rem; margin-top: 1rem; position: relative; z-index: 50;">
+            <button type="button" class="btn btn-primary btn-full" style="cursor: pointer; pointer-events: auto;" onclick="processAddTeacher()" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">✓ Register Account</button>
+            <button type="button" class="btn btn-secondary btn-full" style="cursor: pointer; pointer-events: auto;" onclick="closeModal('add-teacher-modal')" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">⟲ Discard</button>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="add-student-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:0.5rem;">Enroll Candidate</h2>
+    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">Fill all required fields to register a new student.</p>
+    
+    <div style="display:flex; flex-direction:column; gap: 1.25rem;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+         <div class="form-group">
+            <label class="form-label">First Name <span style="color:red;">*</span></label>
+            <input type="text" id="s-fname" placeholder="e.g. John" class="input-field" required>
+         </div>
+         <div class="form-group">
+            <label class="form-label">Last Name <span style="color:red;">*</span></label>
+            <input type="text" id="s-lname" placeholder="e.g. DOE" class="input-field" required>
+         </div>
+      </div>
+      
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+         <div class="form-group">
+            <label class="form-label">Gender <span style="color:red;">*</span></label>
+            <select id="s-gender" class="input-field" style="background:#f8fafc;" required>
+               <option value="">Select Gender</option>
+               <option value="M">Male (M)</option>
+               <option value="F">Female (F)</option>
+            </select>
+         </div>
+         <div class="form-group">
+            <label class="form-label">SDMS Code <span style="color:red;">*</span></label>
+            <input type="text" id="s-id" placeholder="e.g. SDMS123456" class="input-field" required>
+         </div>
+      </div>
+      
+      <div class="form-group">
+         <label class="form-label">Class Assigned <span style="color:red;">*</span></label>
+         <select id="s-class" class="input-field" style="background:#f8fafc;" required></select>
+      </div>
+
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center; font-weight: 900;" onclick="addStudent()">CONFIRM ENROLLMENT</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-student-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-student-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Update Student Profile</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="hidden" id="edit-s-id-internal">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+         <input type="text" id="edit-s-fname" placeholder="First Name" class="input-field">
+         <input type="text" id="edit-s-lname" placeholder="Last Name" class="input-field">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+         <select id="edit-s-gender" class="input-field" style="background:#f8fafc;">
+            <option value="M">Male (M)</option>
+            <option value="F">Female (F)</option>
+         </select>
+         <input type="text" id="edit-s-sid" placeholder="Student ID" class="input-field">
+      </div>
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveStudentUpdate()">SAVE CHANGES</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-student-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Additional Core Modals Preserved with CAMIS Styling -->
+<div class="modal-overlay" id="add-teacher-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Register Teacher</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+         <input type="text" id="t-fname" placeholder="First Name" class="input-field">
+         <input type="text" id="t-lname" placeholder="Last Name" class="input-field">
+      </div>
+      <input type="email" id="t-email" placeholder="Institutional Email" class="input-field">
+      <input type="text" id="t-sdms" placeholder="10-digit SDMS Code" class="input-field" maxlength="10">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" id="btn-add-teacher" onclick="addTeacher()">Register Teacher</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-teacher-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="add-class-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Initialize Class Group</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="text" id="c-name" placeholder="Class Group Name (e.g. P4 A)" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="addClass()">Initialize Group</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-class-modal')">Discard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-class-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Update Class Group</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="hidden" id="edit-c-id">
+      <input type="text" id="edit-c-name" placeholder="Class Name" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveClassUpdate()">Save Changes</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-class-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="add-subject-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Define New Subject</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="text" id="sub-name" placeholder="Subject Name (e.g. Mathematics)" class="input-field">
+      <input type="text" id="sub-abbr" placeholder="Abbreviation (e.g. MAT)" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="addSubject()">Commit Subject</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-subject-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-subject-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Update Curriculum Subject</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="hidden" id="edit-sub-id">
+      <input type="text" id="edit-sub-name" placeholder="Subject Name" class="input-field">
+      <input type="text" id="edit-sub-abbr" placeholder="Abbreviation" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveSubjectUpdate()">Save Changes</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-subject-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="add-assessment-modal">
+  <div class="modal-card" style="padding: 2.5rem;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Assessment Standard</h2>
+    <div style="display:flex; flex-direction:column; gap: 1rem;">
+      <input type="text" id="assess-name" placeholder="Standard Name (e.g. End of Unit)" class="input-field">
+      <input type="text" id="assess-abbr" placeholder="Code (e.g. EU)" class="input-field">
+      <input type="number" id="assess-weight" placeholder="Weightage (%)" class="input-field">
+      <div style="display:flex; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="addAssessment()">Lock Standard</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('add-assessment-modal')">Discard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-assignments-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+    <h2 style="font-weight:900; margin-bottom:0.5rem;">Faculty Profile & Jurisdiction Editor</h2>
+    <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;" id="edit-teacher-subtitle">Updating profile for Faculty Name</p>
+    
+    <input type="hidden" id="edit-teacher-id">
+
+    <div style="display:flex; flex-direction:column; gap: 2rem;">
+       
+       <!-- Basic Info Block -->
+       <div style="display:flex; flex-direction:column; gap: 1rem;">
+          <input type="text" id="edit-t-name" placeholder="Full Name" class="input-field">
+          <input type="text" id="edit-t-sdms" placeholder="SDMS Code" class="input-field">
+          <input type="email" id="edit-t-email" placeholder="Institutional Email" class="input-field">
+       </div>
+
+       <!-- Class Teacher Block -->
+       <div style="border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+          <label style="display:flex; align-items:center; gap:0.5rem; font-weight:800; font-size:0.85rem; color:#1e293b; margin-bottom:1rem; cursor:pointer;">
+             <input type="checkbox" id="edit-role-class" onchange="toggleEditAssignmentUI()"> Class Teacher Assignment
+          </label>
+          <div id="edit-class-container" style="display:none; padding:1rem; background:#f8fafc; border-radius:12px;">
+             <select id="edit-assign-class" class="input-field"></select>
+          </div>
+       </div>
+
+       <!-- Subject Teacher Block -->
+       <div>
+          <label style="display:flex; align-items:center; gap:0.5rem; font-weight:800; font-size:0.85rem; color:#1e293b; margin-bottom:1rem; cursor:pointer;">
+             <input type="checkbox" id="edit-role-subj" onchange="toggleEditAssignmentUI()"> Subject Specialist Assignments
+          </label>
+          <div id="edit-subj-container" style="display:none;">
+             <div id="edit-rows-container" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;"></div>
+             <button class="btn" style="width:100%; border-style:dashed; border-color:#cbd5e1; justify-content:center; color:#64748b;" onclick="addEditAssignmentRow()">+ ADD JURISDICTION</button>
+          </div>
+       </div>
+
+       <div style="display:flex; gap: 1rem; border-top:1px solid #f1f5f9; padding-top:2rem;">
+         <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="saveAssignmentCorrections()">COMMIT UPDATED JURISDICTIONS</button>
+         <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('edit-assignments-modal')">DISCARD</button>
+       </div>
+    </div>
+  </div>
+</div>
+
+  <!-- PROCLAMATION GENERATOR MODAL -->
+  <div class="modal-overlay" id="generate-proclamation-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <h2 style="font-weight:900; margin-bottom:1.5rem;">Configure Proclamation Document</h2>
+      <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Select the specific subjects and assessment markers to include in the executive proclamation.</p>
+      
+      <div style="margin-bottom: 1.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">🎓 Target Cohort (Class)</label>
+          <select id="proc-target-class" class="input-field" style="margin-bottom: 0;">
+             <option value="">Select Class...</option>
+          </select>
+      </div>
+      
+      <div style="margin-bottom: 1.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📚 Curricular Subjects</label>
+          <div id="proc-subject-checklist" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:0.8rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; max-height: 250px; overflow-y: auto;"></div>
+      </div>
+      
+      <div style="margin-bottom: 2.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📋 Evaluation Markers</label>
+          <div id="proc-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
+      </div>
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="executeProclamationGeneration()">Generate Proclamation</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('generate-proclamation-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT CARD GENERATOR MODAL -->
+  <div class="modal-overlay" id="generate-reportcard-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <h2 style="font-weight:900; margin-bottom:1.5rem;">Configure Student Report Cards</h2>
+      <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Select the cohort, subjects, and assessment markers to include in the individual student certificates.</p>
+      
+      <div style="margin-bottom: 1.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">🎓 Target Cohort (Class)</label>
+          <select id="rc-target-class" class="input-field" style="margin-bottom: 0;">
+             <option value="all">Entire Institution</option>
+          </select>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📚 Curricular Subjects</label>
+          <div id="rc-subject-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; max-height: 250px; overflow-y: auto;"></div>
+      </div>
+      
+      <div style="margin-bottom: 2.5rem;">
+          <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📋 Evaluation Markers</label>
+          <div id="rc-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
+      </div>
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center; background: #3b82f6;" onclick="executeReportCardGeneration()">Execute Generation</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('generate-reportcard-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<div class="toast-container" id="toast-container"></div>
+
+  <!-- DOWNLOAD FORMAT MODAL -->
+  <div class="modal-overlay" id="download-format-modal">
+    <div class="modal-card" style="max-width: 400px; text-align: center; padding: 2.5rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 900; margin-bottom: 1rem;">Export Student List</h2>
+      <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Select your preferred format with institutional header.</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+         <button class="btn" style="padding: 1rem; justify-content: center; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 900;" onclick="downloadStudentList('pdf')">
+            📄 DOWNLOAD AS PDF (Official)
+         </button>
+         <button class="btn" style="padding: 1rem; justify-content: center; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 900;" onclick="downloadStudentList('word')">
+            📝 DOWNLOAD AS WORD (.doc)
+         </button>
+         <button class="btn" style="padding: 1rem; justify-content: center; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-weight: 900;" onclick="downloadStudentList('excel')">
+            📊 DOWNLOAD AS EXCEL (.csv)
+         </button>
+      </div>
+
+      <button class="btn" style="margin-top: 2rem; width: 100%; justify-content: center; font-weight: 900;" onclick="closeModal('download-format-modal')">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- PASS RATE REPORT MODAL -->
+  <div class="modal-overlay" id="pass-rate-report-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+      <h2 style="font-weight:900; margin-bottom:1.5rem;">Pass Rate Report (Proclamation)</h2>
+      <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Configure parameters for the official Student Pass Rate Report.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="form-group">`n               <label>Academic Year</label>
+          <select id="pr-year" class="input-field"></select>
+        </div>
+        <div class="form-group">`n               <label>Term</label>
+          <select id="pr-term" class="input-field">
+            <option value="1">Term 1</option><option value="2" selected>Term 2</option><option value="3">Term 3</option>
+          </select>
+        </div>
+        <div class="form-group">`n               <label>Target Cohort</label>
+          <select id="pr-class" class="input-field"><option value="all">Full School Registry</option></select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generatePassRateReport()">Generate Report</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('pass-rate-report-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBJECT SUCCESS REPORT MODAL -->
+  <div class="modal-overlay" id="subject-success-report-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+      <h2 style="font-weight:900; margin-bottom:1.5rem;">Subject Success Report</h2>
+      <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Configure parameters for the Institutional Subject Performance Report.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="form-group">`n               <label>Academic Term</label>
+          <select id="ss-term" class="input-field">
+            <option value="1">Term 1</option><option value="2" selected>Term 2</option><option value="3">Term 3</option>
+          </select>
+        </div>
+        <div class="form-group">`n               <label>Specific Subject</label>
+          <select id="ss-subject" class="input-field"><option value="all">All Subjects Aggregate</option></select>
+        </div>
+        <div class="form-group">`n               <label>Target Class</label>
+          <select id="ss-class" class="input-field"><option value="all">Institutional View</option></select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center; background: #10b981;" onclick="generateSubjectSuccessReport()">Generate Report</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('subject-success-report-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRADE DISTRIBUTION MODAL -->
+  <div class="modal-overlay" id="grade-distribution-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+      <h2 style="font-weight:900; margin-bottom:1.5rem;">Grade Distribution Summary</h2>
+      <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Analyze performance clusters across the institutional student registry.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="form-group">`n               <label>Term Analysis</label>
+          <select id="gd-term" class="input-field">
+            <option value="1">Term 1</option><option value="2" selected>Term 2</option><option value="3">Term 3</option>
+          </select>
+        </div>
+        <div class="form-group">`n               <label>Specific Class</label>
+          <select id="gd-class" class="input-field"></select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center; background: #6366f1;" onclick="generateGradeDistributionReport()">Generate Distribution</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('grade-distribution-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- HIDDEN PRINTABLE AREA FOR PDF/LIST GENERATION -->
+  <div id="printable-list-area" style="display: none;"></div>
+  <div id="report-print-container" style="display: none;"></div>
+
+  <!-- FULL SCREEN REPORT PREVIEW MODAL -->
+  <div id="report-preview-modal" class="modal-overlay" style="padding: 0; background: rgba(15, 23, 42, 0.95); z-index: 9999;">
+    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; background: transparent;">
+        <!-- Preview Toolbar -->
+        <div style="background: var(--sidebar-bg); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155;">
+            <div>
+                <h2 style="color: white; font-size: 1.1rem; font-weight: 900; margin: 0; letter-spacing: 0.5px;">OFFICIAL DOCUMENT PREVIEW</h2>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" id="btn-final-download" style="background: #10b981; border-color: #10b981; padding: 0.8rem 2rem; font-weight: 800;">
+                  DOWNLOAD AS PDF
+                </button>
+                <button class="btn" style="background: #f43f5e; color: white; border: none; padding: 0.8rem 2rem;" onclick="closeModal('report-preview-modal')">
+                  CLOSE PREVIEW
+                </button>
+            </div>
+        </div>
+        <!-- Scrollable Preview Area -->
+        <div style="flex: 1; overflow-y: auto; padding: 2rem; display: flex; justify-content: center; background: #334155;">
+             <div id="report-preview-content" style="box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);"></div>
+        </div>
+    </div>
+  </div>
+
+  <!-- AUTO-GENERATE CLASSES MODAL -->
+  <div class="modal-overlay" id="auto-generate-classes-modal">
+    <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+      <h2 style="font-weight:900; margin-bottom:0.5rem;">Intelligent Class Generator</h2>
+      <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Automatically provision your school's academic structure based on levels and streams.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="form-group">
+          <label>Level Prefix</label>
+          <input type="text" id="auto-class-prefix" class="input-field" placeholder="e.g. P or S or Senior" value="P" style="margin:0;">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+           <div class="form-group">`n               <label>Start Level</label>
+             <input type="number" id="auto-class-start" class="input-field" value="1" min="1" style="margin:0;">
+           </div>
+           <div class="form-group">`n               <label>End Level</label>
+             <input type="number" id="auto-class-end" class="input-field" value="6" min="1" style="margin:0;">
+           </div>
+        </div>
+        <div class="form-group">`n               <label>Streams / Sections (Comma separated)</label>
+          <input type="text" id="auto-class-streams" class="input-field" placeholder="A, B, C" value="A, B" style="margin:0;">
+          <p style="font-size: 0.6rem; color: #94a3b8; margin-top: 0.4rem; font-weight: 600;">Example result: P1 A, P1 B, P2 A, P2 B...</p>
+        </div>
+      </div>
+
+
+      <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1.5rem;">
+        <button class="btn btn-primary" style="flex:2; justify-content: center; font-weight: 900;" onclick="processAutoGenerateClasses()">🚀 GENERATE STRUCTURE</button>
+        <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('auto-generate-classes-modal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+
+  <!-- CORE SCRIPTS -->
+  
+  <script>
+    // Force fresh load every time - never serve stale JS
+    var _v = Date.now();
+    document.write('<scr'+'ipt src="../src/services/db.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/registration.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/services/realtime-sync.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/import-engine.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/import-ui.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/admin.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/dark-mode.js?v='+_v+'"><\/scr'+'ipt>');
+    document.write('<scr'+'ipt src="../src/components/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
+    
+    function toggleNavGroup(el) {
+        const group = el.parentElement;
+        const isOpen = group.classList.contains('open');
+        
+        // Close all other groups
+        document.querySelectorAll('.nav-group').forEach(g => {
+            if (g !== group) g.classList.remove('open');
+        });
+        
+        // Toggle current group
+        group.classList.toggle('open', !isOpen);
+        
+        // Refresh icons
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleMobileMenu() {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navMenu) {
+            navMenu.classList.toggle('active');
+        }
+    }
+
+    window.addEventListener('load', () => {
+        initAdminPortal().then(() => {
+            setTimeout(() => {
+                const sc = sessionStorage.getItem('current_school_code');
+                if (typeof StudentImportUI !== 'undefined') StudentImportUI.init('admin', sc);
+            }, 500);
+        });
+    });
+  </script>
+
+
+    <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+</body>
+</html>
+
+<script>
+    document.addEventListener('click', (e) => {
+        const navItem = e.target.closest('.nav-item');
+        if (navItem && navItem.querySelector('.nav-dropdown')) {
+            const wasActive = navItem.classList.contains('active');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            if (!wasActive) navItem.classList.add('active');
+        } else {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        }
+    });
+</script>

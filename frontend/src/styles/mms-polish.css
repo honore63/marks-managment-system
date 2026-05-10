@@ -1,0 +1,597 @@
+/* ==========================================================================
+   MMS (Marks Management System) - Professional Polish Layer v4.0
+   ========================================================================== 
+   Comprehensive UI/UX refinement for the entire application.
+   This stylesheet must be loaded LAST to ensure proper overrides.
+   ========================================================================== */
+
+/* 1. CSS Custom Properties (Design Tokens) */
+:root {
+  /* Brand Palette */
+  --mms-brand-primary: #4f46e5;
+  --mms-brand-primary-hover: #4338ca;
+  --mms-brand-secondary: #0ea5e9;
+  
+  /* Neutral Palette */
+  --mms-gray-50: #f8fafc;
+  --mms-gray-100: #f1f5f9;
+  --mms-gray-200: #e2e8f0;
+  --mms-gray-300: #cbd5e1;
+  --mms-gray-400: #94a3b8;
+  --mms-gray-500: #64748b;
+  --mms-gray-600: #475569;
+  --mms-gray-700: #334155;
+  --mms-gray-800: #1e293b;
+  --mms-gray-900: #0f172a;
+  
+  /* Semantic Status Colors */
+  --mms-success-bg: #dcfce7;
+  --mms-success-text: #166534;
+  --mms-success-border: #bbf7d0;
+  
+  --mms-danger-bg: #fee2e2;
+  --mms-danger-text: #991b1b;
+  --mms-danger-border: #fecaca;
+  
+  --mms-warning-bg: #fef9c3;
+  --mms-warning-text: #854d0e;
+  --mms-warning-border: #fef08a;
+
+  --mms-info-bg: #e0f2fe;
+  --mms-info-text: #075985;
+  --mms-info-border: #bae6fd;
+  
+  --mms-purple-bg: #f3e8ff;
+  --mms-purple-text: #6b21a8;
+  --mms-purple-border: #e9d5ff;
+
+  --mms-inactive-bg: #f1f5f9;
+  --mms-inactive-text: #475569;
+  
+  /* Shadow Scale */
+  --mms-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --mms-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --mms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --mms-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --mms-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --mms-shadow-glow: 0 0 15px rgba(79, 70, 229, 0.3);
+  
+  /* Border Radius Scale */
+  --mms-radius-sm: 0.25rem;
+  --mms-radius-md: 0.375rem;
+  --mms-radius-lg: 0.5rem;
+  --mms-radius-xl: 0.75rem;
+  --mms-radius-2xl: 1rem;
+  --mms-radius-full: 9999px;
+  
+  /* Typography */
+  --mms-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mms-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  
+  /* Motion & Easing */
+  --mms-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mms-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mms-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mms-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Layout Variables */
+  --mms-sidebar-width: 260px;
+  --mms-header-height: 64px;
+}
+
+/* 2. Global Reset & Body Enhancements */
+body {
+  font-family: var(--mms-font-sans) !important;
+  color: var(--mms-gray-800);
+  background-color: var(--mms-gray-50);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3. Accessibility Focus States */
+:focus-visible {
+  outline: 2px solid var(--mms-brand-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* 4. Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--mms-gray-300);
+  border-radius: var(--mms-radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mms-gray-400);
+}
+
+/* 5. Typography Enhancements */
+h1, h2, h3, h4, h5, h6, .page-title {
+  color: var(--mms-gray-900);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* 6. Sidebar Refinements */
+.sidebar, .nav-sidebar, aside {
+  background: #ffffff !important;
+  border-right: 1px solid var(--mms-gray-200) !important;
+  box-shadow: var(--mms-shadow-sm) !important;
+  transition: width var(--mms-transition-normal);
+}
+.sidebar .brand, .brand-area {
+  padding: 1.5rem !important;
+  border-bottom: 1px solid var(--mms-gray-100) !important;
+}
+.sidebar .brand h2, .logo-text {
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, var(--mms-brand-primary), var(--mms-brand-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.05em;
+}
+.nav-item, .sidebar-link {
+  border-radius: var(--mms-radius-md) !important;
+  margin: 0.25rem 1rem !important;
+  transition: all var(--mms-transition-fast) !important;
+  color: var(--mms-gray-600) !important;
+  font-weight: 500 !important;
+}
+.nav-item:hover, .sidebar-link:hover {
+  background-color: var(--mms-gray-100) !important;
+  color: var(--mms-brand-primary) !important;
+  transform: translateX(4px);
+}
+.nav-item.active, .sidebar-link.active {
+  background-color: var(--mms-brand-primary) !important;
+  color: #ffffff !important;
+  box-shadow: var(--mms-shadow-md) !important;
+}
+.nav-group-label, .group-title {
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
+  color: var(--mms-gray-400) !important;
+  margin: 1.5rem 1.5rem 0.5rem !important;
+  font-weight: 700;
+}
+.user-pill, .user-profile-widget {
+  background: var(--mms-gray-50) !important;
+  border: 1px solid var(--mms-gray-200) !important;
+  border-radius: var(--mms-radius-lg) !important;
+  margin: 1rem !important;
+  padding: 0.75rem !important;
+}
+
+/* 7. Dark Sidebar Variant (System Admin) */
+.system-admin-sidebar, .dark-sidebar {
+  background: var(--mms-gray-900) !important;
+  border-right: none !important;
+}
+.dark-sidebar .nav-item {
+  color: var(--mms-gray-300) !important;
+}
+.dark-sidebar .nav-item:hover {
+  background-color: rgba(255,255,255,0.1) !important;
+  color: #ffffff !important;
+}
+
+/* 8. Topbar / Sub-header */
+.topbar, .main-header, header {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid var(--mms-gray-200) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
+  height: var(--mms-header-height) !important;
+  box-shadow: var(--mms-shadow-sm);
+  transition: box-shadow var(--mms-transition-normal);
+}
+.topbar.scrolled {
+  box-shadow: var(--mms-shadow-md);
+}
+
+/* 9. KPI Cards */
+.kpi-card, .stat-card, .dashboard-card {
+  background: #ffffff !important;
+  border-radius: var(--mms-radius-xl) !important;
+  border: 1px solid var(--mms-gray-200) !important;
+  box-shadow: var(--mms-shadow-sm) !important;
+  transition: transform var(--mms-transition-fast), box-shadow var(--mms-transition-fast) !important;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--mms-brand-primary), var(--mms-brand-secondary));
+  opacity: 0;
+  transition: opacity var(--mms-transition-fast);
+}
+.kpi-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: var(--mms-shadow-lg) !important;
+}
+.kpi-card:hover::before {
+  opacity: 1;
+}
+.kpi-value, .stat-value {
+  font-family: var(--mms-font-mono) !important;
+  font-weight: 700 !important;
+  color: var(--mms-gray-900) !important;
+  letter-spacing: -0.05em;
+}
+.kpi-label, .stat-label {
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
+  color: var(--mms-gray-500) !important;
+  font-weight: 600 !important;
+}
+.kpi-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: var(--mms-radius-lg) !important;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* 10. Card Panels */
+.card, .panel {
+  background: #ffffff !important;
+  border-radius: var(--mms-radius-xl) !important;
+  border: 1px solid var(--mms-gray-200) !important;
+  box-shadow: var(--mms-shadow-sm) !important;
+}
+.card-header, .panel-header {
+  border-bottom: 1px solid var(--mms-gray-100) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+.card-title, .panel-title {
+  font-weight: 600 !important;
+  font-size: 1.125rem !important;
+  color: var(--mms-gray-800) !important;
+}
+
+/* 11. Data Tables */
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--mms-radius-lg);
+  border: 1px solid var(--mms-gray-200);
+}
+table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+thead th {
+  background: var(--mms-gray-50) !important;
+  color: var(--mms-gray-600) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
+  padding: 1rem 1.5rem !important;
+  border-bottom: 1px solid var(--mms-gray-200) !important;
+}
+tbody td {
+  padding: 1rem 1.5rem !important;
+  color: var(--mms-gray-700) !important;
+  border-bottom: 1px solid var(--mms-gray-100) !important;
+  vertical-align: middle !important;
+}
+tbody tr:hover td {
+  background: var(--mms-gray-50) !important;
+}
+tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* 12. Forms and Inputs */
+.form-group {
+  margin-bottom: 1.25rem !important;
+}
+label {
+  display: block;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  color: var(--mms-gray-700) !important;
+  margin-bottom: 0.5rem !important;
+}
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--mms-gray-300) !important;
+  border-radius: var(--mms-radius-md) !important;
+  padding: 0.625rem 1rem !important;
+  font-family: inherit !important;
+  color: var(--mms-gray-900) !important;
+  background-color: #ffffff !important;
+  transition: border-color var(--mms-transition-fast), box-shadow var(--mms-transition-fast) !important;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: var(--mms-brand-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+}
+input::placeholder {
+  color: var(--mms-gray-400) !important;
+}
+
+/* 13. Button System */
+button, .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 500;
+  border-radius: var(--mms-radius-md);
+  transition: all var(--mms-transition-fast);
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+.btn-primary {
+  background: var(--mms-brand-primary) !important;
+  color: #ffffff !important;
+  box-shadow: var(--mms-shadow-sm) !important;
+}
+.btn-primary:hover {
+  background: var(--mms-brand-primary-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--mms-shadow-md) !important;
+}
+.btn-outline, .btn-ghost {
+  background: transparent !important;
+  border: 1px solid var(--mms-gray-300) !important;
+  color: var(--mms-gray-700) !important;
+}
+.btn-outline:hover {
+  background: var(--mms-gray-50) !important;
+  border-color: var(--mms-gray-400) !important;
+}
+.btn-danger {
+  background: #ef4444 !important;
+  color: white !important;
+}
+.btn-danger:hover { background: #dc2626 !important; }
+.btn-success {
+  background: #10b981 !important;
+  color: white !important;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* 14. Badges and Status Pills */
+.badge, .status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: var(--mms-radius-full) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-success, .status-active {
+  background: var(--mms-success-bg) !important;
+  color: var(--mms-success-text) !important;
+  border: 1px solid var(--mms-success-border) !important;
+}
+.badge-danger, .status-error {
+  background: var(--mms-danger-bg) !important;
+  color: var(--mms-danger-text) !important;
+  border: 1px solid var(--mms-danger-border) !important;
+}
+.badge-warning, .status-pending {
+  background: var(--mms-warning-bg) !important;
+  color: var(--mms-warning-text) !important;
+  border: 1px solid var(--mms-warning-border) !important;
+}
+.badge-info {
+  background: var(--mms-info-bg) !important;
+  color: var(--mms-info-text) !important;
+}
+.badge-purple {
+  background: var(--mms-purple-bg) !important;
+  color: var(--mms-purple-text) !important;
+}
+
+/* 15. Modals */
+.modal-overlay, .modal-backdrop {
+  background: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+.modal-content, .modal-box {
+  background: #ffffff !important;
+  border-radius: var(--mms-radius-xl) !important;
+  box-shadow: var(--mms-shadow-xl) !important;
+  animation: modalPop var(--mms-ease-spring) 0.4s forwards;
+}
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 16. Filter Bar Styling */
+.filter-bar, .filters-container {
+  background: var(--mms-gray-50) !important;
+  border: 1px solid var(--mms-gray-200) !important;
+  border-radius: var(--mms-radius-lg) !important;
+  padding: 1rem !important;
+  display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+}
+
+/* 17. Search Input (Pill Shape) */
+.search-input-wrapper input {
+  border-radius: var(--mms-radius-full) !important;
+  padding-left: 2.5rem !important;
+  background: var(--mms-gray-50) !important;
+}
+.search-input-wrapper input:focus {
+  background: #ffffff !important;
+}
+
+/* 18. Toast Notifications */
+.toast, .notification {
+  background: #ffffff !important;
+  border-radius: var(--mms-radius-md) !important;
+  box-shadow: var(--mms-shadow-lg) !important;
+  animation: slideInRight 0.3s var(--mms-ease-spring) forwards;
+  border-left: 4px solid var(--mms-brand-primary) !important;
+}
+.toast.success { border-left-color: #10b981 !important; }
+.toast.error { border-left-color: #ef4444 !important; }
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 19. Content Layout Spacing */
+.main-content, .dashboard-content {
+  padding: 2rem !important;
+  gap: 1.5rem !important;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* 20. Academic Report Styling */
+.grade-A { color: #166534 !important; font-weight: 700; }
+.grade-B { color: #075985 !important; font-weight: 700; }
+.grade-C { color: #854d0e !important; font-weight: 700; }
+.grade-D, .grade-F { color: #991b1b !important; font-weight: 700; }
+.totals-row td {
+  background: var(--mms-gray-50) !important;
+  font-weight: 700 !important;
+  border-top: 2px solid var(--mms-gray-300) !important;
+}
+
+/* 21. Empty State Styling */
+.empty-state {
+  padding: 4rem 2rem !important;
+  text-align: center !important;
+  color: var(--mms-gray-500) !important;
+}
+.empty-state svg {
+  color: var(--mms-gray-300) !important;
+  margin-bottom: 1rem !important;
+}
+
+/* 22. Loading Spinner & Skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--mms-gray-100) 25%, var(--mms-gray-200) 50%, var(--mms-gray-100) 75%);
+  background-size: 400% 100%;
+  animation: skeletonLoading 1.5s infinite;
+  border-radius: var(--mms-radius-sm);
+}
+@keyframes skeletonLoading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.spinner {
+  border: 3px solid var(--mms-gray-200);
+  border-top-color: var(--mms-brand-primary);
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 23. Login Page Enhancements */
+.login-container, .auth-card {
+  box-shadow: var(--mms-shadow-xl) !important;
+  border-radius: var(--mms-radius-2xl) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+}
+.login-header h1 {
+  font-size: 1.875rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* 24. Accordion Nav Group */
+.nav-accordion .nav-dropdown {
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out !important;
+  overflow: hidden;
+}
+
+/* 25. Chart Legend Styling */
+.chart-container canvas {
+  margin-top: 1rem !important;
+}
+.chart-legend {
+  display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;
+}
+
+/* 26. Micro-animations */
+.fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.slide-up { animation: slideUp 0.4s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 27. Mobile Sidebar Toggle */
+.mobile-nav-toggle {
+  display: none; /* hidden on desktop */
+}
+@media (max-width: 1024px) {
+  .mobile-nav-toggle {
+    display: inline-flex !important;
+    background: transparent; border: none; font-size: 1.5rem;
+    color: var(--mms-gray-700); cursor: pointer;
+  }
+}
+
+/* 28. Utility Helper Classes */
+.text-primary { color: var(--mms-brand-primary) !important; }
+.font-bold { font-weight: 700 !important; }
+.flex-center { display: flex !important; align-items: center !important; justify-content: center !important; }
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-4 { margin-top: 1rem !important; }
+.mb-4 { margin-bottom: 1rem !important; }
+
+/* 29. Print Stylesheet */
+@media print {
+  .sidebar, .topbar, .btn, .modal, .no-print { display: none !important; }
+  .main-content { padding: 0 !important; margin: 0 !important; }
+  body { background: white !important; }
+  .card { border: none !important; box-shadow: none !important; }
+}
+
+/* 30. Responsive Breakpoints */
+@media (max-width: 1280px) {
+  .main-content { padding: 1.5rem !important; }
+}
+@media (max-width: 1024px) {
+  .sidebar {
+    position: fixed !important;
+    left: -100% !important;
+    z-index: 100 !important;
+    transition: left 0.3s ease !important;
+  }
+  .sidebar.open { left: 0 !important; }
+  .dashboard-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: 1fr !important; }
+  .filter-bar { flex-direction: column !important; align-items: stretch !important; }
+  .table-wrapper { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  input, select, button { min-height: 46px !important; font-size: 16px !important; }
+}
+@media (max-width: 480px) {
+  .topbar .user-name { display: none !important; }
+  h1 { font-size: 1.5rem !important; }
+  .card-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem; }
+}

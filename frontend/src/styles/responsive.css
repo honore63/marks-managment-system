@@ -1,0 +1,213 @@
+/* ==========================================================================
+   MMS - Responsive & Mobile-First Styles v4.0
+   ========================================================================== */
+
+/* 1. Base Styles (Mobile-First Defaults) */
+body, html {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.main-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0; /* Prevent flex blowout */
+  transition: padding 0.3s ease;
+}
+
+/* 2. Tablet Breakpoint (≤1024px) */
+@media screen and (max-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px; /* Hide off-screen */
+    width: 280px;
+    height: 100vh;
+    z-index: 1000;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar.active {
+    left: 0;
+  }
+  
+  /* Backdrop overlay for sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+  
+  .main-content {
+    padding: 1.5rem;
+  }
+  
+  /* Grid collapses */
+  .dashboard-grid, .analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+/* 3. Mobile Breakpoint (≤768px) */
+@media screen and (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  /* Single-column KPI Grid */
+  .kpi-grid, .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Single-column Filter Bar */
+  .filter-bar, .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .filter-bar > * {
+    width: 100%;
+  }
+
+  /* Form rows collapse */
+  .form-row, .form-grid {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Touch-friendly inputs */
+  input, select, button, .btn {
+    min-height: 48px;
+    font-size: 16px !important; /* Prevents iOS auto-zoom */
+  }
+
+  /* Table horizontal scroll */
+  .table-responsive, .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  /* Card Header Stacking */
+  .card-header, .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .card-header-actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Modal sizing */
+  .modal-content, .modal-box {
+    width: 95%;
+    margin: 1rem auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* 4. Small Mobile Breakpoint (≤480px) */
+@media screen and (max-width: 480px) {
+  /* Hide user name */
+  .topbar .user-name, .header-profile-name {
+    display: none !important;
+  }
+  
+  /* Reduce heading sizes */
+  h1, .page-title { font-size: 1.5rem !important; }
+  h2, .section-title { font-size: 1.25rem !important; }
+  
+  .main-content {
+    padding: 0.75rem;
+  }
+  
+  .kpi-card {
+    padding: 1rem;
+  }
+}
+
+/* 5. Accessibility and Touch Rules */
+@media (hover: none) {
+  /* Disable hover effects on touch devices */
+  .btn:hover, .card:hover, .nav-item:hover {
+    transform: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 6. Print Stylesheet */
+@media print {
+  @page {
+    margin: 1cm;
+  }
+  
+  body {
+    background: #fff;
+    color: #000;
+  }
+  
+  .sidebar, .topbar, .btn, .no-print, .mobile-nav-toggle, .filter-bar {
+    display: none !important;
+  }
+  
+  .main-content {
+    padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+  
+  .card, .panel, .kpi-card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
+  
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+}

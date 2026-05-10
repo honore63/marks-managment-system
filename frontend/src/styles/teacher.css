@@ -1,0 +1,125 @@
+/* TEACHER SPECIFIC STYLES (CAMIS AESTHETIC) - Enhanced Contrast */
+:root {
+    --camis-blue: #1D4ED8;        /* Strong Blue */
+    --camis-green: #059669;       /* Deep Green */
+    --camis-yellow: #D97706;      /* Deep Amber */
+    --camis-red: #DC2626;         /* Strong Red */
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.welcome-card {
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15) !important;
+    border: 1.5px solid #D1D5DB !important;
+    border-radius: 12px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1D4ED8, #1e40af);
+}
+
+.welcome-card:hover {
+    border-color: #1D4ED8;
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.18);
+    transform: translateY(-4px);
+}
+
+.material-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1.5px solid #D1D5DB !important;
+}
+.material-card:hover {
+    border-color: var(--camis-blue);
+    box-shadow: 0 12px 28px rgba(29, 78, 216, 0.15);
+    transform: translateY(-2px);
+}
+
+/* MARKS ENTRY TABLE SPECIFICS */
+.data-table th {
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+}
+
+.data-table td .badge {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* SIDEBAR REFINEMENTS */
+.sidebar {
+    background: #f8fafc;
+    border-right: 1px solid var(--border);
+    color: var(--text);
+}
+.sidebar .logo-text { color: #1e293b; }
+.sidebar .nav-item { color: #64748b; }
+.sidebar .nav-item:hover { background: #f1f5f9; color: var(--camis-blue); }
+.sidebar .nav-item.active { 
+    background: #eff6ff; 
+    color: var(--camis-blue); 
+    border-left: 3px solid var(--camis-blue);
+    border-radius: 0 8px 8px 0;
+}
+.sidebar .nav-label { color: #94a3b8; }
+
+/* OVERRIDE FOR DARK SIDEBAR IF NEEDED (The screenshot shows a light sidebar with dark text, but style.css defines it as #0f172a) */
+/* Let's stick to the screenshot's LIGHT SIDEBAR feel */
+.sidebar {
+    background: #ffffff !important;
+}
+
+.main-wrapper {
+    background: #ffffff !important;
+}
+
+/* FORM HEADER */
+.form-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* INPUT OVERRIDES */
+.mark-input {
+    width: 60px;
+    padding: 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--camis-blue);
+    outline: none;
+    transition: all 0.2s;
+}
+.mark-input:focus {
+    border-color: var(--camis-blue);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+}
+.mark-input:disabled {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@media print {
+    .view-toggle, .btn, .sidebar, .topbar { display: none !important; }
+}
+

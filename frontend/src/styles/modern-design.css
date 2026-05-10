@@ -1,0 +1,106 @@
+/* ==========================================================================
+   MMS - Modern Design Core v4.0
+   ========================================================================== 
+   Unified component classes, premium effects, and advanced animations.
+   ========================================================================== */
+
+:root {
+  /* Unified Palette */
+  --mms-brand-primary: #4f46e5;
+  --mms-brand-secondary: #0ea5e9;
+  --mms-gray-900: #0f172a;
+  --mms-gray-800: #1e293b;
+  --mms-gray-100: #f1f5f9;
+  --mms-gray-50: #f8fafc;
+  
+  /* Shadows & Radius */
+  --mms-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --mms-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --mms-radius-lg: 0.5rem;
+  --mms-radius-xl: 0.75rem;
+  
+  /* Motion */
+  --mms-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --mms-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 1. Premium Card Class */
+.premium-card {
+  background: #ffffff;
+  border-radius: var(--mms-radius-xl);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: var(--mms-shadow-md);
+  transition: transform var(--mms-transition-normal), box-shadow var(--mms-transition-normal);
+  overflow: hidden;
+  position: relative;
+}
+.premium-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--mms-shadow-lg);
+}
+
+/* 2. Glass Effect Class */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  border-radius: var(--mms-radius-xl);
+}
+
+/* 3. Table Responsive Wrapper Class */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--mms-radius-lg);
+  box-shadow: inset 0 0 0 1px var(--mms-gray-100);
+  background: #ffffff;
+}
+.table-responsive-wrapper table {
+  min-width: 800px; /* Ensure content doesn't crush */
+  width: 100%;
+}
+
+/* 4. Gradient Button Class */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--mms-brand-primary), var(--mms-brand-secondary));
+  color: #ffffff;
+  border: none;
+  border-radius: var(--mms-radius-lg);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+  transition: all var(--mms-transition-normal);
+}
+.btn-gradient:hover {
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #4338ca, #0284c7);
+}
+
+/* 5. Entrance Animation Keyframes & Stagger Helpers */
+@keyframes entranceFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-entrance {
+  animation: entranceFadeUp 0.6s var(--mms-ease-spring) forwards;
+  opacity: 0;
+}
+
+/* Staggered Delay Helpers */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }

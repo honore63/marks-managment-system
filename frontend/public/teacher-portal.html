@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MMS (Marks Management System) — Teacher Portal</title>
+  <!-- Font Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- MMS Unified Font System -->
+  <link rel="stylesheet" href="../src/styles/fonts.css">
+  <!-- Modern Design System (NEW) -->
+  <link rel="stylesheet" href="../src/styles/enterprise-design-system.css">
+  <link rel="stylesheet" href="../src/styles/portal-layouts.css">
+  <link rel="stylesheet" href="../src/styles/dashboard-components.css">
+  <link rel="stylesheet" href="../src/styles/forms-and-modals.css">
+  <!-- Legacy Styles (Preserved for Compatibility) -->
+  <link rel="stylesheet" href="../src/styles/style.css">
+  <link rel="stylesheet" href="../src/styles/teacher.css">
+  <link rel="stylesheet" href="../src/styles/modern-design.css">
+  <link rel="stylesheet" href="../src/styles/responsive.css">
+  <link rel="stylesheet" href="../src/styles/ai-assistant.css">
+  <!-- ▼ NAVBAR OVERRIDE – must be last ▼ -->
+  <style>
+    .top-navbar { position: sticky; top: 0; z-index: 2000; background: #000 !important; border-top: 4px solid #2563eb !important; box-sizing: border-box !important; }
+    .top-navbar .nav-item { position: relative; margin: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+    .top-navbar .nav-item:hover { background: transparent !important; transform: none !important; }
+    .nav-dropdown {
+      display: block;
+      position: absolute !important;
+      top: 100% !important;
+      left: 0 !important;
+      min-width: 220px !important;
+      background: #000000 !important;
+      background-color: #000000 !important;
+      border: 2px solid #2563eb !important;
+      border-radius: 8px !important;
+      padding: 6px !important;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.9) !important;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s, visibility 0.2s;
+      z-index: 99999 !important;
+    }
+    .top-navbar .nav-item:hover .nav-dropdown,
+    .top-navbar .nav-item.open .nav-dropdown {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    .dropdown-item {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      padding: 11px 16px !important;
+      color: #ffffff !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      text-decoration: none !important;
+      border-radius: 6px !important;
+      background: transparent !important;
+      cursor: pointer;
+    }
+    .dropdown-item:hover { background: #2563eb !important; color: #fff !important; }
+    .nav-link { color: #fff !important; font-size: 0.75rem !important; white-space: nowrap; padding: 0.3rem 0.4rem !important; }
+    .nav-link:hover, .nav-link.active { background: rgba(37,99,235,0.15) !important; color: #93c5fd !important; border-radius: 6px; }
+    .top-navbar .nav-item { margin: 0 2px !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase & Core Infrastructure -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <!-- Data Parsing Ecosystem -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    /* ══════════════════════════════════════════════════════════
+       MMS TEACHER PORTAL — EXECUTIVE GOVERNANCE DESIGN SYSTEM
+       (Unified layout with System Admin. Accent: Emerald)
+       ══════════════════════════════════════════════════════════ */
+    :root {
+      --midnight: #111827;
+      --navy: #1f2937;
+      --indigo: #2563eb;
+      --indigo-light: #60a5fa;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --emerald: #10b981;
+      --gold: #f59e0b;
+      --gold-light: #fbbf24;
+      --gold-glow: rgba(245, 158, 11, 0.12);
+      --rose: #ef4444;
+      --violet: #8b5cf6;
+      --sidebar-w: 260px;
+      --header-h: 72px;
+      --radius-xl: 16px;
+      --radius-2xl: 24px;
+      --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f1f5f9;
+      color: #1e1b4b;
+      font-weight: 600;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+
+    /* ── SIDEBAR ───────────────────────────────────── */
+    .sidebar {
+  width: var(--sidebar-w);
+  background: rgba(15, 23, 42, 0.85);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex; flex-direction: column; flex-shrink: 0;
+  z-index: 1000; overflow: hidden;
+  transition: var(--transition);
+  position: relative;
+  border-top-right-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+  backdrop-filter: blur(12px) saturate(1.2);
+}
+    .sidebar::before { display: none; }
+    .sidebar::after { display: none; }
+
+    .sidebar-brand {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.5rem 1rem 1rem;
+      border-bottom: 1px solid #f9fafb;
+      margin-bottom: 0.5rem;
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-toggle { display: none; } /* Hide by default on desktop for static layout */
+
+    .sidebar-toggle:hover { background: #f3f4f6; color: #111827; border-color: #d1d5db; }
+    .logo-main { font-size: 1.6rem !important; font-weight: 900 !important; color: var(--primary) !important; letter-spacing: -1px; line-height: 1; }
+    .logo-main span { color: #6b7280 !important; font-weight: 900 !important; }
+    .logo-sub { font-size: 0.65rem !important; font-weight: 800 !important; color: #6b7280 !important; text-transform: uppercase !important; letter-spacing: 2px !important; margin-top: 3px; }
+
+    .sidebar-nav { padding: 0 1rem 1rem; overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #e5e7eb transparent; }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+
+    .sidebar-group-label {
+      font-size: 0.65rem !important; font-weight: 600 !important;
+      color: #9ca3af !important; text-transform: uppercase !important;
+      letter-spacing: 0.5px !important; padding: 0 0.75rem;
+      margin: 1.5rem 0 0.5rem !important;
+    }
+    .sidebar-item {
+      display: flex !important; align-items: center !important; gap: 0.75rem !important;
+      padding: 0.75rem 0.875rem !important;
+      border-radius: 8px !important; font-weight: 600 !important; font-size: 0.9rem !important;
+      color: #4b5563 !important; cursor: pointer;
+      transition: var(--transition) !important; position: relative;
+      border: 1px solid transparent !important; margin-bottom: 4px !important;
+    }
+    .sidebar-item i { width: 18px; height: 18px; flex-shrink: 0; color: #9ca3af; transition: all 0.2s; }
+    .sidebar-item-text { color: inherit !important; font-weight: 600 !important; }
+    .sidebar-item:hover { background: #f9fafb !important; color: #111827 !important; border-color: #f3f4f6 !important; transform: none !important; }
+    .sidebar-item:hover i { transform: none; color: #4b5563; }
+    .sidebar-item.active {
+      background: #eff6ff !important;
+      color: var(--primary) !important; border-color: #eff6ff !important; font-weight: 700 !important;
+      box-shadow: none !important;
+    }
+    .sidebar-item.active::before { display: none; }
+    .sidebar-item.active::after {
+      content: '•'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--primary); font-size: 1.5rem; line-height: 0;
+    }
+    .sidebar-item.active i { color: var(--primary); }
+    .sidebar-item.danger { color: #ef4444 !important; }
+    .sidebar-item.danger i { color: #fca5a5; }
+    .sidebar-item.danger:hover { background: #fef2f2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+
+    /* ── COLLAPSED SIDEBAR (DESKTOP) ──────────────── */
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed .logo-main, 
+    .sidebar.collapsed .logo-sub,
+    .sidebar.collapsed .sidebar-item-text, 
+    .sidebar.collapsed .sidebar-group-label,
+    .sidebar.collapsed .user-info,
+    .sidebar.collapsed .btn-text { display: none !important; }
+    .sidebar.collapsed .sidebar-item { justify-content: center; padding: 0.8rem !important; }
+    .sidebar.collapsed .sidebar-item i { margin: 0; }
+    .sidebar.collapsed .sidebar-brand { justify-content: center; padding: 1.5rem 0.5rem 1.25rem; flex-direction: column; gap: 1rem; }
+    .sidebar.collapsed .navbar-brand { gap: 0; justify-content: center; }
+    .sidebar.collapsed .navbar-brand img { height: 40px !important; margin: 0 auto; }
+    .sidebar.collapsed .user-compact { padding: 0.875rem 0.5rem; justify-content: center; }
+    .sidebar.collapsed .sidebar-footer .btn { padding: 0.65rem 0 !important; }
+
+    /* ── MAIN WRAPPER ─────────────────────────────── */
+    .layout-sidebar { display: flex; height: 100vh; overflow: hidden; }
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #f1f5f9; }
+
+    /* ── TOPBAR ───────────────────────────────────── */
+    .sub-header {
+      height: var(--header-h) !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e5e7eb !important;
+      padding: 0 2rem !important;
+      display: flex !important; justify-content: space-between !important; align-items: center !important;
+      top: 0; z-index: 1500; position: sticky !important;
+      transition: var(--transition) !important; flex-shrink: 0;
+    }
+    .sub-header.scrolled {
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+      border-bottom-color: transparent !important;
+    }
+    @media (min-width: 1025px) {
+      .sub-header .user-pill-elite { display: none !important; }
+    }
+
+    /* ── CONTENT ──────────────────────────────────── */
+    .main-content { flex: 1; overflow-y: auto; padding: 2rem; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; background: #f9fafb; }
+    .main-content::-webkit-scrollbar { width: 6px; }
+    .main-content::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* ── STAT CARDS ───────────────────────────────── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      padding: 1.75rem 2rem !important; display: flex !important; align-items: center !important; gap: 1.5rem !important;
+      border: 1px solid #e5e7eb !important; box-shadow: var(--shadow-card) !important;
+      transition: var(--transition) !important; position: relative !important; overflow: hidden !important;
+    }
+    .stat-card::before { display: none; }
+    .stat-card::after { display: none; }
+    .stat-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; border-color: #d1d5db !important; }
+    .stat-icon { width: 56px !important; height: 56px !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .stat-card:hover .stat-icon { transform: scale(1.05) !important; }
+    .stat-val { font-size: 2rem !important; font-weight: 800 !important; color: #111827 !important; line-height: 1; letter-spacing: -0.5px; }
+    .stat-lbl { font-size: 0.75rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: #6b7280 !important; margin-top: 0.4rem; }
+
+    /* ── KPI CARDS (admin-style used in teacher) ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+    .kpi-card {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      padding: 1.75rem 2rem !important; display: flex !important; align-items: center !important; gap: 1.5rem !important;
+      border: 1px solid #e5e7eb !important; box-shadow: var(--shadow-card) !important;
+      transition: var(--transition) !important; position: relative !important; overflow: hidden !important;
+    }
+    .kpi-card::before { display: none; }
+    .kpi-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; border-color: #d1d5db !important; }
+    .kpi-icon { width: 56px !important; height: 56px !important; border-radius: 16px !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0; transition: var(--transition); border: none !important; }
+    .kpi-card:hover .kpi-icon { transform: scale(1.05) !important; }
+    .kpi-info h4 { font-size: 0.75rem !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; color: #6b7280 !important; margin-bottom: 0.4rem; }
+    .kpi-info .val { font-size: 2rem !important; font-weight: 800 !important; color: #111827 !important; line-height: 1; letter-spacing: -0.5px; }
+
+    /* ── CARDS / PANELS ───────────────────────────── */
+    .card, .table-card, .chart-box {
+      background: #fff !important; border-radius: var(--radius-xl) !important;
+      border: 1px solid #e5e7eb !important; box-shadow: var(--shadow-card) !important;
+      overflow: hidden !important; margin-bottom: 2rem; transition: var(--transition) !important;
+    }
+    .card-header, .table-card-header {
+      padding: 1.5rem 2rem !important;
+      display: flex !important; align-items: center !important; justify-content: space-between !important;
+      border-bottom: 1px solid #f9fafb !important;
+      background: #ffffff !important; flex-wrap: wrap; gap: 1rem;
+    }
+    .card-header h3, .card-header h2 { font-size: 1.25rem !important; font-weight: 800 !important; color: #111827 !important; letter-spacing: -0.5px !important; }
+    .card-body { padding: 1.5rem 2rem !important; }
+
+    /* Report checklist */
+    .checklist-group {
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      background: #fff; padding: 1.5rem 2rem;
+      border-radius: var(--radius-xl); border: 1.5px solid #e2e8f0;
+      margin-bottom: 2rem; box-shadow: var(--shadow-card);
+    }
+    .check-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: #f8fafc; padding: 10px 20px;
+      border-radius: 12px; border: 1.5px solid transparent;
+      cursor: pointer; transition: var(--transition);
+      font-size: 0.85rem; font-weight: 700; color: #475569;
+    }
+    .check-item:hover { background: #fff; border-color: var(--emerald); color: var(--emerald); transform: translateY(-2px); }
+    .check-item.active { background: var(--emerald); color: #fff; border-color: var(--emerald); box-shadow: 0 8px 16px rgba(5,150,105,0.25); }
+
+    /* ── TABLES ───────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    thead tr { background: #fafafa; border-bottom: 2px solid #f1f5f9; }
+    th {
+      padding: 1rem 1.5rem; font-size: 0.68rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 2px;
+      color: #94a3b8 !important; white-space: nowrap; text-align: left;
+      background: #fafafa !important;
+    }
+    td {
+      padding: 1.25rem 1.5rem; font-size: 0.88rem; font-weight: 700;
+      color: var(--midnight) !important; border-bottom: 1px solid #f8fafc;
+      transition: background 0.2s; background: transparent !important;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #f0fdf4 !important; }
+
+    /* Mark inputs */
+    .mark-input {
+      width: 60px; padding: 8px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+      font-size: 0.9rem; text-align: center; font-weight: 800; color: var(--midnight);
+      transition: all 0.2s; background: #f8fafc;
+    }
+    .mark-input:focus { outline: none; border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(5,150,105,0.1); background: #fff; }
+    .mark-input.saved { border-color: var(--emerald); background: #f0fdf4; color: var(--emerald); }
+
+    /* ── BUTTONS ──────────────────────────────────── */
+    .btn {
+      display: inline-flex !important; align-items: center !important; gap: 0.5rem !important;
+      padding: 0.75rem 1.5rem !important; border-radius: 8px !important;
+      font-family: 'Inter', sans-serif !important; font-size: 0.875rem !important; font-weight: 600 !important;
+      cursor: pointer !important; border: 1px solid transparent !important;
+      transition: var(--transition) !important; white-space: nowrap !important; width: auto !important;
+      justify-content: center !important;
+    }
+    .btn-primary, .btn-emerald {
+      background: var(--emerald) !important; color: #fff !important;
+      box-shadow: 0 6px 20px rgba(5,150,105,0.25) !important;
+    }
+    .btn-primary:hover, .btn-emerald:hover { background: var(--primary-hover) !important; transform: translateY(-2px) !important; }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light)) !important;
+      color: var(--midnight) !important; box-shadow: 0 6px 20px rgba(245,158,11,0.3) !important;
+    }
+    .btn-gold:hover { transform: translateY(-3px) !important; }
+    .btn-dark, .btn-secondary {
+      background: var(--midnight) !important; color: #fff !important;
+      box-shadow: 0 4px 12px rgba(15,14,42,0.15) !important;
+    }
+    .btn-dark:hover, .btn-secondary:hover { background: var(--navy) !important; transform: translateY(-2px) !important; }
+    .btn-ghost, .btn-outline {
+      background: transparent !important; color: var(--midnight) !important; border-color: #e2e8f0 !important;
+    }
+    .btn-ghost:hover, .btn-outline:hover { border-color: var(--emerald) !important; color: var(--emerald) !important; background: rgba(5,150,105,0.06) !important; }
+    .btn-sm { padding: 0.5rem 1rem !important; font-size: 0.75rem !important; border-radius: 10px !important; }
+
+    /* ── BADGES ───────────────────────────────────── */
+    .badge-status { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.875rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+    .badge-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge-active { background: #ecfdf5; color: #059669; }
+    .badge-active .dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .badge-inactive { background: #f1f5f9; color: #64748b; }
+    .badge-inactive .dot { background: #94a3b8; }
+    .badge-pending { background: #fffbeb; color: #d97706; }
+    .badge-pending .dot { background: var(--gold); }
+    .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 100px; font-size: 0.7rem; font-weight: 800; border: none !important; }
+    .badge-success { background: #ecfdf5; color: #059669; }
+    .badge-info { background: #eff6ff; color: #3b82f6; }
+    .badge-danger { background: #fef2f2; color: #ef4444; }
+    .badge-warning { background: #fffbeb; color: #d97706; }
+
+    /* ── MODALS ───────────────────────────────────── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,14,42,0.75); backdrop-filter: blur(12px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 1.5rem; }
+    .modal-overlay.open { display: flex; }
+
+    /* ── FORMS ────────────────────────────────────── */
+    .form-group { margin-bottom: 1.25rem; }
+    .form-group label, .form-label { display: block; font-size: 0.72rem; font-weight: 900; color: var(--navy); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; }
+    .form-control, .input-field, select.form-control {
+      width: 100%; padding: 0.875rem 1.25rem; border: 1px solid #e5e7eb; border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500;
+      color: #111827; background: #ffffff; transition: var(--transition); outline: none;
+    }
+    .form-control:focus, .input-field:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .search-pill { border-radius: 9999px !important; padding-left: 40px !important; }
+
+    /* ── TOAST ────────────────────────────────────── */
+    #toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 20000; display: flex; flex-direction: column; gap: 0.75rem; }
+    .toast {
+      padding: 1rem 1.5rem; background: var(--midnight); color: #fff;
+      border-radius: 16px; font-size: 0.9rem; font-weight: 800;
+      box-shadow: 0 20px 40px rgba(15,14,42,0.25); border-left: 4px solid var(--emerald); min-width: 280px;
+      animation: toastIn 0.4s ease both;
+    }
+    .toast.success { border-left-color: var(--emerald); }
+    .toast.error { border-left-color: var(--rose); }
+    @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 1200px) { .stats-grid, .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1024px) {
+      .layout-sidebar { display: block; }
+      .sidebar { position: fixed; left: -290px; top: 0; height: 100vh; transition: left 0.4s cubic-bezier(0.19,1,0.22,1); box-shadow: none; }
+      .sidebar.open { left: 0; box-shadow: 20px 0 60px rgba(15,14,42,0.25); }
+      .main-wrapper { margin-left: 0 !important; width: 100% !important; }
+      .mobile-toggle-btn { display: flex !important; align-items: center; justify-content: center; width: 44px; height: 44px; background: var(--midnight); color: var(--gold); border-radius: 14px; border: none; font-size: 1.3rem; cursor: pointer; flex-shrink: 0; }
+      .sidebar-toggle { display: flex !important; align-items: center; justify-content: center; background: #f1f5f9; border-radius: 12px; border: 1px solid #e2e8f0; width: 42px; height: 42px; position: absolute; right: 1.5rem; top: 1.5rem; z-index: 10000; color: #64748b; }
+
+    }
+    
+    /* View Visibility Controls */
+    .view { display: none; }
+    .view.active { display: block; animation: fadeUp 0.4s cubic-bezier(0.19,1,0.22,1) both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 768px) {
+      .main-content { padding: 1.25rem !important; }
+      .stats-grid, .kpi-grid { grid-template-columns: 1fr !important; }
+      #page-title { font-size: 1.3rem !important; }
+      .sub-header { padding: 0 1.25rem !important; }
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="../src/styles/mms-polish.css">
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- ── TOP NAVIGATION NAVBAR ── -->
+    <nav class="top-navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-brand">
+                <div class="nav-logo">
+                    <img src="../src/assets/images/c41de77e-b6ee-46ea-b62f-5b6172b80738-removebg-preview.png" alt="Logo" style="width:100%; height:100%; object-fit: contain;">
+                </div>
+                <div class="nav-brand-info">
+                    <span class="nav-brand-text">MARKS MANAGEMENT SYSTEM</span>
+                    <span class="nav-brand-tagline">PEDAGOGICAL HUB</span>
+                </div>
+            </a>
+
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" onclick="switchView('dashboard')">
+                        <i data-lucide="layout"></i> My Classes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="book-open"></i> Instruction <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="switchView('verification')">Assigned Subjects</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('marks-entry')">Marks Entry</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('timetable')">Class Timetable</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i data-lucide="pie-chart"></i> Insights <i data-lucide="chevron-down"></i>
+                    </a>
+                    <div class="nav-dropdown">
+                        <a href="#" class="dropdown-item" onclick="switchView('approval-status')">Sync Status</a>
+                        <a href="#" class="dropdown-item" onclick="switchView('analytics')">Performance Analysis</a>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" onclick="switchView('profile')">
+                        <i data-lucide="user"></i> My Profile
+                    </a>
+                </li>
+            </ul>
+
+            <div class="nav-actions">
+                <div class="nav-item user-profile-item" style="margin-left: 0.25rem !important;">
+                    <div class="user-profile-trigger" style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 8px; border-radius: 8px; background: rgba(37,99,235,0.1);">
+                        <div class="user-avatar" style="width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem;">T</div>
+                        <span style="color: white; font-size: 0.8rem; font-weight: 600;">Teacher</span>
+                        <i data-lucide="chevron-down" style="width: 14px; color: #94a3b8;"></i>
+                    </div>
+                    <div class="nav-dropdown" style="right: 0 !important; left: auto !important;">
+                        <a href="#" class="dropdown-item" onclick="switchView('profile')">
+                            <i data-lucide="user" style="width: 16px;"></i> My Profile
+                        </a>
+                        <a href="#" class="dropdown-item" onclick="handleLogout()" style="color: #ef4444 !important;">
+                            <i data-lucide="log-out" style="width: 16px;"></i> Disconnect
+                        </a>
+                    </div>
+                </div>
+                <button class="nav-mobile-toggle" onclick="toggleMobileMenu()">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+
+
+    <!-- SCROLLABLE CONTENT -->
+    <main class="main-content">
+      
+      <!-- VIEW: DASHBOARD -->
+      <!-- VIEW: DASHBOARD (Original Dashboard Restored) -->
+      <div class="view active" id="view-dashboard">
+        <div class="school-identity-bar" style="margin-bottom: 2rem;">
+            <div class="school-identity">
+               <div class="school-name-text">
+                  <h2 id="dash-teacher-name" style="font-size: 2.5rem; letter-spacing: -2px; margin-bottom: 0;">MMS Dashboard</h2>
+                  <p id="dash-school-name" style="font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; margin-top: -5px;">Marks Management System</p>
+                  <div style="display:flex; gap: 0.75rem; margin-top: 1.25rem;">
+                      <div class="badge badge-blue">👤 <span id="dash-profile-name">Teacher</span></div>
+                      <div class="badge badge-blue">🆔 <span id="dash-profile-code">ID: Loading...</span></div>
+                      <div class="badge badge-blue">📧 <span id="dash-profile-email">Loading...</span></div>
+                  </div>
+              </div>
+           </div>
+           <div style="text-align: right;">
+               <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">Current Session</div>
+               <div style="font-weight: 900; color: #1e293b;" id="dash-acad-session">Term 2 / 2025-2026</div>
+               <div id="sync-badge" class="badge" style="margin-top:4px; font-size:0.6rem; cursor:pointer;" onclick="renderDashboard()">🔄 SYNCING...</div>
+            </div>
+        </div>
+
+        <div class="premium-card animate-entrance" style="margin-bottom: 2.5rem; padding: 4rem 3rem; min-height: 280px; background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(16, 185, 129, 0.4)), url('../src/assets/images/Teacher_portal_marks_management_�_202605051730.jpeg') center/cover; color: white; border-left: 6px solid #10b981; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden;">
+            <h2 style="margin-bottom:0.75rem; font-size: 2.6rem; font-weight: 800; color: white; letter-spacing: -0.03em; text-shadow: 0 2px 10px rgba(0,0,0,0.5); position: relative; z-index: 2;">Pedagogical Hub</h2>
+            <p style="font-size: 1.05rem; color: #f1f5f9; max-width: 650px; margin: 0; line-height: 1.6; text-shadow: 0 2px 8px rgba(0,0,0,0.5); position: relative; z-index: 2;">Streamlined marks management, class progress tracking, and academic reporting.</p>
+        </div>
+
+        <div class="ll-cards">
+          <!-- Card 1: Students -->
+          <article class="ll-card">
+             <h3 class="ll-card__title">Class Registry</h3>
+             <p class="ll-card__text">
+                Monitored: <strong id="dash-student-count">0</strong><br>
+                 Identity: <span class="badge" style="background: #2563eb; color: #fff;">Verified</span>
+             </p>
+             <button class="ll-card__cta" onclick="switchView('dashboard')">View Students</button>
+          </article>
+
+          <!-- Card 2: Subjects -->
+          <article class="ll-card">
+             <h3 class="ll-card__title">Jurisdictions</h3>
+             <p class="ll-card__text">
+                Courses: <strong id="dash-subject-count">0</strong><br>
+                 Assignment: <span class="badge" style="background: #2563eb; color: #fff;">Active</span>
+             </p>
+             <button class="ll-card__cta" onclick="switchView('verification')">My Subjects</button>
+          </article>
+
+          <!-- Card 3: Marks -->
+          <article class="ll-card">
+             <h3 class="ll-card__title">Academic Records</h3>
+             <p class="ll-card__text">
+                Secured: <strong id="dash-marks-count">0</strong><br>
+                 Sync Status: <span class="badge" style="background: #2563eb; color: #fff;">Encrypted</span>
+             </p>
+             <button class="ll-card__cta" onclick="switchView('marks-entry')">Target Entry</button>
+          </article>
+
+          <!-- Card 4: Status -->
+          <article class="ll-card">
+             <h3 class="ll-card__title">Portal Status</h3>
+             <p class="ll-card__text">
+                Condition: <strong id="dash-marks-status">MASTERED</strong><br>
+                 Security: <span class="badge" style="background: #000; color: #fff;">Audit OK</span>
+             </p>
+             <button class="ll-card__cta" onclick="switchView('approval-status')">Check Status</button>
+          </article>
+        </div>
+
+        <div class="dashboard-main-grid" style="margin-top: 2.5rem; align-items: start;">
+           
+           <!-- QUICK ACTIONS & ALERTS -->
+           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div class="table-card" style="padding: 1.5rem; margin: 0;">
+                  <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; margin-bottom: 1rem;">Quick Actions</h3>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                      <button class="btn btn-primary" style="width: 100%; justify-content: flex-start; padding: 0.75rem;" onclick="switchView('marks-entry', document.getElementById('nav-academics'))"><i data-lucide="edit-3" style="width:16px; margin-right:8px;"></i> Target Marks Entry</button>
+                      <button id="dash-action-monitor" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: #eff6ff; color: #1e40af; border-color: #bfdbfe; display:none;" onclick="switchView('class-monitor', document.getElementById('nav-academics'))"><i data-lucide="activity" style="width:16px; margin-right:8px;"></i> Monitor Class Progress</button>
+                      <button id="dash-action-reports" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg); display:none;" onclick="switchView('reports', document.getElementById('nav-reports-main'))"><i data-lucide="file-text" style="width:16px; margin-right:8px;"></i> Generate Report Cards</button>
+                      <button id="dash-action-proclamation" class="btn" style="width: 100%; justify-content: flex-start; padding: 0.75rem; background: var(--bg); color: var(--sidebar-bg); display:none;" onclick="openTeacherProclamationModal()"><i data-lucide="award" style="width:16px; margin-right:8px;"></i> Class Proclamation</button>
+                  </div>
+               </div>
+
+               <div class="table-card" style="padding: 1.5rem; margin: 0; display: flex; flex-direction: column; height: 100%; max-height: 350px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                     <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="bell" style="width:16px;"></i> Live Notifications</h3>
+                     <span class="badge badge-blue" id="notification-count" style="font-size: 0.65rem;">0 New</span>
+                  </div>
+                  <div id="teacher-notification-feed" style="display: flex; flex-direction: column; gap: 0.75rem; flex: 1; overflow-y: auto; padding-right: 5px;">
+                     <!-- Dynamic notifications injected here -->
+                     <div style="text-align:center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.8rem; font-style: italic;">No recent system activity.</div>
+                  </div>
+               </div>
+           </div>
+
+           <!-- PERFORMANCE & CLASS OVERVIEW -->
+           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div class="table-card" style="padding: 1.5rem; margin: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                      <h3 style="font-size: 0.85rem; font-weight: 900; color: #1e293b;">My Jurisdictions Overview</h3>
+                      <div style="text-align: right;">
+                          <button class="btn" style="font-size: 0.65rem; padding: 0.4rem 0.6rem;" onclick="renderDashboard()">↻ Refresh</button>
+                          <div id="dash-last-synced" style="font-size: 0.55rem; color: #94a3b8; font-weight: 800; margin-top: 4px; text-transform: uppercase;">Last Synced: --</div>
+                      </div>
+                  </div>
+                  <div class="data-table-wrapper" style="max-height: 250px; overflow-y: auto;">
+                     <table class="data-table" style="min-width: 100%;">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 5;">
+                           <tr><th style="padding: 0.75rem 1rem;">Class</th><th style="padding: 0.75rem 1rem;">Subject</th><th style="padding: 0.75rem 1rem; text-align: center;">Marks</th></tr>
+                        </thead>
+                        <tbody id="dash-jurisdictions-tbody">
+                           <tr><td colspan="3" style="text-align:center; padding: 1.5rem; font-size: 0.8rem; color: #94a3b8;">Loading...</td></tr>
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+
+               <div class="stat-card" style="background: linear-gradient(135deg, var(--sidebar-bg), #1e293b); color: white; border: none; align-items: flex-start; flex-direction: column;">
+                  <h3 style="font-size: 0.85rem; font-weight: 900; color: #818cf8; margin-bottom: 0.5rem;">Performance Indicator</h3>
+                  <div style="font-size: 2rem; font-weight: 900; line-height: 1;" id="dash-avg-score">--%</div>
+                  <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 600; margin-top: 0.5rem;">Average score across your assigned classes</div>
+               </div>
+           </div>
+
+        </div>
+
+        <div class="analytics-dashboard-grid" style="margin-top: 3rem; margin-bottom: 3.5rem;">
+            <div class="table-card" style="padding: 2rem;">
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                  <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b;">My Subjects Performance Curve</h3>
+                  <div class="badge badge-blue">SUBJECT ANALYTICS</div>
+               </div>
+               <div style="height: 350px;">
+                  <canvas id="teacher-main-perf-chart"></canvas>
+               </div>
+            </div>
+            <div class="table-card" style="padding: 2rem;">
+               <h3 style="font-size: 1.15rem; font-weight: 900; color: #1e293b; margin-bottom: 1.5rem;">Pass/Fail Ratio</h3>
+               <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
+                  <canvas id="teacher-main-dist-chart"></canvas>
+               </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS ENTRY (Overview layout moved from dashboard) -->
+      <div class="view" id="view-marks-entry">
+         <!-- Header -->
+         <div style="margin-bottom: 2rem;">
+            <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+               <span style="color: #3b82f6;">📋</span> Marks Recording
+            </h1>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">Fill in all marks on this form to ensure complete and accurate data.</p>
+         </div>
+
+         <!-- Top Metrics Grid -->
+         <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <!-- Left Side: Progression Stats -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+               <div style="background: #bfdbfe; border: 1px solid #93c5fd; border-radius: 12px; padding: 1.5rem; position: relative;">
+                  <div style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.25rem;">Completion rate</div>
+                  <div style="font-size: 0.8rem; color: #475569; margin-bottom: 2rem;">Overall progress of marks recording</div>
+                  <div style="position: absolute; top: 1.5rem; right: 1.5rem; font-size: 1.5rem; font-weight: 400; color: #1e293b;" id="dash-completion-pct">100%</div>
+                  <div style="position: relative;">
+                     <div style="position: absolute; top: -25px; left: 0; background: #15803d; color: white; font-size: 0.65rem; padding: 2px 8px; border-radius: 99px; font-weight: 600;" id="dash-completion-label">100% Submitted</div>
+                     <div style="width: 100%; height: 24px; background: white; border-radius: 99px; padding: 4px;">
+                        <div id="dash-completion-bar" style="height: 100%; width: 100%; background: #16a34a; border-radius: 99px; transition: width 0.5s ease-in-out;"></div>
+                     </div>
+                  </div>
+               </div>
+
+               <!-- Status Blocks Grid -->
+               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                  <div style="background: #dcfce7; border: 1px solid #bbf7d0; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #166534; font-size: 0.9rem; font-weight: 600;">Submitted</div>
+                     <div style="color: #15803d; font-size: 0.75rem; margin-bottom: 1rem;">All classes assigned to you</div>
+                     <div style="color: #166534; font-size: 1.5rem; font-weight: 400;" id="dash-stat-submitted">--</div>
+                  </div>
+                  <div style="background: #fef08a; border: 1px solid #fde047; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #854d0e; font-size: 0.9rem; font-weight: 600;">Pending</div>
+                     <div style="color: #a16207; font-size: 0.75rem; margin-bottom: 1rem;">Drafts created</div>
+                     <div style="color: #854d0e; font-size: 1.5rem; font-weight: 400;" id="dash-stat-pending">--</div>
+                  </div>
+                  <div style="background: #fee2e2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 12px;">
+                     <div style="color: #991b1b; font-size: 0.9rem; font-weight: 600;">Remaining</div>
+                     <div style="color: #b91c1c; font-size: 0.75rem; margin-bottom: 1rem;">Marks to be recorded</div>
+                     <div style="color: #991b1b; font-size: 1.5rem; font-weight: 400;" id="dash-stat-remaining">--</div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Right Side: Totals -->
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+               <div style="background: white; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; position: relative;">
+                  <div style="color: #1e293b; font-size: 0.9rem; font-weight: 600;">Classes</div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 1.5rem;">All classes assigned to you</div>
+                  <div style="color: #3b82f6; font-size: 1.75rem; font-weight: 400;" id="dash-stat-classes">--</div>
+                  <div style="position: absolute; right: 1.5rem; bottom: 1.5rem; width: 36px; height: 36px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">🖥️</div>
+               </div>
+               <div style="background: white; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 12px; position: relative;">
+                  <div style="color: #1e293b; font-size: 0.9rem; font-weight: 600;">Courses</div>
+                  <div style="color: #64748b; font-size: 0.75rem; margin-bottom: 1.5rem;">All assessments assigned</div>
+                  <div style="color: #3b82f6; font-size: 1.75rem; font-weight: 400;" id="dash-stat-courses">--</div>
+                  <div style="position: absolute; right: 1.5rem; bottom: 1.5rem; width: 36px; height: 36px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">📋</div>
+               </div>
+            </div>
+         </div>
+
+         <!-- Course Assigned Table -->
+         <div class="table-card" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+               <div>
+                  <h3 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin: 0;">Course assigned</h3>
+                  <p style="font-size: 0.8rem; color: #64748b; margin: 0; margin-top: 0.25rem;">All courses assigned to you from SDMS</p>
+               </div>
+            </div>
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">#</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Course name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Class group</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="dash-courses-tbody"></tbody>
+                </table>
+             </div>
+         </div>
+      </div>
+
+      <!-- VIEW: MARKS ENTRY -->
+      <div class="view" id="view-marks-entry">
+          <div class="table-card" style="background: white; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <div style="padding: 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+               <div>
+                  <h3 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin: 0;">Institutional Jurisdictions</h3>
+                  <p style="font-size: 0.8rem; color: #64748b; margin: 0; margin-top: 0.25rem;">Select a course to proceed with academic recording.</p>
+               </div>
+            </div>
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">#</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Course name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Class group</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="marks-entry-courses-tbody"></tbody>
+                </table>
+             </div>
+          </div>
+      </div>
+
+      <!-- VIEW: VERIFICATION (Academic Courses) -->
+      <div class="view" id="view-verification"></div>
+
+      <!-- VIEW: APPROVAL STATUS (Submission Registry) -->
+      <div class="view" id="view-approval-status"></div>
+
+      <!-- VIEW: STUDENT REGISTRY (Class Teacher Only) -->
+      <div class="view" id="view-students">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+            <div>
+               <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b;">👥 Student Management</h1>
+               <p style="font-size: 0.85rem; color: #64748b;">Manage enrollment and registry for your assigned class.</p>
+            </div>
+            <div style="display:flex; gap:0.75rem;">
+                <button class="btn" style="background:#f8fafc; border:1px solid #e2e8f0; color:#475569;" onclick="StudentImportUI.open()">
+                    <i data-lucide="file-up" style="width:14px; margin-right:5px;"></i> Bulk Import
+                </button>
+                <button class="btn btn-primary" id="btn-enroll-student" onclick="openAddStudentModal()">+ Enroll New Student</button>
+            </div>
+         </div>
+
+          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto;">
+             <div class="table-wrapper">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                   <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                      <tr>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b;">S/N</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Full Name</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Gender</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">SDMS Code</th>
+                         <th style="padding: 12px 1rem; font-weight: 700; color: #1e293b;">Assigned Class</th>
+                         <th style="padding: 12px 1.5rem; font-weight: 700; color: #1e293b; text-align: right;">Action</th>
+                      </tr>
+                   </thead>
+                   <tbody id="students-registry-tbody"></tbody>
+                </table>
+             </div>
+          </div>
+      </div>
+
+      <!-- ADD STUDENT MODAL -->
+      <div class="modal-overlay" id="add-student-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+          <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Enroll New Candidate</h2>
+          <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">This student will be automatically assigned to your managed class.</p>
+          
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+             <div class="form-group">`n               <label>First Name</label>
+               <input type="text" id="s-fname" class="input-field" placeholder="Enter first name">
+             </div>
+             <div class="form-group">`n               <label>Last Name</label>
+               <input type="text" id="s-lname" class="input-field" placeholder="Enter last name">
+             </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="form-group">`n               <label>Sex / Gender</label>
+               <select id="s-gender" class="input-field" >
+                  <option value="M">Male (M)</option>
+                  <option value="F">Female (F)</option>
+               </select>
+             </div>
+             <div class="form-group">`n               <label>SDMS / Student ID</label>
+               <input type="text" id="s-id" class="input-field" placeholder="Format: 5410XXXX">
+             </div>
+          </div>
+
+          <div class="form-group">`n               <label>Assigned Class (Auto)</label>
+            <input type="text" id="s-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+            <input type="hidden" id="s-class-id">
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="processAddStudent()">Confirm Enrollment</button>
+            <button class="btn" style="flex: 1; justify-content: center;" onclick="closeModal('add-student-modal')">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="edit-student-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+          <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Edit Student Profile</h2>
+          <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Update information for this student in the registry.</p>
+          
+          <input type="hidden" id="edit-s-id-internal">
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="form-group">`n               <label>First Name</label>
+               <input type="text" id="edit-s-fname" class="input-field">
+             </div>
+             <div class="form-group">`n               <label>Last Name</label>
+               <input type="text" id="edit-s-lname" class="input-field">
+             </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+             <div class="form-group">`n               <label>Sex / Gender</label>
+               <select id="edit-s-gender" class="input-field" >
+                  <option value="M">Male (M)</option>
+                  <option value="F">Female (F)</option>
+               </select>
+             </div>
+             <div class="form-group">`n               <label>SDMS / Student ID</label>
+               <input type="text" id="edit-s-id" class="input-field">
+             </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="processUpdateStudent()">Save Changes</button>
+            <button class="btn" style="flex: 1; justify-content: center;" onclick="closeModal('edit-student-modal')">Discard</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: MARKS PIVOT GRID-->
+      <div class="view" id="view-marks-pivot">
+         <!-- Navbar-like Top Header for Entry -->
+         <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; border: 1px solid #e2e8f0;">
+            <button style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; font-size: 0.85rem;" onclick="switchView('marks-entry', document.getElementById('nav-marks-entry'))">
+               Close form
+            </button>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+               <div style="background: #fef08a; color: #854d0e; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 600;" id="entry-warning-badge">Recording Context Active</div>
+               <button style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 16px; font-weight: 600; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;" onclick="downloadExcelTemplate()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Template
+               </button>
+               <button style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 16px; font-weight: 600; color: #1e293b; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;" onclick="triggerExcelUpload()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"></path></svg> Bulk Upload
+               </button>
+               <input type="file" id="excel-upload-input" style="display:none;" accept=".xlsx, .xls" onchange="handleExcelUpload(event)">
+                <button style="background: white; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.85rem;" onclick="openExportMarksModal()">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg> Export Data
+                </button>
+                <button class="btn btn-primary" onclick="submitMarksToAdmin()" style="font-weight: 600; font-size: 0.85rem;">Save & Submit All</button>
+            </div>
+         </div>
+
+         <!-- Table Layout -->
+          <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+               <thead style="background: #fefefe; border-bottom: 1px solid #e2e8f0;">
+                  <tr id="marks-entry-thead-row"></tr>
+               </thead>
+               <tbody id="marks-entry-tbody"></tbody>
+            </table>
+         </div>
+      </div>
+
+      <!-- VIEW: CLASS MONITOR (Class Teacher Only) -->
+      <div class="view" id="view-class-monitor">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+            <div>
+               <h1 style="font-size: 1.5rem; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="color: #4f46e5;">🛡️</span> Subject Performance Tracking
+               </h1>
+               <p style="font-size: 0.85rem; color: #64748b;">Monitor recording progress and approval status for all subjects in your class.</p>
+            </div>
+            <button class="btn" style="background: white; border: 1px solid var(--border);" onclick="renderClassMonitor()">↻ Refresh Sync</button>
+         </div>
+
+         <div class="table-card" style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="table-wrapper">
+               <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                  <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                     <tr>
+                        <th style="padding: 12px 1.5rem; font-weight: 800; color: #1e293b;">No</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Course</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Type</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Assignment</th>
+                        <th style="padding: 12px 1rem; font-weight: 800; color: #1e293b;">Submitted Status</th>
+                        <th style="padding: 12px 1.5rem; font-weight: 800; color: #1e293b; text-align: right;">Approved</th>
+                     </tr>
+                  </thead>
+                  <tbody id="class-monitor-tbody">
+                     <tr><td colspan="6" style="padding: 5rem; text-align:center; color: #94a3b8;">Synchronizing institutional data...</td></tr>
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+
+      <!-- VIEW: REPORTS -->
+      <div class="view" id="view-reports">
+         <div class="table-card" style="padding: 2rem;">
+            <h2 style="font-size: 1.1rem; font-weight: 900; margin-bottom: 2rem;">Institutional Report Production</h2>
+            <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom: 2rem;">
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Target Class</label>
+                   <select id="report-class-select" class="input-field" style="margin:0;"><option value="">— select class —</option></select>
+                </div>
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Term Session</label>
+                   <select id="report-term-select" class="input-field" style="margin:0;"><option value="1">Term 1</option><option value="2" selected>Term 2</option><option value="3">Term 3</option></select>
+                </div>
+                <div style="flex:1; min-width: 200px;">
+                   <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Student Registry</label>
+                   <select id="report-student-select" class="input-field" style="margin:0;"><option value="all">Class Summary Registry</option></select>
+                </div>
+            </div>
+
+            <!-- Subject/Assessment Checklists -->
+            <div class="resp-grid" style="gap: 1.5rem; margin-bottom: 2rem;">
+               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
+                  <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="book" style="width:14px; height:14px; margin-right:4px;"></i> Curricular Subjects</label>
+                  <div id="report-subject-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+               </div>
+               <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:1.5rem;">
+                  <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform: uppercase;"><i data-lucide="clipboard-check" style="width:14px; height:14px; margin-right:4px;"></i> Evaluation Markers</label>
+                  <div id="report-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+               </div>
+            </div>
+
+            <div style="margin-bottom: 2rem; max-width: 300px;">
+                <label style="font-size:0.65rem; font-weight:900; color:#94a3b8; display:block; margin-bottom:0.5rem; text-transform: uppercase;">Official Proclamation Date</label>
+                <input type="date" id="report-date-picker" class="input-field" style="margin:0; font-weight:800;">
+            </div>
+
+            <div style="display:flex; gap: 1rem; flex-wrap: wrap;">
+               <button class="btn btn-primary" style="padding: 1rem 2rem; background: #3b82f6; display:inline-flex; align-items:center; gap:8px;" onclick="generateReportCard(false)"><i data-lucide="search" style="width:16px; height:16px;"></i> Preview Report Cards</button>
+               <button class="btn" style="background: #f59e0b; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openPassRateReportModal()"><i data-lucide="trending-up" style="width:16px; height:16px;"></i> Pass Rate Report</button>
+               <button class="btn" style="background: #10b981; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openSubjectSuccessReportModal()"><i data-lucide="book" style="width:16px; height:16px;"></i> Subject Success Report</button>
+               <button class="btn" style="background: #6366f1; color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="openGradeDistributionReportModal()"><i data-lucide="bar-chart-2" style="width:16px; height:16px;"></i> Grade Distribution</button>
+               <button class="btn" style="background: var(--sidebar-bg); color: white; border: none; padding: 1rem 2rem; display:inline-flex; align-items:center; gap:8px;" onclick="generateProclamationList()"><i data-lucide="search" style="width:16px; height:16px;"></i> Preview Proclamation</button>
+               <button class="btn" style="padding: 1rem 2rem; border: 2px solid #3b82f6; color: #3b82f6; display:inline-flex; align-items:center; gap:8px;" onclick="printReportCards()"><i data-lucide="download" style="width:16px; height:16px;"></i> Download Official PDF</button>
+            </div>
+         </div>
+         <div id="report-card-print-area" style="margin-top: 3rem; background: #f1f5f9; padding: 2rem; border-radius: 20px; border: 2px dashed #cbd5e1;">
+            <div style="text-align:center; color:#94a3b8; padding: 4rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; color: #cbd5e1;"><i data-lucide="file-text" style="width:48px; height:48px;"></i></div>
+                <div style="font-weight: 800; font-size: 1.1rem;">Report Preview Area</div>
+                <p style="font-size: 0.85rem;">Select your parameters above and click "Preview" to see the document here.</p>
+            </div>
+         </div>
+      </div>
+
+      <!-- VIEW: PROFILE -->
+      <div class="view" id="view-profile">
+        <div class="table-card" style="padding: 3rem; max-width: 700px;">
+            <div style="display:flex; align-items:center; gap:2rem; margin-bottom:3rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem;">
+              <div id="profile-avatar-big" style="width:100px; height:100px; border-radius:24px; background:linear-gradient(135deg,var(--primary),#6366f1); display:flex; align-items:center; justify-content:center; color:white; font-size:2.5rem; font-weight:900;">T</div>
+              <div>
+                <h2 id="profile-name" style="font-size:1.75rem; font-weight:900; color:var(--sidebar-bg);">Teacher</h2>
+                <p id="profile-email" style="color:#64748b; font-size:1rem; font-weight: 500;">email@school.rw</p>
+                <div class="badge badge-green" style="margin-top:0.75rem; font-weight: 900;">SECURE ACCESS ACTIVE</div>
+              </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;">
+               <div class="form-group">`n               <label>PRIMARY CLASS</label>
+                  <div id="profile-class" style="font-weight:900; color: #1e293b; font-size: 1.1rem;">—</div>
+               </div>
+               <div class="form-group">`n               <label>INSTITUTIONAL ID</label>
+                  <div id="profile-sdms" style="font-weight:900; color: #1e293b; font-size: 1.1rem;">UNSET</div>
+               </div>
+               <div class="form-group">`n               <label>Personal Phone Number</label>
+                  <input type="text" id="profile-phone-input" class="input-field" placeholder="+250 78x xxx xxx" style="font-weight:800; color:#1e293b; margin:0;">
+               </div>
+            </div>
+
+            <!-- JURISDICTIONS SECTION -->
+            <div style="background:#f1f5f9; border-radius:20px; padding:2rem; margin-bottom:3rem;">
+               <div style="font-size:0.75rem; font-weight:900; color:#1e293b; text-transform:uppercase; margin-bottom:1.5rem; display:flex; align-items:center; gap:0.5rem;">
+                  <i data-lucide="book" style="width:16px; height:16px;"></i> INSTITUTIONAL JURISDICTIONS
+               </div>
+               <div id="profile-jurisdictions-list" style="display:flex; flex-direction:column; gap:0.75rem;">
+                  <div style="color:#94a3b8; font-size:0.8rem; font-style:italic;">Synchronizing with academic node...</div>
+               </div>
+            </div>
+
+            <div style="background:#f8fafc; border:2px dashed #cbd5e1; border-radius:20px; padding:2rem; margin-bottom:2rem; text-align:center;">
+               <label style="font-size:0.75rem; font-weight:900; color:#1e293b; display:block; margin-bottom:1rem; text-transform:uppercase;">Digital Signature</label>
+               <div id="signature-preview-container" style="margin-bottom:1.5rem; min-height:100px; display:flex; align-items:center; justify-content:center; background:white; border-radius:12px; border:1px solid #e2e8f0;">
+                  <span id="signature-placeholder" style="color:#94a3b8; font-size:0.8rem; font-style:italic;">No digital signature uploaded</span>
+                  <img id="signature-preview-img" style="max-height:80px; display:none;">
+               </div>
+               <input type="file" id="signature-upload" accept="image/*" style="display:none;" onchange="handleSignatureUpload(this)">
+               <button class="btn" onclick="document.getElementById('signature-upload').click()" style="background:#fff; border:1.5px solid #e2e8f0; color:#1e293b; font-weight:800; font-size:0.7rem; padding:8px 20px;">
+                  SELECT SIGNATURE IMAGE
+               </button>
+               <p style="font-size:0.6rem; color:#94a3b8; margin-top:1rem;">Recommended: PNG format with transparent background</p>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveTeacherPhone()" style="width: 100%; justify-content: center; padding: 1rem; margin-bottom: 2rem;">Save Profile Updates</button>
+            
+            <button class="btn" style="width: 100%; justify-content: center; padding: 1rem; margin-bottom: 1rem;">Change Private Password</button>
+            <button class="btn" style="width: 100%; justify-content: center; padding: 1rem;" onclick="handleLogout()">Disconnect Institutional Link</button>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+</div>
+
+<!-- GRADE DISTRIBUTION REPORT MODAL -->
+<div class="modal-overlay" id="grade-distribution-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Grade Distribution Report</h2>
+    <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Detailed performance breakdown into grade brackets.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="form-group">`n               <label>Academic Year</label>
+        <select id="gd-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Term</label>
+        <select id="gd-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Class (Managed)</label>
+        <input type="text" id="gd-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="gd-class">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generateGradeDistributionReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('grade-distribution-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBJECT SUCCESS REPORT MODAL -->
+<div class="modal-overlay" id="subject-success-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="margin-bottom: 0.5rem; font-weight: 900;">Subject Success Report</h2>
+    <p style="color: #64748b; font-size: 0.8rem; margin-bottom: 2rem;">Performance summary for your subjects across classes.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="form-group">`n               <label>Academic Year</label>
+        <select id="ssr-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Term</label>
+        <select id="ssr-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Target Subject</label>
+        <select id="ssr-subject" class="input-field" ></select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generateSubjectSuccessReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('subject-success-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PASS RATE REPORT MODAL -->
+<div class="modal-overlay" id="pass-rate-report-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 500px;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Pass Rate Report (Proclamation)</h2>
+    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Generate the official Student Pass Rate Report for your class.</p>
+    
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="form-group">`n               <label>Academic Year</label>
+        <select id="pr-year" class="input-field">
+          <option value="2025/2026">2025/2026</option>
+          <option value="2024/2025">2024/2025</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Term</label>
+        <select id="pr-term" class="input-field">
+          <option value="1">Term 1</option>
+          <option value="2" selected>Term 2</option>
+          <option value="3">Term 3</option>
+        </select>
+      </div>
+      <div class="form-group">`n               <label>Class (Managed)</label>
+        <input type="text" id="pr-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="pr-class">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem; margin-top: 1rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="generatePassRateReport()">Generate Report</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('pass-rate-report-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROCLAMATION GENERATOR MODAL (Teacher Edition) -->
+<div class="modal-overlay" id="generate-proclamation-modal">
+  <div class="modal-card" style="padding: 2.5rem; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+    <h2 style="font-weight:900; margin-bottom:1.5rem;">Configure Proclamation Document</h2>
+    <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 2rem;">Select the specific subjects and assessment markers to include in the executive proclamation for your class.</p>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">🎓 Target Cohort (Class)</label>
+        <input type="text" id="proc-target-class-display" class="input-field" disabled style="background: #f1f5f9; color: #64748b; font-weight: 800;">
+        <input type="hidden" id="proc-target-class">
+    </div>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📚 Curricular Subjects</label>
+        <div id="proc-subject-checklist" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:0.8rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;"></div>
+    </div>
+    
+    <div style="margin-bottom: 2.5rem;">
+        <label style="font-size:0.7rem; font-weight:900; color:#1e293b; display:block; margin-bottom:0.5rem; text-transform: uppercase;">📋 Evaluation Markers</label>
+        <div id="proc-assess-checklist" style="display:flex; flex-wrap:wrap; gap:0.5rem; background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
+    </div>
+
+    <div style="display:flex; gap:1rem; border-top:1px solid #f1f5f9; padding-top:2rem;">
+      <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="executeTeacherProclamation()">Generate Proclamation</button>
+      <button class="btn" style="flex:1; justify-content: center;" onclick="closeModal('generate-proclamation-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+      <!-- EXPORT MARKS MODAL (Institutional Edition) -->
+      <div class="modal-overlay" id="export-marks-modal">
+        <div class="modal-card" style="padding: 2.5rem; max-width: 600px; text-align: left;">
+            <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+                <div>
+                   <h2 style="font-weight: 900; margin-bottom: 0.25rem;">Archive Marks Register</h2>
+                   <p style="color: #64748b; font-size: 0.8rem;">Filter and export academic data for your assigned classes.</p>
+                </div>
+                <div style="width: 48px; height: 48px; background: #eff6ff; color: #3b82f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                   <i data-lucide="download"></i>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+               <div>
+                  <label style="font-size: 0.65rem; font-weight: 900; color: #1e293b; text-transform: uppercase;">Curriculum Subjects</label>
+                  <div id="export-subject-list" style="max-height: 150px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                     <!-- Populated via JS -->
+                  </div>
+               </div>
+               <div>
+                  <label style="font-size: 0.65rem; font-weight: 900; color: #1e293b; text-transform: uppercase;">Assessment Types</label>
+                  <div id="export-assess-list" style="max-height: 150px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 5px;">
+                     <!-- Populated via JS -->
+                  </div>
+               </div>
+            </div>
+
+            <div id="export-class-teacher-option" style="display: none; background: #fefce8; border: 1.5px dashed #facc15; border-radius: 12px; padding: 1rem; margin-bottom: 2rem;">
+               <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #854d0e; font-weight: 800; font-size: 0.85rem;">
+                  <input type="checkbox" id="export-full-class" style="width:18px; height:18px;">
+                  Export Full Institutional Registry (All Subjects)
+               </label>
+               <p style="font-size: 0.7rem; color: #a16207; margin-left: 28px; margin-top: 4px;">Generates a comprehensive document including performance data from all teachers assigned to your class.</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+                <button class="btn" style="border: 1.5px solid #e11d48; color: #e11d48; background: #fff1f2; justify-content: center; font-weight: 800;" onclick="exportMarks('pdf')">Acrobat PDF</button>
+                <button class="btn" style="border: 1.5px solid #16a34a; color: #16a34a; background: #f0fdf4; justify-content: center; font-weight: 800;" onclick="exportMarks('excel')">Excel Sheet</button>
+                <button class="btn" style="border: 1.5px solid #2563eb; color: #2563eb; background: #eff6ff; justify-content: center; font-weight: 800;" onclick="exportMarks('word')">Word Doc</button>
+            </div>
+            
+
+            
+            <button class="btn" style="margin-top: 1.5rem; width: 100%; justify-content: center; border: none; color: #94a3b8;" onclick="closeModal('export-marks-modal')">Discard & Close</button>
+        </div>
+      </div>
+<script>
+  var _v = Date.now();
+  document.write('<scr'+'ipt src="../src/services/db.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/registration.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/services/realtime-sync.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/import-engine.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/import-ui.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/teacher.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/dark-mode.js?v='+_v+'"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="../src/components/ai-assistant.js?v='+_v+'"><\/scr'+'ipt>');
+
+  window.addEventListener('load', () => {
+      initTeacherPortal().then(() => {
+          setTimeout(() => {
+              const sc = sessionStorage.getItem('current_school_code');
+              if (typeof StudentImportUI !== 'undefined') StudentImportUI.init('teacher', sc);
+          }, 500);
+      });
+  });
+</script>
+
+
+  <div id="toast-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+</body>
+</html>
+
+<script>
+    // Navbar dropdown click-to-open (uses .open class)
+    document.addEventListener('click', (e) => {
+        const navItem = e.target.closest('.top-navbar .nav-item');
+        if (navItem && navItem.querySelector('.nav-dropdown')) {
+            const wasOpen = navItem.classList.contains('open');
+            document.querySelectorAll('.top-navbar .nav-item').forEach(i => i.classList.remove('open'));
+            if (!wasOpen) navItem.classList.add('open');
+        } else {
+            document.querySelectorAll('.top-navbar .nav-item').forEach(i => i.classList.remove('open'));
+        }
+    });
+</script>

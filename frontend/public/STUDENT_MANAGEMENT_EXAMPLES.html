@@ -1,0 +1,561 @@
+<!-- 
+  STUDENT MANAGEMENT INTEGRATION EXAMPLES
+  Ready-to-integrate code snippets for each portal
+-->
+
+<!-- ============================================================
+     TEACHER PORTAL INTEGRATION
+     ============================================================ -->
+
+<!-- 1. ADD TO teacher-portal.html before </body> tag -->
+
+<!-- Student Management Module & Modals -->
+<script src="../src/components/student-management.js"></script>
+
+<div id="modals-container"></div>
+<script>
+  (function loadStudentModals() {
+    fetch('html/student-management-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('modals-container').innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+      })
+      .catch(e => console.error('[SM] Failed to load modals:', e));
+  })();
+</script>
+
+<!-- 2. ADD TO teacher.js in initialization function -->
+
+// ============================================================
+// STUDENT MANAGEMENT INITIALIZATION
+// ============================================================
+
+async function initializeStudentManagement(user, role) {
+    if (role !== 'teacher') return;
+    
+    try {
+        console.log('[TEACHER] Initializing student management...');
+        
+        // Get teacher's class assignment
+        const { data: assignment } = await _supabase
+            .from('teacher_assignments')
+            .select('class_id, school_code')
+            .eq('teacher_id', user.id)
+            .eq('type', 'class')
+            .maybeSingle();
+        
+        if (!assignment) {
+            console.warn('[TEACHER] No class assignment found');
+            return;
+        }
+        
+        // Initialize StudentManager
+        await StudentManager.init(user, 'teacher', assignment.school_code, assignment.class_id);
+        
+        // Listen for real-time updates
+        listenForStudentUpdates(async (payload) => {
+            console.log('[TEACHER] Students updated:', payload);
+            await renderTeacherStudentList();
+        });
+        
+        // Initial render
+        await renderTeacherStudentList();
+        
+        console.log('[TEACHER] Student management ready');
+    } catch (e) {
+        console.error('[TEACHER] Failed to initialize student management:', e);
+    }
+}
+
+// Call in your teacher initialization
+// initializeStudentManagement(authUser, 'teacher');
+
+// ============================================================
+// STUDENT LIST RENDERING
+// ============================================================
+
+async function renderTeacherStudentList() {
+    const students = await getStudentList(
+        StudentManager.currentSchool,
+        StudentManager.currentClass
+    );
+    
+    const tbody = document.getElementById('students-list-tbody');
+    if (!tbody) {
+        console.warn('[TEACHER] Student list tbody not found');
+        return;
+    }
+    
+    document.getElementById('student-count').textContent = students.length;
+    
+    if (students.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 3rem; color: #94a3b8;">
+                    <i data-lucide="users" style="width: 32px; height: 32px; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="margin-bottom: 0.5rem; font-weight: 600;">No students in this class yet</p>
+                    <p style="font-size: 0.85rem;">Click "Add Student" to get started</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = students.map(s => `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 1rem 2rem; font-weight: 600; color: #1e293b;">${s.full_name}</td>
+                <td style="padding: 1rem; color: #64748b;">
+                    ${s.sdms_code ? `<code style="background: #f1f5f9; padding: 0.25rem 0.5rem; border-radius: 4px;">${s.sdms_code}</code>` : '<span style="color: #94a3b8;">—</span>'}
+                </td>
+                <td style="padding: 1rem; color: #64748b;">
+                    ${s.gender === 'M' ? '♂️ Male' : s.gender === 'F' ? '♀️ Female' : '—'}
+                </td>
+                <td style="padding: 1rem; text-align: right;">
+                    <button onclick="viewStudentDetails('${s.id}')" style="padding: 0.4rem 1rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                        View
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+function viewStudentDetails(studentId) {
+    console.log('Viewing student:', studentId);
+    // Implement view student modal if needed
+}
+
+// ============================================================
+// TEACHER PORTAL HTML (Add to content area)
+// ============================================================
+/*
+<!-- Student Management Section -->
+<section class="panel" style="background: white; border-radius: 20px; border: 1px solid #e5e7eb; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);">
+    <div style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">👥 Class Students</h3>
+                <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.5rem;">Total: <span id="student-count">0</span> students</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="openAddStudentForm()" style="padding: 0.6rem 1.2rem; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                    Add Student
+                </button>
+                <button onclick="openBulkImportForm()" style="padding: 0.6rem 1.2rem; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                    Bulk Import
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: #f8fafc; border-bottom: 1px solid #e5e7eb;">
+                <tr>
+                    <th style="padding: 1rem 2rem; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Student Name</th>
+                    <th style="padding: 1rem; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">SDMS Code</th>
+                    <th style="padding: 1rem; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Gender</th>
+                    <th style="padding: 1rem 2rem; text-align: right;"></th>
+                </tr>
+            </thead>
+            <tbody id="students-list-tbody">
+                <tr><td colspan="4" style="padding: 2rem; text-align: center; color: #94a3b8;">Loading students...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+*/
+
+// ============================================================
+// END TEACHER PORTAL INTEGRATION
+// ============================================================
+
+
+<!-- ============================================================
+     ADMIN PORTAL INTEGRATION
+     ============================================================ -->
+
+<!-- 1. ADD TO admin-portal.html before </body> tag -->
+<!--
+<script src="../src/components/student-management.js"></script>
+
+<div id="modals-container"></div>
+<script>
+  (function loadStudentModals() {
+    fetch('html/student-management-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('modals-container').innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+      })
+      .catch(e => console.error('[SM] Failed to load modals:', e));
+  })();
+</script>
+-->
+
+<!-- 2. ADD TO admin.js in initialization function -->
+
+// ============================================================
+// STUDENT MANAGEMENT INITIALIZATION (ADMIN)
+// ============================================================
+
+async function initializeAdminStudentManagement(user, role) {
+    if (role !== 'admin') return;
+    
+    try {
+        console.log('[ADMIN] Initializing student management...');
+        
+        // Get admin's school
+        const { data: profile } = await _supabase
+            .from('profiles')
+            .select('organization_id, school_code')
+            .eq('id', user.id)
+            .maybeSingle();
+        
+        const schoolCode = profile.school_code || profile.organization_id;
+        if (!schoolCode) {
+            console.warn('[ADMIN] No school assignment found');
+            return;
+        }
+        
+        // Initialize StudentManager
+        await StudentManager.init(user, 'admin', schoolCode, null);
+        
+        // Populate class dropdown
+        await populateAdminClassSelect();
+        
+        // Listen for real-time updates
+        listenForStudentUpdates(async (payload) => {
+            console.log('[ADMIN] Students updated:', payload);
+            await renderAdminStudentList();
+        });
+        
+        // Initial render (all classes)
+        await renderAdminStudentList();
+        
+        console.log('[ADMIN] Student management ready');
+    } catch (e) {
+        console.error('[ADMIN] Failed to initialize student management:', e);
+    }
+}
+
+// ============================================================
+// ADMIN STUDENT LIST HANDLERS
+// ============================================================
+
+async function populateAdminClassSelect() {
+    const select = document.getElementById('admin-class-filter');
+    if (!select) return;
+    
+    try {
+        const { data: classes } = await _supabase
+            .from('classes')
+            .select('id, class_name')
+            .eq('school_code', StudentManager.currentSchool)
+            .order('class_name');
+        
+        select.innerHTML = '<option value="">-- All Classes --</option>';
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.class_name;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error('[ADMIN] Failed to load classes:', e);
+    }
+}
+
+function onAdminClassSelected(classId) {
+    StudentManager.currentClass = classId || null;
+    renderAdminStudentList();
+}
+
+async function renderAdminStudentList() {
+    const students = await getStudentList(
+        StudentManager.currentSchool,
+        StudentManager.currentClass
+    );
+    
+    const tbody = document.getElementById('students-list-tbody');
+    if (!tbody) return;
+    
+    document.getElementById('student-count').textContent = students.length;
+    
+    if (students.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 3rem; color: #94a3b8;">
+                    <p style="font-weight: 600;">No students found</p>
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = students.map(s => `
+            <tr style="border-bottom: 1px solid #e5e7eb; hover { background: #f8fafc; }">
+                <td style="padding: 1rem 2rem; font-weight: 600;">${s.full_name}</td>
+                <td style="padding: 1rem;">${s.sdms_code || '—'}</td>
+                <td style="padding: 1rem;">${s.gender === 'M' ? '♂️' : s.gender === 'F' ? '♀️' : '—'}</td>
+                <td style="padding: 1rem; text-align: right;">
+                    <button onclick="deleteStudent('${s.id}')" style="padding: 0.3rem 0.7rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================
+// ADMIN PORTAL HTML (Add to content area)
+// ============================================================
+/*
+<!-- Student Management Section -->
+<section class="panel" style="background: white; border-radius: 20px; border: 1px solid #e5e7eb; padding: 2rem; margin-bottom: 2rem;">
+    <!-- Filters -->
+    <div style="display: grid; grid-template-columns: 1fr 200px; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <label style="display: block; font-weight: 700; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Class Filter</label>
+            <select id="admin-class-filter" onchange="onAdminClassSelected(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 10px;">
+                <option value="">-- All Classes --</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+            <button onclick="openAddStudentForm()" style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem;">Add</button>
+            <button onclick="openBulkImportForm()" style="flex: 1; padding: 0.75rem; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem;">Import</button>
+        </div>
+    </div>
+
+    <!-- List Header -->
+    <div style="margin-bottom: 1rem;">
+        <h3 style="font-weight: 800; color: #1e293b;">👥 Students</h3>
+        <p style="font-size: 0.75rem; color: #64748b;">Total: <span id="student-count">0</span> students</p>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 1rem 2rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Name</th>
+                    <th style="padding: 1rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">SDMS Code</th>
+                    <th style="padding: 1rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Gender</th>
+                    <th style="padding: 1rem 2rem; text-align: right; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="students-list-tbody">
+                <tr><td colspan="4" style="padding: 2rem; text-align: center; color: #94a3b8;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+*/
+
+// ============================================================
+// END ADMIN PORTAL INTEGRATION
+// ============================================================
+
+
+<!-- ============================================================
+     SYSTEM ADMIN PORTAL INTEGRATION
+     ============================================================ -->
+
+<!-- 1. ADD TO system-admin-portal.html before </body> tag -->
+<!--
+<script src="../src/components/student-management.js"></script>
+
+<div id="modals-container"></div>
+<script>
+  (function loadStudentModals() {
+    fetch('html/student-management-modals.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('modals-container').innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+      })
+      .catch(e => console.error('[SM] Failed to load modals:', e));
+  })();
+</script>
+-->
+
+<!-- 2. ADD TO system-admin.js in initialization function -->
+
+// ============================================================
+// STUDENT MANAGEMENT INITIALIZATION (SYSTEM ADMIN)
+// ============================================================
+
+async function initializeSystemAdminStudentManagement(user, role) {
+    if (role !== 'system_admin') return;
+    
+    try {
+        console.log('[SYSADMIN] Initializing student management...');
+        
+        // Initialize StudentManager (no school/class pre-selected)
+        await StudentManager.init(user, 'system_admin', null, null);
+        
+        // Populate school dropdown
+        await populateSysAdminSchools();
+        
+        // Listen for updates
+        listenForStudentUpdates(async () => {
+            await renderSysAdminStudentList();
+        });
+        
+        console.log('[SYSADMIN] Student management ready');
+    } catch (e) {
+        console.error('[SYSADMIN] Failed to initialize student management:', e);
+    }
+}
+
+// ============================================================
+// SYSTEM ADMIN STUDENT HANDLERS
+// ============================================================
+
+async function populateSysAdminSchools() {
+    const select = document.getElementById('sysadmin-school-filter');
+    if (!select) return;
+    
+    try {
+        const { data: schools } = await _supabase
+            .from('schools')
+            .select('sdms_code, name')
+            .order('name');
+        
+        select.innerHTML = '<option value="">-- Select School --</option>';
+        schools.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.sdms_code;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.error('[SYSADMIN] Failed to load schools:', e);
+    }
+}
+
+async function onSysAdminSchoolSelected(schoolCode) {
+    if (!schoolCode) {
+        document.getElementById('sysadmin-class-filter').innerHTML = '<option value="">-- Select Class --</option>';
+        return;
+    }
+    
+    StudentManager.currentSchool = schoolCode;
+    
+    try {
+        const { data: classes } = await _supabase
+            .from('classes')
+            .select('id, class_name')
+            .eq('school_code', schoolCode)
+            .order('class_name');
+        
+        const select = document.getElementById('sysadmin-class-filter');
+        select.innerHTML = '<option value="">-- All Classes --</option>';
+        classes.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.class_name;
+            select.appendChild(opt);
+        });
+        
+        // Load all students in school
+        await renderSysAdminStudentList();
+    } catch (e) {
+        console.error('[SYSADMIN] Failed to load classes:', e);
+    }
+}
+
+function onSysAdminClassSelected(classId) {
+    StudentManager.currentClass = classId || null;
+    renderSysAdminStudentList();
+}
+
+async function renderSysAdminStudentList() {
+    if (!StudentManager.currentSchool) {
+        document.getElementById('students-list-tbody').innerHTML = '<tr><td colspan="4" style="padding: 2rem; text-align: center; color: #94a3b8;">Select a school first</td></tr>';
+        return;
+    }
+    
+    const students = await getStudentList(
+        StudentManager.currentSchool,
+        StudentManager.currentClass
+    );
+    
+    const tbody = document.getElementById('students-list-tbody');
+    if (!tbody) return;
+    
+    document.getElementById('student-count').textContent = students.length;
+    
+    tbody.innerHTML = students.length === 0 
+        ? '<tr><td colspan="4" style="padding: 2rem; text-align: center; color: #94a3b8;">No students found</td></tr>'
+        : students.map(s => `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 1rem 2rem;">${s.full_name}</td>
+                <td style="padding: 1rem;">${s.sdms_code || '—'}</td>
+                <td style="padding: 1rem;">${s.gender || '—'}</td>
+                <td style="padding: 1rem; text-align: right;">
+                    <button onclick="deleteStudent('${s.id}')" style="padding: 0.3rem 0.7rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================
+// SYSTEM ADMIN PORTAL HTML (Add to content area)
+// ============================================================
+/*
+<!-- Student Management Section -->
+<section class="panel" style="background: white; border-radius: 20px; border: 1px solid #e5e7eb; padding: 2rem; margin-bottom: 2rem;">
+    <!-- Filters -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 200px; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <label style="display: block; font-weight: 700; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">School</label>
+            <select id="sysadmin-school-filter" onchange="onSysAdminSchoolSelected(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 10px;">
+                <option value="">-- Select School --</option>
+            </select>
+        </div>
+        <div>
+            <label style="display: block; font-weight: 700; font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem; text-transform: uppercase;">Class</label>
+            <select id="sysadmin-class-filter" onchange="onSysAdminClassSelected(this.value)" style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 10px;">
+                <option value="">-- Select Class --</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+            <button onclick="openAddStudentForm()" style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add
+            </button>
+            <button onclick="openBulkImportForm()" style="flex: 1; padding: 0.75rem; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Import
+            </button>
+        </div>
+    </div>
+
+    <!-- List -->
+    <h3 style="font-weight: 800; color: #1e293b; margin-bottom: 1rem;">👥 Students <span style="color: #64748b; font-weight: 600;">(<span id="student-count">0</span>)</span></h3>
+    
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 1rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Name</th>
+                    <th style="padding: 1rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">SDMS Code</th>
+                    <th style="padding: 1rem; text-align: left; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Gender</th>
+                    <th style="padding: 1rem; text-align: right; font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="students-list-tbody">
+                <tr><td colspan="4" style="padding: 2rem; text-align: center; color: #94a3b8;">Select a school to view students</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+*/
+
+// ============================================================
+// END SYSTEM ADMIN PORTAL INTEGRATION
+// ============================================================
+

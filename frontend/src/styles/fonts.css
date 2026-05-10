@@ -1,0 +1,303 @@
+/*
+ * ============================================================
+ *  MMS — INSTITUTIONAL FONT SYSTEM
+ *  Version: 2.0
+ *  Strategy: Batched Google Fonts import with font-display:swap
+ *  Default: Inter (UI) | Poppins (Headings) | Roboto (Tables)
+ * ============================================================
+ */
+
+/* ── BATCH 1: Primary UI & Heading Fonts ─────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&family=Lato:wght@300;400;700;900&family=Montserrat:wght@300;400;500;600;700;800;900&family=Nunito:wght@300;400;500;600;700;800;900&family=Raleway:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── BATCH 2: Clean Modern Fonts ─────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Work+Sans:wght@300;400;500;600;700;800;900&family=Source+Sans+3:wght@300;400;600;700;900&family=Noto+Sans:wght@300;400;500;600;700;800;900&family=Mulish:wght@300;400;500;600;700;800;900&family=Quicksand:wght@300;400;500;600;700&family=Oxygen:wght@300;400;700&family=PT+Sans:wght@400;700&family=Cabin:wght@400;500;600;700&family=Karla:wght@300;400;500;600;700;800&display=swap');
+
+/* ── BATCH 3: Premium & Display ──────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Manrope:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Bebas+Neue&family=Anton&family=Oswald:wght@300;400;500;600;700&family=League+Spartan:wght@400;500;600;700;800;900&family=Archivo:wght@300;400;500;600;700;800;900&family=Exo:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── BATCH 4: Stylish Headings & Specialized ─────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Teko:wght@300;400;500;600;700&family=Titillium+Web:wght@300;400;600;700;900&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+/* ── BATCH 5: Serif & Academic Fonts ─────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Vollkorn:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Arvo:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* ── BATCH 6: Display & Creative ─────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Pacifico&family=Lobster&family=Dancing+Script:wght@400;500;600;700&family=Great+Vibes&family=Satisfy&family=Fredoka:wght@300;400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Amatic+SC:wght@400;700&family=Abril+Fatface&display=swap');
+
+/* ── BATCH 7: Tech & Futuristic Fonts ────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Audiowide&family=Russo+One&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Share+Tech&family=Quantico:ital,wght@0,400;0,700;1,400&family=Syncopate:wght@400;700&family=Michroma&family=Aldrich&display=swap');
+
+/* ── BATCH 8: Minimal & Clean ────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&family=Heebo:wght@300;400;500;600;700;800;900&family=Hind:wght@300;400;500;600;700&family=Kumbh+Sans:wght@300;400;500;600;700;800;900&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Red+Hat+Display:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Space+Grotesk:wght@300;400;500;600;700&family=Lexend:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+/* ── BATCH 9: Monospace & Code Fonts ─────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@300;400;500;600;700&family=Inconsolata:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Fira+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+/* ── BATCH 10: Extra & Utility Fonts ─────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Varela+Round&family=Yanone+Kaffeesatz:wght@300;400;500;600;700&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Catamaran:wght@300;400;500;600;700;800;900&family=Questrial&family=Didact+Gothic&family=Righteous&family=Josefin+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Josefin+Slab:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+/* ── BATCH 11: Additional Special Fonts ──────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Alfa+Slab+One&family=Bree+Serif&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Asap:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Baloo+2:wght@400;500;600;700;800&family=Boogaloo&family=Play:wght@400;700&display=swap');
+
+/*
+ * ============================================================
+ *  CSS CUSTOM PROPERTIES — FONT SYSTEM TOKENS
+ *  Use these variables throughout the app for consistency.
+ * ============================================================
+ */
+:root {
+    /* ── Primary Font Stack ────────────────────────────── */
+    --font-body:       'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    --font-heading:    'Poppins', 'Nunito', 'Inter', sans-serif;
+    --font-table:      'Roboto', 'Open Sans', 'Inter', sans-serif;
+    --font-report:     'Merriweather', 'Libre Baskerville', Georgia, serif;
+    --font-mono:       'JetBrains Mono', 'Fira Code', 'Inconsolata', monospace;
+    --font-display:    'Montserrat', 'Raleway', 'Poppins', sans-serif;
+    --font-accent:     'DM Sans', 'Manrope', 'Inter', sans-serif;
+
+    /* ── Named Font References (for dynamic font switching) */
+    --font-sans-inter:       'Inter', sans-serif;
+    --font-sans-poppins:     'Poppins', sans-serif;
+    --font-sans-roboto:      'Roboto', sans-serif;
+    --font-sans-montserrat:  'Montserrat', sans-serif;
+    --font-sans-opensans:    'Open Sans', sans-serif;
+    --font-sans-lato:        'Lato', sans-serif;
+    --font-sans-nunito:      'Nunito', sans-serif;
+    --font-sans-raleway:     'Raleway', sans-serif;
+    --font-sans-ubuntu:      'Ubuntu', sans-serif;
+    --font-sans-worksans:    'Work Sans', sans-serif;
+    --font-sans-noto:        'Noto Sans', sans-serif;
+    --font-sans-mulish:      'Mulish', sans-serif;
+    --font-sans-quicksand:   'Quicksand', sans-serif;
+    --font-sans-dmsans:      'DM Sans', sans-serif;
+    --font-sans-manrope:     'Manrope', sans-serif;
+    --font-sans-outfit:      'Outfit', sans-serif;
+    --font-sans-lexend:      'Lexend', sans-serif;
+    --font-sans-ibmplex:     'IBM Plex Sans', sans-serif;
+    --font-sans-spacegrotesk:'Space Grotesk', sans-serif;
+    --font-sans-rubik:       'Rubik', sans-serif;
+    --font-sans-exo2:        'Exo 2', sans-serif;
+    --font-sans-cabin:       'Cabin', sans-serif;
+    --font-sans-karla:       'Karla', sans-serif;
+    --font-sans-heebo:       'Heebo', sans-serif;
+    --font-sans-assistant:   'Assistant', sans-serif;
+    --font-sans-prompt:      'Prompt', sans-serif;
+    --font-sans-fira:        'Fira Sans', sans-serif;
+    --font-sans-josefin:     'Josefin Sans', sans-serif;
+    --font-sans-redhat:      'Red Hat Display', sans-serif;
+    --font-sans-plusjakarta:  'Plus Jakarta Sans', sans-serif;
+    --font-sans-kumbh:       'Kumbh Sans', sans-serif;
+    --font-sans-archivo:     'Archivo', sans-serif;
+    
+    /* ── Serif Fonts ───────────────────────────────────── */
+    --font-serif-merriweather: 'Merriweather', serif;
+    --font-serif-playfair:     'Playfair Display', serif;
+    --font-serif-lora:         'Lora', serif;
+    --font-serif-librebaskerville: 'Libre Baskerville', serif;
+    --font-serif-ebgaramond:   'EB Garamond', serif;
+    --font-serif-crimson:      'Crimson Text', serif;
+    --font-serif-ptserif:      'PT Serif', serif;
+    --font-serif-spectral:     'Spectral', serif;
+    --font-serif-arvo:         'Arvo', serif;
+    --font-serif-vollkorn:     'Vollkorn', serif;
+    --font-serif-cormorant:    'Cormorant', serif;
+    --font-serif-zillaslab:    'Zilla Slab', serif;
+
+    /* ── Display & Stylish Fonts ───────────────────────── */
+    --font-display-bebas:      'Bebas Neue', sans-serif;
+    --font-display-oswald:     'Oswald', sans-serif;
+    --font-display-league:     'League Spartan', sans-serif;
+    --font-display-orbitron:   'Orbitron', sans-serif;
+    --font-display-montserrat: 'Montserrat', sans-serif;
+    --font-display-rajdhani:   'Rajdhani', sans-serif;
+    --font-display-teko:       'Teko', sans-serif;
+    --font-display-titillium:  'Titillium Web', sans-serif;
+    --font-display-exo:        'Exo', sans-serif;
+    --font-display-russo:      'Russo One', sans-serif;
+    --font-display-audiowide:  'Audiowide', sans-serif;
+    --font-display-chakra:     'Chakra Petch', sans-serif;
+    --font-display-abril:      'Abril Fatface', serif;
+    --font-display-bangers:    'Bangers', cursive;
+    --font-display-pacifico:   'Pacifico', cursive;
+    --font-display-lobster:    'Lobster', cursive;
+    --font-display-dancing:    'Dancing Script', cursive;
+    --font-display-righteous:  'Righteous', sans-serif;
+    --font-display-fredoka:    'Fredoka', sans-serif;
+    --font-display-comfortaa:  'Comfortaa', sans-serif;
+
+    /* ── Monospace Fonts ───────────────────────────────── */
+    --font-mono-jetbrains: 'JetBrains Mono', monospace;
+    --font-mono-firacode:  'Fira Code', monospace;
+    --font-mono-inconsolata:'Inconsolata', monospace;
+    --font-mono-spacemono: 'Space Mono', monospace;
+}
+
+/*
+ * ============================================================
+ *  GLOBAL BASE RESET — Apply default font to all elements
+ * ============================================================
+ */
+*,
+*::before,
+*::after {
+    font-family: var(--font-body);
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: 16px;
+}
+
+body {
+    font-family: var(--font-body);
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Headings default to Poppins */
+h1, h2, h3, h4, h5, h6,
+.heading, .page-title, .section-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+}
+
+/* Tables default to Roboto for numeric clarity */
+table, th, td,
+.data-table, .data-table th, .data-table td {
+    font-family: var(--font-table);
+}
+
+/* Code & data blocks */
+code, pre, kbd, samp,
+.font-mono {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+}
+
+/* Report cards use Merriweather for a professional look */
+.report-page,
+.report-content,
+#proclamation-document {
+    font-family: var(--font-report);
+}
+
+/*
+ * ============================================================
+ *  UTILITY CLASSES — Apply any font on demand
+ *  Usage: <element class="font-poppins">Text</element>
+ * ============================================================
+ */
+
+/* Sans-Serif Utilities */
+.font-inter         { font-family: var(--font-sans-inter) !important; }
+.font-poppins       { font-family: var(--font-sans-poppins) !important; }
+.font-roboto        { font-family: var(--font-sans-roboto) !important; }
+.font-montserrat    { font-family: var(--font-sans-montserrat) !important; }
+.font-opensans      { font-family: var(--font-sans-opensans) !important; }
+.font-lato          { font-family: var(--font-sans-lato) !important; }
+.font-nunito        { font-family: var(--font-sans-nunito) !important; }
+.font-raleway       { font-family: var(--font-sans-raleway) !important; }
+.font-ubuntu        { font-family: var(--font-sans-ubuntu) !important; }
+.font-worksans      { font-family: var(--font-sans-worksans) !important; }
+.font-noto          { font-family: var(--font-sans-noto) !important; }
+.font-mulish        { font-family: var(--font-sans-mulish) !important; }
+.font-quicksand     { font-family: var(--font-sans-quicksand) !important; }
+.font-dmsans        { font-family: var(--font-sans-dmsans) !important; }
+.font-manrope       { font-family: var(--font-sans-manrope) !important; }
+.font-outfit        { font-family: var(--font-sans-outfit) !important; }
+.font-lexend        { font-family: var(--font-sans-lexend) !important; }
+.font-ibmplex       { font-family: var(--font-sans-ibmplex) !important; }
+.font-spacegrotesk  { font-family: var(--font-sans-spacegrotesk) !important; }
+.font-rubik         { font-family: var(--font-sans-rubik) !important; }
+.font-exo2          { font-family: var(--font-sans-exo2) !important; }
+.font-cabin         { font-family: var(--font-sans-cabin) !important; }
+.font-karla         { font-family: var(--font-sans-karla) !important; }
+.font-heebo         { font-family: var(--font-sans-heebo) !important; }
+.font-assistant     { font-family: var(--font-sans-assistant) !important; }
+.font-prompt        { font-family: var(--font-sans-prompt) !important; }
+.font-fira          { font-family: var(--font-sans-fira) !important; }
+.font-josefin       { font-family: var(--font-sans-josefin) !important; }
+.font-redhat        { font-family: var(--font-sans-redhat) !important; }
+.font-plusjakarta   { font-family: var(--font-sans-plusjakarta) !important; }
+.font-kumbh         { font-family: var(--font-sans-kumbh) !important; }
+.font-archivo       { font-family: var(--font-sans-archivo) !important; }
+
+/* Serif Utilities */
+.font-merriweather  { font-family: var(--font-serif-merriweather) !important; }
+.font-playfair      { font-family: var(--font-serif-playfair) !important; }
+.font-lora          { font-family: var(--font-serif-lora) !important; }
+.font-librebask     { font-family: var(--font-serif-librebaskerville) !important; }
+.font-ebgaramond    { font-family: var(--font-serif-ebgaramond) !important; }
+.font-crimson       { font-family: var(--font-serif-crimson) !important; }
+.font-ptserif       { font-family: var(--font-serif-ptserif) !important; }
+.font-spectral      { font-family: var(--font-serif-spectral) !important; }
+.font-arvo          { font-family: var(--font-serif-arvo) !important; }
+.font-vollkorn      { font-family: var(--font-serif-vollkorn) !important; }
+.font-cormorant     { font-family: var(--font-serif-cormorant) !important; }
+.font-zillaslab     { font-family: var(--font-serif-zillaslab) !important; }
+
+/* Display Utilities */
+.font-bebas         { font-family: var(--font-display-bebas) !important; }
+.font-oswald        { font-family: var(--font-display-oswald) !important; }
+.font-league        { font-family: var(--font-display-league) !important; }
+.font-orbitron      { font-family: var(--font-display-orbitron) !important; }
+.font-rajdhani      { font-family: var(--font-display-rajdhani) !important; }
+.font-teko          { font-family: var(--font-display-teko) !important; }
+.font-titillium     { font-family: var(--font-display-titillium) !important; }
+.font-exo           { font-family: var(--font-display-exo) !important; }
+.font-russo         { font-family: var(--font-display-russo) !important; }
+.font-audiowide     { font-family: var(--font-display-audiowide) !important; }
+.font-chakra        { font-family: var(--font-display-chakra) !important; }
+.font-abril         { font-family: var(--font-display-abril) !important; }
+.font-bangers       { font-family: var(--font-display-bangers) !important; }
+.font-pacifico      { font-family: var(--font-display-pacifico) !important; }
+.font-lobster       { font-family: var(--font-display-lobster) !important; }
+.font-dancing       { font-family: var(--font-display-dancing) !important; }
+.font-righteous     { font-family: var(--font-display-righteous) !important; }
+.font-fredoka       { font-family: var(--font-display-fredoka) !important; }
+.font-comfortaa     { font-family: var(--font-display-comfortaa) !important; }
+
+/* Monospace Utilities */
+.font-jetbrains     { font-family: var(--font-mono-jetbrains) !important; }
+.font-firacode      { font-family: var(--font-mono-firacode) !important; }
+.font-inconsolata   { font-family: var(--font-mono-inconsolata) !important; }
+.font-spacemono     { font-family: var(--font-mono-spacemono) !important; }
+
+/*
+ * ============================================================
+ *  REPORT CARD FONT OVERRIDES
+ *  Ensure institutional documents retain elegant serif styling
+ * ============================================================
+ */
+@media print {
+    .report-page, .report-content, #proclamation-document {
+        font-family: 'Merriweather', 'Georgia', serif !important;
+    }
+    .report-page h1, .report-page h2, .report-page h3 {
+        font-family: 'Playfair Display', 'Georgia', serif !important;
+    }
+    table, th, td {
+        font-family: 'Roboto', 'Arial', sans-serif !important;
+    }
+}
+
+/*
+ * ============================================================
+ *  RESPONSIVE FONT SCALING
+ * ============================================================
+ */
+@media (max-width: 768px) {
+    html { font-size: 15px; }
+    h1 { font-size: clamp(1.5rem, 5vw, 2.5rem); }
+    h2 { font-size: clamp(1.2rem, 4vw, 2rem); }
+    h3 { font-size: clamp(1rem, 3vw, 1.5rem); }
+}
+
+@media (max-width: 480px) {
+    html { font-size: 14px; }
+}
