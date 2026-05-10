@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/src/(.*)", "destination": "/frontend/src/$1" },
+    { "source": "/(.*\\.html)", "destination": "/frontend/public/$1" },
+    { "source": "/", "destination": "/frontend/public/index.html" },
+    { "source": "/(.*)", "destination": "/frontend/public/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=86400" }
+      ]
+    }
+  ]
+}
